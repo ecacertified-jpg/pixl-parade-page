@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Heart, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Search, Heart, SlidersHorizontal, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,8 @@ import {
   useCatalogSearch,
   useDebouncedValue,
 } from "@/hooks/useWishlistCatalog";
+
+const SEARCH_SUGGESTIONS = ["robe", "chemise", "parfum", "bijoux", "gâteau", "chaussures"];
 
 export default function WishlistCatalog() {
   const { countryCode } = useCountry();
@@ -59,6 +62,22 @@ export default function WishlistCatalog() {
     () => new Set((favorites ?? []).map((f: any) => f.product_id)),
     [favorites],
   );
+
+  // Scénario A : produits disponibles côté serveur mais filtre de goût trop
+  // restrictif côté client → on déverrouille automatiquement vers « Tous ».
+  useEffect(() => {
+    if (
+      !loading &&
+      products.length > 0 &&
+      filteredProducts.length === 0 &&
+      selectedTaste !== "tous"
+    ) {
+      const previousLabel =
+        TASTE_CATEGORIES.find((t) => t.id === selectedTaste)?.label ?? selectedTaste;
+      setSelectedTaste("tous");
+      toast.info(`Aucun article dans « ${previousLabel} » — affichage de tous les articles`);
+    }
+  }, [loading, products.length, filteredProducts.length, selectedTaste]);
 
   // Infinite scroll sentinel (uniquement en mode catalogue)
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -94,6 +113,11 @@ export default function WishlistCatalog() {
   );
 
   const allTastes = [ALL_TASTE, ...TASTE_CATEGORIES];
+
+  const activeTasteLabel =
+    selectedTaste !== "tous"
+      ? TASTE_CATEGORIES.find((t) => t.id === selectedTaste)?.label
+      : null;
 
   return (
     <>

@@ -1,75 +1,55 @@
+# Plan — Empty state intelligent du catalogue de souhaits
+
 ## Objectif
 
-Améliorer la page `/wishlist-catalog` (`src/pages/WishlistCatalog.tsx`) sur trois axes :
-1. Chargement nettement plus rapide des cartes de souhait
-2. Affichage du **lieu** de chaque article sur sa carte
-3. Recherche libre par **nom d'article** (lingettes, robe, chemise…) ou par **catégorie** (en plus des filtres "goûts" actuels)
+Quand aucun article n'est trouvé sur `/wishlist-catalog`, aider l'utilisateur à rebondir au lieu d'afficher un simple message statique :
 
----
+1. **Réinitialiser automatiquement le filtre de goût** quand il est responsable du vide (résultats existants côté serveur mais filtrés à zéro côté client).
+2. **Proposer des suggestions de recherche concrètes** quand la recherche elle-même ne renvoie rien.
 
-## 1. Accélération du chargement
+## Comportement attendu
 
-### Problèmes actuels
-- Deux requêtes Supabase en série : d'abord `business_accounts` (pour récupérer les `id`), puis `products` filtrés par `business_id IN (...)`. Cela double la latence réseau.
-- `limit(1000)` alors qu'on n'affiche que ~20 cartes en haut de page.
-- Aucun cache : à chaque montage du composant, tout est rechargé.
-- Pas de pagination ni de virtualisation.
-- Image hero : utilise `loading="lazy"` (bien) mais aucune dimension réservée → re-layout.
+Trois scénarios distincts :
 
-### Changements
-- **Une seule requête** sur `products` filtrée directement par `country_code` (la colonne existe sur `products` grâce au trigger de synchronisation pays). On supprime la requête préalable sur `business_accounts`.
-- **Pagination par lots** : charger 24 produits initialement, puis charger 24 de plus à la demande (bouton "Voir plus" ou défilement infini avec `IntersectionObserver`).
-- **Migration vers TanStack Query** (`useQuery`) avec `queryKey: ['wishlist-catalog', countryCode, page]`, `staleTime: 5 min`, et `placeholderData` pour conserver l'affichage existant pendant le rechargement.
-- **Sélection minimale** des colonnes : `id, name, price, currency, image_url, category_name, location_name` + jointure légère `business_accounts(business_name, address)`.
-- **Tri optimisé** : `order('popularity_score', { ascending: false, nullsFirst: false })` puis `created_at desc` pour mettre en avant les produits populaires.
-- **Debounce** de la recherche (300 ms) via un petit `useDebounce` local pour éviter les re-rendus à chaque frappe.
-- **Réservation de hauteur d'image** (`aspect-square` est déjà là, garder) + `decoding="async"` sur les `<img>`.
+### A. Filtre de goût trop restrictif (auto-reset)
+- Condition : `products.length > 0` mais `filteredProducts.length === 0` ET `selectedTaste !== 'tous'`.
+- Action : afficher un bandeau discret « Aucun article dans **Mode** — affichage de tous les articles » + bouton « Annuler » et auto-bascule vers `tous` après ~1.5 s (ou immédiatement, voir détails techniques).
+- Justification : l'utilisateur cherche « robe » → trouve des résultats, mais son filtre « Tech » les masque tous. On déverrouille au lieu de montrer un cul-de-sac.
 
----
+### B. Recherche sans résultat (suggestions)
+- Condition : `isSearching === true` et `products.length === 0`.
+- Affichage :
+  - Icône + « Aucun article pour "robe" »
+  - Sous-titre : « Essayez une recherche plus courte ou l'une de ces idées »
+  - **Chips de suggestions cliquables** (4–6 termes populaires) : `robe`, `chemise`, `parfum`, `bijoux`, `gâteau`, `chaussures`. Au clic → remplit la barre de recherche.
+  - Bouton secondaire « Effacer la recherche » → reset `searchQuery`.
+  - Si un filtre de goût est actif : ligne supplémentaire « Filtre actif : **Mode** » + bouton « Retirer le filtre ».
 
-## 2. Lieu sur chaque carte
+### C. Catalogue vide pour le pays (cas rare)
+- Condition : pas de recherche, pas de filtre, et `products.length === 0`.
+- Garder le message actuel mais avec invitation à changer de pays via le `CountrySelector` déjà présent en haut.
 
-Afficher le lieu sous le nom du commerçant, en utilisant cette priorité :
-1. `product.location_name` (si renseigné côté produit, ex: pour les expériences)
-2. Sinon `business_accounts.address` (adresse de la boutique)
-3. Sinon, ne rien afficher
+## Détails techniques
 
-Présentation : petite ligne grise avec l'icône `MapPin` (lucide), `text-xs text-muted-foreground truncate`, sous le nom de la boutique.
+**Fichier modifié** : `src/pages/WishlistCatalog.tsx` uniquement.
 
-```text
-┌─────────────────────────┐
-│       [image]           │
-├─────────────────────────┤
-│ Lingettes               │
-│ Boutique XYZ            │
-│ 📍 Cocody, Abidjan      │
-│ 2 000 XOF               │
-└─────────────────────────┘
-```
+1. **Auto-reset du filtre (scénario A)** via `useEffect` :
+   ```
+   useEffect(() => {
+     if (!loading && products.length > 0 && filteredProducts.length === 0 && selectedTaste !== 'tous') {
+       setSelectedTaste('tous');
+       toast.info(`Aucun article dans cette catégorie — affichage de tous les articles`);
+     }
+   }, [loading, products.length, filteredProducts.length, selectedTaste]);
+   ```
+   Toast via `sonner` (déjà utilisé dans le projet) pour signaler le changement sans bloquer le flux.
 
----
+2. **Suggestions de recherche** : constante locale `SEARCH_SUGGESTIONS = ['robe', 'chemise', 'parfum', 'bijoux', 'gâteau', 'chaussures']`. Rendues comme `Badge` cliquables qui appellent `setSearchQuery(suggestion)`.
 
-## 3. Recherche par nom OU catégorie
+3. **Empty state restructuré** : un seul bloc `else if (filteredProducts.length === 0)` qui branche sur les trois scénarios via des conditions claires sur `isSearching` et `selectedTaste`.
 
-La recherche actuelle (lignes 64–71) filtre déjà sur `name` ET `category_name` côté client, mais elle est limitée aux 1000 produits chargés et **bridée par le filtre "goûts" actif**. Améliorations :
+4. **Pas de changement de hooks ni de DB**. Pas d'impact sur les performances (cartes mémoïsées déjà en place).
 
-- **Recherche serveur** quand l'utilisateur tape : si la requête fait ≥ 2 caractères, lancer une requête Supabase avec `.or('name.ilike.%q%,category_name.ilike.%q%')` pour chercher dans **tout le catalogue du pays** (pas seulement les 24 premiers chargés).
-- **Réinitialiser** les résultats à la liste paginée standard quand le champ est vidé.
-- Le filtre "goûts" reste appliqué par-dessus la recherche (intersection logique), avec un message clair ("Aucun article pour 'robe' dans la catégorie Tech — essayez 'Tous'") si l'intersection est vide.
-- Mettre à jour le placeholder du champ : « Rechercher par nom (lingettes, robe…) ou catégorie ».
+## Fichiers touchés
 
----
-
-## Détails techniques (résumé pour développeurs)
-
-**Fichiers modifiés**
-- `src/pages/WishlistCatalog.tsx` — refonte du fetch (TanStack Query + pagination + recherche serveur), affichage du lieu, debounce.
-
-**Fichiers potentiellement créés**
-- `src/hooks/useWishlistCatalog.ts` — extraction de la logique de fetch/pagination/search dans un hook dédié pour clarté et réutilisation future.
-
-**Schéma BDD** : aucune migration nécessaire. `products.location_name`, `products.country_code` et `business_accounts.address` existent déjà.
-
-**Index recommandé (à vérifier, sinon ajouté via migration mineure)** : `CREATE INDEX IF NOT EXISTS idx_products_country_active ON products(country_code, is_active) WHERE is_active = true;` pour accélérer le filtrage initial.
-
-**Aucune autre page n'est impactée.**
+- `src/pages/WishlistCatalog.tsx` (logique empty state + auto-reset + suggestions)
