@@ -1217,7 +1217,13 @@ const Auth = () => {
           });
           processAdminAutoAssign(authData.user.id).catch(console.error);
           acceptInvitationIfNeeded().catch(console.error);
-          navigate('/dashboard?onboarding=true');
+          const redirectParam = searchParams.get('redirect');
+          if (redirectParam) {
+            const sep = redirectParam.includes('?') ? '&' : '?';
+            navigate(`${redirectParam}${sep}onboarding=true`);
+          } else {
+            navigate('/dashboard?onboarding=true');
+          }
         }
       }
     } catch (error: any) {
