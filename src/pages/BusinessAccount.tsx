@@ -1518,5 +1518,15 @@ interface RecentOrderItem {
         }}
         onProductUpdated={loadProducts}
       />
+
+      {/* AI Assistant — disponible sur tout le tableau de bord business */}
+      {selectedBusinessId && (
+        <BusinessAssistantFAB
+          businessId={selectedBusinessId}
+          onAction={(action) => {
+            if (action === 'open-add-product') setIsAddProductModalOpen(true);
+          }}
+        />
+      )}
     </div>;
 }
