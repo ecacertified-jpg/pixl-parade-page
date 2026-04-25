@@ -20,6 +20,35 @@ const PAGE_SIZE = 24;
 const SELECT_COLS =
   "id, name, price, currency, image_url, category_name, location_name, business_accounts!products_business_id_fkey(business_name, address)";
 
+export type CatalogSortOption = "popularity" | "newest" | "price_asc" | "price_desc";
+
+export const CATALOG_SORT_OPTIONS: { value: CatalogSortOption; label: string }[] = [
+  { value: "popularity", label: "Popularité" },
+  { value: "newest", label: "Nouveautés" },
+  { value: "price_asc", label: "Prix croissant" },
+  { value: "price_desc", label: "Prix décroissant" },
+];
+
+function applySort<T extends ReturnType<typeof supabase.from>>(query: any, sort: CatalogSortOption) {
+  switch (sort) {
+    case "newest":
+      return query.order("created_at", { ascending: false });
+    case "price_asc":
+      return query
+        .order("price", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false });
+    case "price_desc":
+      return query
+        .order("price", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+    case "popularity":
+    default:
+      return query
+        .order("popularity_score", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+  }
+}
+
 /** Petit hook de debounce local pour limiter les requêtes pendant la frappe. */
 export function useDebouncedValue<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);
@@ -34,9 +63,9 @@ export function useDebouncedValue<T>(value: T, delay = 300): T {
  * Liste paginée des produits du pays courant (mode catalogue par défaut).
  * Une seule requête Supabase par page, indexée par `country_code`.
  */
-export function useCatalogProducts(countryCode: string) {
+export function useCatalogProducts(countryCode: string, sort: CatalogSortOption = "popularity") {
   return useInfiniteQuery({
-    queryKey: ["wishlist-catalog", countryCode],
+    queryKey: ["wishlist-catalog", countryCode, sort],
     enabled: !!countryCode,
     initialPageParam: 0,
     staleTime: 5 * 60 * 1000,
@@ -44,14 +73,13 @@ export function useCatalogProducts(countryCode: string) {
     queryFn: async ({ pageParam = 0 }) => {
       const from = pageParam * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-      const { data, error } = await supabase
+      let query = supabase
         .from("products")
         .select(SELECT_COLS)
         .eq("is_active", true)
-        .eq("country_code", countryCode)
-        .order("popularity_score", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .range(from, to);
+        .eq("country_code", countryCode);
+      query = applySort(query, sort);
+      const { data, error } = await query.range(from, to);
       if (error) throw error;
       return (data ?? []) as unknown as CatalogProduct[];
     },
@@ -65,23 +93,27 @@ export function useCatalogProducts(countryCode: string) {
  * Recherche serveur (nom OU catégorie) sur l'ensemble du catalogue du pays.
  * Activée uniquement quand `query` ≥ 2 caractères.
  */
-export function useCatalogSearch(countryCode: string, query: string) {
+export function useCatalogSearch(
+  countryCode: string,
+  query: string,
+  sort: CatalogSortOption = "popularity",
+) {
   const trimmed = query.trim();
   return useQuery({
-    queryKey: ["wishlist-catalog-search", countryCode, trimmed.toLowerCase()],
+    queryKey: ["wishlist-catalog-search", countryCode, trimmed.toLowerCase(), sort],
     enabled: !!countryCode && trimmed.length >= 2,
     staleTime: 60 * 1000,
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const escaped = trimmed.replace(/[%,]/g, " ");
-      const { data, error } = await supabase
+      let query = supabase
         .from("products")
         .select(SELECT_COLS)
         .eq("is_active", true)
         .eq("country_code", countryCode)
-        .or(`name.ilike.%${escaped}%,category_name.ilike.%${escaped}%`)
-        .order("popularity_score", { ascending: false, nullsFirst: false })
-        .limit(120);
+        .or(`name.ilike.%${escaped}%,category_name.ilike.%${escaped}%`);
+      query = applySort(query, sort);
+      const { data, error } = await query.limit(120);
       if (error) throw error;
       return (data ?? []) as unknown as CatalogProduct[];
     },
