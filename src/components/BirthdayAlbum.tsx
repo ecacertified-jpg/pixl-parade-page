@@ -577,6 +577,9 @@ export function BirthdayAlbum({
           {filtered.map((item, index) => {
             const r = getReactionsForItem(item.id);
             const showMenu = canManage(item);
+            const isMine = !!user && !!item.uploader_id && item.uploader_id === user.id;
+            const authorInitial = (item.uploader_name || "?").trim().charAt(0).toUpperCase();
+            const isAboveTheFold = index < 3;
             return (
               <motion.div
                 key={item.id}
@@ -591,18 +594,32 @@ export function BirthdayAlbum({
                       src={item.image_url}
                       alt={item.caption || "Photo souvenir"}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      loading="lazy"
+                      loading={isAboveTheFold ? "eager" : "lazy"}
+                      decoding="async"
+                      // @ts-expect-error fetchpriority is valid HTML
+                      fetchpriority={isAboveTheFold ? "high" : "low"}
                     />
                   )}
 
                   {item.media_type === "video" && (
                     <>
-                      <video
-                        src={item.video_url || item.image_url}
-                        className="w-full h-full object-cover"
-                        muted
-                        preload="metadata"
-                      />
+                      {item.video_thumbnail_url ? (
+                        <img
+                          src={item.video_thumbnail_url}
+                          alt="Aperçu vidéo"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          loading={isAboveTheFold ? "eager" : "lazy"}
+                          decoding="async"
+                        />
+                      ) : (
+                        <video
+                          src={item.video_url || item.image_url}
+                          className="w-full h-full object-cover"
+                          muted
+                          preload="none"
+                          poster={item.video_thumbnail_url || undefined}
+                        />
+                      )}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="h-10 w-10 rounded-full bg-white/90 flex items-center justify-center">
                           <Play className="h-5 w-5 text-primary fill-primary ml-0.5" />
@@ -633,12 +650,26 @@ export function BirthdayAlbum({
                   />
                 </div>
 
-                {/* Author badge */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
-                  <p className="text-[10px] text-white truncate">
-                    {item.media_type === "memory" ? "✨" : item.media_type === "video" ? "🎬" : "📸"}{" "}
-                    {item.uploader_name || "Un ami"}
-                  </p>
+                {/* Author chip — clearly indicates who uploaded and who can edit */}
+                <div
+                  className="absolute bottom-1.5 left-1.5 right-1.5 z-10 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full pl-0.5 pr-2 py-0.5 shadow-sm max-w-[calc(100%-0.75rem)]"
+                  title={
+                    isMine
+                      ? "Tu as ajouté ce contenu — tu peux le modifier"
+                      : `Ajouté par ${item.uploader_name || "un ami"}`
+                  }
+                >
+                  <span className="h-5 w-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                    {authorInitial}
+                  </span>
+                  <span className="text-[11px] font-medium text-foreground truncate">
+                    {isMine ? "Toi" : (item.uploader_name || "Un ami")}
+                  </span>
+                  {isMine ? (
+                    <Pencil className="h-3 w-3 text-primary flex-shrink-0" />
+                  ) : (
+                    <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  )}
                 </div>
 
                 {/* Menu Modifier/Supprimer (uploader + propriétaire de la page) */}
