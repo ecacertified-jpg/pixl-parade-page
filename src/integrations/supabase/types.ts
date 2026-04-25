@@ -1235,6 +1235,8 @@ export type Database = {
           rejection_date: string | null
           rejection_reason: string | null
           resubmission_count: number | null
+          show_email_publicly: boolean
+          show_phone_publicly: boolean
           status: string | null
           updated_at: string
           user_id: string
@@ -1268,6 +1270,8 @@ export type Database = {
           rejection_date?: string | null
           rejection_reason?: string | null
           resubmission_count?: number | null
+          show_email_publicly?: boolean
+          show_phone_publicly?: boolean
           status?: string | null
           updated_at?: string
           user_id: string
@@ -1301,6 +1305,8 @@ export type Database = {
           rejection_date?: string | null
           rejection_reason?: string | null
           resubmission_count?: number | null
+          show_email_publicly?: boolean
+          show_phone_publicly?: boolean
           status?: string | null
           updated_at?: string
           user_id?: string
@@ -8367,6 +8373,7 @@ export type Database = {
           delivery_settings: Json | null
           delivery_zones: Json | null
           description: string | null
+          email: string | null
           id: string | null
           is_active: boolean | null
           is_verified: boolean | null
@@ -8374,6 +8381,9 @@ export type Database = {
           logo_url: string | null
           longitude: number | null
           opening_hours: Json | null
+          phone: string | null
+          show_email_publicly: boolean | null
+          show_phone_publicly: boolean | null
           status: string | null
           updated_at: string | null
           website_url: string | null
@@ -8387,6 +8397,7 @@ export type Database = {
           delivery_settings?: Json | null
           delivery_zones?: Json | null
           description?: string | null
+          email?: never
           id?: string | null
           is_active?: boolean | null
           is_verified?: boolean | null
@@ -8394,6 +8405,9 @@ export type Database = {
           logo_url?: string | null
           longitude?: number | null
           opening_hours?: Json | null
+          phone?: never
+          show_email_publicly?: boolean | null
+          show_phone_publicly?: boolean | null
           status?: string | null
           updated_at?: string | null
           website_url?: string | null
@@ -8407,6 +8421,7 @@ export type Database = {
           delivery_settings?: Json | null
           delivery_zones?: Json | null
           description?: string | null
+          email?: never
           id?: string | null
           is_active?: boolean | null
           is_verified?: boolean | null
@@ -8414,6 +8429,9 @@ export type Database = {
           logo_url?: string | null
           longitude?: number | null
           opening_hours?: Json | null
+          phone?: never
+          show_email_publicly?: boolean | null
+          show_phone_publicly?: boolean | null
           status?: string | null
           updated_at?: string | null
           website_url?: string | null
