@@ -418,6 +418,26 @@ const BusinessProfileSettings = () => {
                       className="pl-10"
                     />
                   </div>
+                  <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="show_email_publicly" className="text-sm">
+                        Afficher publiquement sur ma boutique
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {business.email?.trim()
+                          ? "Permet aux visiteurs de m'écrire directement. Sinon, le support JOIE DE VIVRE est affiché."
+                          : "Renseignez d'abord votre email."}
+                      </p>
+                    </div>
+                    <Switch
+                      id="show_email_publicly"
+                      checked={business.show_email_publicly && Boolean(business.email?.trim())}
+                      disabled={!business.email?.trim()}
+                      onCheckedChange={(checked) =>
+                        setBusiness({ ...business, show_email_publicly: checked })
+                      }
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -430,6 +450,26 @@ const BusinessProfileSettings = () => {
                       onChange={(e) => setBusiness({ ...business, phone: e.target.value })}
                       placeholder="+225 XX XX XX XX"
                       className="pl-10"
+                    />
+                  </div>
+                  <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="show_phone_publicly" className="text-sm">
+                        Afficher publiquement sur ma boutique
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {business.phone?.trim()
+                          ? "Permet aux visiteurs de m'appeler directement. Sinon, le support JOIE DE VIVRE est affiché."
+                          : "Renseignez d'abord votre téléphone."}
+                      </p>
+                    </div>
+                    <Switch
+                      id="show_phone_publicly"
+                      checked={business.show_phone_publicly && Boolean(business.phone?.trim())}
+                      disabled={!business.phone?.trim()}
+                      onCheckedChange={(checked) =>
+                        setBusiness({ ...business, show_phone_publicly: checked })
+                      }
                     />
                   </div>
                 </div>
