@@ -35,3 +35,10 @@ Après tout rattachement, `window.dispatchEvent(new Event('feed-refresh'))` est 
 - L'UI `BirthdayAlbum.tsx` affiche un menu `MoreVertical` sur chaque carte (et des boutons dans la lightbox) avec les actions "Modifier" (uploader uniquement) et "Supprimer" (uploader ou propriétaire de la page).
 
 **Lightbox album avec navigation** : la lightbox de `BirthdayAlbum.tsx` supporte la navigation entre éléments via boutons `ChevronLeft`/`ChevronRight`, swipe horizontal mobile (`onTouchStart`/`onTouchEnd` avec seuil 50px) et touches clavier (`ArrowLeft`/`ArrowRight`/`Escape`). Un compteur "X / N" est affiché en haut.
+
+**Performance médias album** : à l'upload, `BirthdayAlbum.tsx` applique systématiquement :
+- **Photos** : compression côté client via `compressImage` (`maxWidth/maxHeight 1600`, `quality 0.82`, format JPEG) avant push vers le bucket `birthday-page-photos`. Une photo iPhone de 4–8 Mo est ramenée à 200–500 Ko.
+- **Vidéos** : extraction d'une **miniature JPEG 480px** via `extractSingleThumbnail` (à `t=0.5s`), uploadée dans le même bucket et stockée dans `birthday_page_photos.video_thumbnail_url`. La grille rend cette miniature en `<img loading="lazy">` au lieu de streamer le `<video>` (énorme gain mobile data + temps d'affichage). La balise `<video>` n'est instanciée qu'au clic dans la lightbox.
+- **Lazy loading** : les 3 premières tuiles utilisent `loading="eager"` + `fetchpriority="high"`, les suivantes `loading="lazy"` + `fetchpriority="low"` + `decoding="async"`.
+
+**Indicateur d'auteur visible sur chaque carte** : chaque tuile de l'album affiche un chip blanc translucide (`bg-white/90 backdrop-blur-sm rounded-full`) en bas-gauche contenant l'initiale de l'uploader dans une pastille `primary/20`, son prénom (ou « Toi » si c'est l'utilisateur courant), et une icône `Pencil` (édition possible) ou `Lock` (édition réservée à l'auteur). Permet aux invités de comprendre immédiatement qui peut modifier/supprimer un élément. La lightbox reprend le même indicateur sous le média.
