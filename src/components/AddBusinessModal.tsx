@@ -21,7 +21,7 @@ import type { Business } from "@/types/business";
 interface AddBusinessModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onBusinessAdded: () => void;
+  onBusinessAdded: (newBusinessId?: string) => void;
   editingBusiness?: Business | null;
 }
 
@@ -274,7 +274,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
       });
       
-      onBusinessAdded(); // Recharge Config ET le sélecteur via event
+      const createdId = !editingBusiness && data?.id ? (data.id as string) : undefined;
+      onBusinessAdded(createdId); // Recharge Config ET le sélecteur via event
       onClose();
     } catch (error) {
       console.error('Error:', error);

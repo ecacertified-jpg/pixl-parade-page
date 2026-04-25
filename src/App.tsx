@@ -47,6 +47,7 @@ const JoinAdmin = lazy(() => import("./pages/JoinAdmin"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Publications = lazy(() => import("./pages/Publications"));
 const BusinessAccount = lazy(() => import("./pages/BusinessAccount"));
+const BusinessSetup = lazy(() => import("./pages/BusinessSetup"));
 const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
 const BusinessFundOrderView = lazy(() => import("./pages/BusinessFundOrderView"));
 const Shop = lazy(() => import("./pages/Shop"));
@@ -241,6 +242,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Dashboard /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/publications" element={<ProtectedRoute><L><Publications /></L></ProtectedRoute>} />
             <Route path="/business-account" element={<ProtectedRoute><L><BusinessAccount /></L></ProtectedRoute>} />
+            <Route path="/business/setup" element={<ProtectedRoute><L><BusinessSetup /></L></ProtectedRoute>} />
             <Route path="/business-dashboard" element={<ProtectedRoute><L><BusinessDashboard /></L></ProtectedRoute>} />
             <Route path="/shop" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Shop /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/category/:slug" element={<ProtectedRoute><L><CategoryPage /></L></ProtectedRoute>} />
