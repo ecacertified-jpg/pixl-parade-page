@@ -371,6 +371,28 @@ export function BirthdayAlbum({
         .from("birthday-page-photos")
         .getPublicUrl(path);
 
+      // Generate a lightweight JPEG thumbnail so the grid can render an <img>
+      // (much faster + cheaper than streaming the full <video> for each tile).
+      let thumbnailUrl: string | null = null;
+      try {
+        const objectUrl = URL.createObjectURL(file);
+        const dataUrl = await extractSingleThumbnail(objectUrl, 0.5, 480);
+        URL.revokeObjectURL(objectUrl);
+        const thumbBlob = await (await fetch(dataUrl)).blob();
+        const thumbPath = `${pageId}/vid-${user!.id}-${Date.now()}-thumb.jpg`;
+        const { error: thumbErr } = await supabase.storage
+          .from("birthday-page-photos")
+          .upload(thumbPath, thumbBlob, { contentType: "image/jpeg" });
+        if (!thumbErr) {
+          const { data: thumbData } = supabase.storage
+            .from("birthday-page-photos")
+            .getPublicUrl(thumbPath);
+          thumbnailUrl = thumbData.publicUrl;
+        }
+      } catch {
+        // Best-effort: if thumbnail extraction fails, fall back to <video> tile.
+      }
+
       const name = await getProfileName();
 
       const { data, error } = await supabase
@@ -381,9 +403,10 @@ export function BirthdayAlbum({
           uploader_name: name,
           image_url: urlData.publicUrl,
           video_url: urlData.publicUrl,
+          video_thumbnail_url: thumbnailUrl,
           media_type: "video",
         })
-        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .select("id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
         .single();
 
       if (error) throw error;
