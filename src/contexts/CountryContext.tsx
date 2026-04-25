@@ -25,16 +25,19 @@ interface CountryContextType {
   wasAutoDetected: boolean;
   showAllCountries: boolean;
   setShowAllCountries: (value: boolean) => void;
-  effectiveCountryFilter: string | null; // null = all countries
-  
-  // Profile country for hybrid filtering
+  effectiveCountryFilter: string | null;
+
   profileCountryCode: string | null;
-  isVisiting: boolean; // true if current country differs from profile country
-  
-  // New: Manual detection trigger
+  isVisiting: boolean;
+
   detectCurrentLocation: () => Promise<void>;
   setAsHomeCountry: () => Promise<void>;
   resetToHomeCountry: () => void;
+
+  // Profile country loading state
+  profileLoadError: string | null;
+  isLoadingProfile: boolean;
+  retryProfileLoad: () => Promise<void>;
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined);
@@ -46,7 +49,6 @@ interface CountryProviderProps {
 export function CountryProvider({ children }: CountryProviderProps) {
   const [countryCode, setCountryCodeState] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      // Check sessionStorage first for current session navigation
       const sessionNav = sessionStorage.getItem(NAV_STORAGE_KEY);
       if (sessionNav && isValidCountryCode(sessionNav)) {
         return sessionNav;
@@ -59,18 +61,16 @@ export function CountryProvider({ children }: CountryProviderProps) {
   const [wasAutoDetected, setWasAutoDetected] = useState(false);
   const [showAllCountries, setShowAllCountries] = useState(false);
   const [profileCountryCode, setProfileCountryCode] = useState<string | null>(null);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const country = getCountryConfig(countryCode);
   const cities = getCitiesForCountry(countryCode);
   const allCountries = Object.values(COUNTRIES);
-  
-  // effectiveCountryFilter returns null when showing all countries, otherwise the current countryCode
+
   const effectiveCountryFilter = showAllCountries ? null : countryCode;
-  
-  // isVisiting is true when the navigation country differs from the user's profile country
   const isVisiting = profileCountryCode !== null && countryCode !== profileCountryCode;
 
-  // Synchronize country code with user profile in database
   const syncCountryToProfile = async (code: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -86,22 +86,18 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
   };
 
-  // Set country code for navigation (does not update profile by default)
   const setCountryCode = useCallback((code: string, updateProfile = false) => {
     if (isValidCountryCode(code)) {
       setCountryCodeState(code);
       sessionStorage.setItem(NAV_STORAGE_KEY, code);
-      // This call comes from a user-facing action (selector, etc.) — mark as manual
       sessionStorage.setItem(NAV_STORAGE_MANUAL_KEY, "true");
-      
-      // Only sync to profile if explicitly requested
+
       if (updateProfile) {
         syncCountryToProfile(code);
       }
     }
   }, []);
 
-  // Internal setter used for non-user-driven updates (auto-detection, profile alignment)
   const setCountryCodeInternal = useCallback((code: string) => {
     if (isValidCountryCode(code)) {
       setCountryCodeState(code);
@@ -109,7 +105,6 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
   }, []);
 
-  // Manual detection trigger
   const detectCurrentLocation = useCallback(async () => {
     setIsDetecting(true);
     try {
@@ -118,7 +113,6 @@ export function CountryProvider({ children }: CountryProviderProps) {
         const detectedCountry = getCountryConfig(detectedCode);
         setCountryCodeState(detectedCode);
         sessionStorage.setItem(NAV_STORAGE_KEY, detectedCode);
-        // User explicitly asked for detection — treat as a manual choice
         sessionStorage.setItem(NAV_STORAGE_MANUAL_KEY, "true");
         toast.success(`Position détectée : ${detectedCountry.flag} ${detectedCountry.name}`);
       }
@@ -127,14 +121,12 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
   }, []);
 
-  // Set current navigation country as home country
   const setAsHomeCountry = useCallback(async () => {
     await syncCountryToProfile(countryCode);
     const currentCountry = getCountryConfig(countryCode);
     toast.success(`${currentCountry.flag} ${currentCountry.name} défini comme pays d'origine`);
   }, [countryCode]);
 
-  // Reset to the user's profile country and clear manual override
   const resetToHomeCountry = useCallback(() => {
     if (profileCountryCode && isValidCountryCode(profileCountryCode)) {
       setCountryCodeState(profileCountryCode);
@@ -143,26 +135,19 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
   }, [profileCountryCode]);
 
-  // Auto-detect country on each session (not just first visit)
+  // Auto-detect country on each session
   useEffect(() => {
     const sessionDetected = sessionStorage.getItem(SESSION_DETECTED_KEY);
     const manual = sessionStorage.getItem(NAV_STORAGE_MANUAL_KEY);
 
-    // Si l'utilisateur a déjà fait un choix explicite de pays dans cette session,
-    // ne jamais l'écraser par une auto-détection IP.
     if (manual) {
       sessionStorage.setItem(SESSION_DETECTED_KEY, 'true');
       return;
     }
 
-    // Detect on each new session
     if (!sessionDetected) {
       setIsDetecting(true);
 
-      // On attend brièvement que le profil utilisateur soit chargé.
-      // Si un profil avec country_code est trouvé, l'effet `loadProfileCountry`
-      // s'en charge et l'auto-détection IP est annulée pour éviter d'écraser
-      // le pays d'origine de l'utilisateur connecté.
       (async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -173,7 +158,6 @@ export function CountryProvider({ children }: CountryProviderProps) {
               .eq('user_id', user.id)
               .maybeSingle();
             if (data?.country_code && isValidCountryCode(data.country_code)) {
-              // Profil prioritaire — on aligne et on n'auto-détecte pas
               setCountryCodeState(data.country_code);
               sessionStorage.setItem(NAV_STORAGE_KEY, data.country_code);
               sessionStorage.setItem(SESSION_DETECTED_KEY, 'true');
@@ -183,17 +167,16 @@ export function CountryProvider({ children }: CountryProviderProps) {
             }
           }
         } catch (e) {
-          // En cas d'erreur, on retombe sur l'auto-détection
+          // fall back to IP detection
         }
 
         const detectedCode = await detectUserCountry(false);
         if (isValidCountryCode(detectedCode)) {
           const previousCountry = sessionStorage.getItem(NAV_STORAGE_KEY);
-          
+
           setCountryCodeState(detectedCode);
           sessionStorage.setItem(NAV_STORAGE_KEY, detectedCode);
-          
-          // Show welcome toast if country changed
+
           if (previousCountry && previousCountry !== detectedCode) {
             const detectedCountry = getCountryConfig(detectedCode);
             toast.success(`Bienvenue ${detectedCountry.flag} ${detectedCountry.name} !`, {
@@ -211,39 +194,60 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
   }, []);
 
-  // Load profile country code for authenticated users
-  useEffect(() => {
-    const loadProfileCountry = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.id) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('country_code')
-            .eq('user_id', user.id)
-            .single();
-          
-          if (data?.country_code && isValidCountryCode(data.country_code)) {
-            setProfileCountryCode(data.country_code);
-            // If the user has not explicitly picked a country during this
-            // session, align navigation country with their home country so
-            // they only see their country's catalog by default.
-            const manual = sessionStorage.getItem(NAV_STORAGE_MANUAL_KEY);
-            if (!manual && data.country_code !== countryCode) {
-              setCountryCodeInternal(data.country_code);
-            }
-          }
-        } else {
-          setProfileCountryCode(null);
-        }
-      } catch (error) {
-        console.error('Error loading profile country:', error);
-      }
-    };
+  // Profile country loading (with error tracking + retry)
+  const loadProfileCountry = useCallback(async () => {
+    setIsLoadingProfile(true);
+    setProfileLoadError(null);
+    try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
 
+      const user = authData?.user;
+      if (!user?.id) {
+        setProfileCountryCode(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('country_code')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+
+      if (data?.country_code && isValidCountryCode(data.country_code)) {
+        setProfileCountryCode(data.country_code);
+        const manual = sessionStorage.getItem(NAV_STORAGE_MANUAL_KEY);
+        const currentNav = sessionStorage.getItem(NAV_STORAGE_KEY);
+        if (!manual && data.country_code !== currentNav) {
+          setCountryCodeInternal(data.country_code);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error loading profile country:', error);
+      setProfileLoadError(
+        error?.message ?? "Impossible de charger votre pays d'origine"
+      );
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [setCountryCodeInternal]);
+
+  const retryProfileLoad = useCallback(async () => {
+    await loadProfileCountry();
+    // If still no profile country after retry, fall back to IP detection.
+    if (!profileCountryCode) {
+      try {
+        await detectCurrentLocation();
+      } catch {
+        // already handled
+      }
+    }
+  }, [loadProfileCountry, profileCountryCode, detectCurrentLocation]);
+
+  useEffect(() => {
     loadProfileCountry();
 
-    // Listen to auth changes to update profile country
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       loadProfileCountry();
     });
@@ -251,14 +255,15 @@ export function CountryProvider({ children }: CountryProviderProps) {
     return () => {
       subscription.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <CountryContext.Provider 
-      value={{ 
-        country, 
-        countryCode, 
-        setCountryCode, 
+    <CountryContext.Provider
+      value={{
+        country,
+        countryCode,
+        setCountryCode,
         cities,
         allCountries,
         isDetecting,
@@ -270,7 +275,10 @@ export function CountryProvider({ children }: CountryProviderProps) {
         isVisiting,
         detectCurrentLocation,
         setAsHomeCountry,
-        resetToHomeCountry
+        resetToHomeCountry,
+        profileLoadError,
+        isLoadingProfile,
+        retryProfileLoad,
       }}
     >
       {children}
@@ -286,19 +294,16 @@ export function useCountry(): CountryContextType {
   return context;
 }
 
-// Safe version that returns null instead of throwing when provider is missing
 export function useCountrySafe(): CountryContextType | null {
   const context = useContext(CountryContext);
   return context ?? null;
 }
 
-// Hook to get just the country config without the setter
 export function useCountryConfig(): CountryConfig {
   const { country } = useCountry();
   return country;
 }
 
-// Hook to get cities for the current country
 export function useCountryCities(): CityCoordinates[] {
   const { cities } = useCountry();
   return cities;
