@@ -382,10 +382,7 @@ const BirthdayPage = () => {
                 <Button
                   className="w-full"
                   onClick={() => {
-                    if (!user) {
-                      navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
-                      return;
-                    }
+                    // Public birthday funds allow guest contributions on /f/:id
                     navigate(`/f/${fund.id}`);
                   }}
                 >
