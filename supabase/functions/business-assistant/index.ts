@@ -23,7 +23,68 @@ interface BusinessSnapshot {
   country_code?: string;
 }
 
+const STEP_FOCUS: Record<string, string> = {
+  welcome: `ÉTAPE ACTUELLE — ACCUEIL
+- L'utilisateur découvre le wizard. Rassure-le : "5 minutes suffisent".
+- Présente brièvement les 5 étapes et insiste sur le bénéfice global (×4 ventes).
+- Ne propose PAS encore de rédiger des produits ou prix : invite-le à démarrer.`,
+
+  profile: `ÉTAPE ACTUELLE — HABILLAGE DE LA BOUTIQUE (logo, description, catégorie)
+- Concentre-toi sur le branding : nom, logo, description vendeuse de 80–180 caractères.
+- Propose 2 ou 3 reformulations si une description existe déjà.
+- Rappelle le bénéfice : "logo + description complète = 3,2× plus de clics".
+- Ne propose PAS de configurer livraison/paiement/produits ici.`,
+
+  'first-product': `ÉTAPE ACTUELLE — AJOUT DES PREMIERS PRODUITS
+- Vise 3 produits (palier Argent), idéalement 5 (Or).
+- Suggère noms + descriptions courtes (40–120 car.) + fourchette de prix réaliste en FCFA.
+- Adapte tes suggestions au type de boutique (${'${snapshot.business_type || \"non précisé\"}'}).
+- Recommande une photo claire en lumière naturelle pour chaque produit.`,
+
+  delivery: `ÉTAPE ACTUELLE — CONFIGURATION DE LA LIVRAISON
+- Propose une grille type pour les villes courantes du pays (zones + frais en FCFA).
+- Conseille un seuil de livraison gratuite (ex : 25 000 FCFA) pour augmenter le panier moyen.
+- Bénéfice à rappeler : "+70% de contacts entrants quand la livraison est claire".
+- N'aborde PAS le paiement ni la rédaction de produits ici.`,
+
+  payment: `ÉTAPE ACTUELLE — ACTIVATION DES PAIEMENTS
+- Insiste sur Mobile Money (Orange/MTN selon le pays) et Wave (CI/SN).
+- Demande le nom du titulaire et le numéro marchand. Vérifie la cohérence avec le pays.
+- Bénéfice à rappeler : "×2 conversions avec un moyen de paiement local".
+- N'aborde PAS produits ou livraison ici.`,
+
+  launch: `ÉTAPE ACTUELLE — LANCEMENT
+- Félicite l'utilisateur. Encourage à activer les notifications push et à partager le lien boutique.
+- Suggère un message de partage WhatsApp court et engageant.
+- Si des étapes restent incomplètes, signale-les en priorité.`,
+};
+
+function tierGuidance(tier?: string, productCount = 0): string {
+  switch (tier) {
+    case 'gold':
+      return `PALIER ACTUEL : 🥇 OR (le plus haut)
+- Félicite l'utilisateur. Conseille comment maintenir : actualiser produits, photos, descriptions saisonnières.
+- Propose des optimisations avancées (SEO du nom de boutique, mots-clés produits, promotions).`;
+    case 'silver':
+      return `PALIER ACTUEL : 🥈 ARGENT
+- Prochain objectif : passer en OR avec ${Math.max(0, 5 - productCount)} produit(s) supplémentaire(s).
+- Suggère concrètement quels produits compléter le catalogue.`;
+    case 'bronze':
+      return `PALIER ACTUEL : 🥉 BRONZE
+- Prochain objectif : passer en ARGENT en configurant livraison + paiement + atteindre 3 produits (actuellement ${productCount}).
+- Priorise ces 3 actions dans tes recommandations.`;
+    default:
+      return `PALIER ACTUEL : aucun (pré-Bronze)
+- Objectif immédiat : débloquer le palier 🥉 Bronze (logo + description + 1 produit).
+- Concentre tes conseils sur ces 3 fondamentaux. Ne disperse pas l'utilisateur.`;
+  }
+}
+
 function buildSystemPrompt(snapshot: BusinessSnapshot, step?: string) {
+  const stepBlock = step && STEP_FOCUS[step]
+    ? STEP_FOCUS[step].replace('${snapshot.business_type || "non précisé"}', snapshot.business_type || 'non précisé')
+    : '';
+
   return `Tu es l'assistant business de JOIE DE VIVRE, plateforme cadeaux d'Afrique de l'Ouest.
 
 RÔLE
@@ -60,9 +121,12 @@ PALIERS DE PROGRESSION
 - Produits en ligne : ${snapshot.product_count ?? 0} (avec photo: ${snapshot.products_with_image ?? 0}, avec description: ${snapshot.products_with_description ?? 0})
 - Palier actuel : ${snapshot.setup_tier || 'aucun'}
 - Ville : ${snapshot.city || '—'} / Pays : ${snapshot.country_code || '—'}
-${step ? `\nÉTAPE EN COURS DU WIZARD : ${step}` : ''}
 
-Adapte tes conseils à cet état réel. Si l'utilisateur demande "que faire ensuite ?", recommande l'action prioritaire pour atteindre le prochain palier.`;
+${tierGuidance(snapshot.setup_tier, snapshot.product_count ?? 0)}
+
+${stepBlock}
+
+RÈGLE FINALE — Reste focalisé sur l'étape et le palier ci-dessus. Si l'utilisateur demande "que faire ensuite ?", recommande l'action prioritaire pour cette étape (puis le prochain palier).`;
 }
 
 serve(async (req) => {
