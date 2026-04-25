@@ -1,69 +1,83 @@
 ## Objectif
 
-Sur la page boutique du prestataire (`/b/:businessId`), afficher le **vrai téléphone** et le **vrai email du prestataire** dans la carte "Support & Infos", au lieu du contact générique de JOIE DE VIVRE actuellement affiché. Ajouter aussi le **site web** du prestataire s'il en a un.
+Donner au prestataire le contrôle de la visibilité publique de son téléphone et de son email sur sa page boutique `/b/:businessId`, via deux toggles indépendants dans ses paramètres. Tant que le toggle est OFF (par défaut), le contact reste masqué et la carte « Support & Infos » retombe sur le contact JOIE DE VIVRE — préservant la politique historique de confidentialité.
 
 ## Diagnostic
 
-Dans `src/pages/VendorShop.tsx` (lignes 286-297), la carte de contact reçoit :
-```ts
-phone={countryConfig.legalEntity.phone}   // numéro support JOIE DE VIVRE
-email={countryConfig.legalEntity.email}   // email support JOIE DE VIVRE
-```
+**Bug latent dans la dernière modification** : `useVendorProducts.ts` (lignes 97-98) force déjà `phone: null` et `email: null` parce que la vue publique `business_public_info` n'expose volontairement PAS ces colonnes (raison sécurité). Donc le code actuel passe toujours `undefined` au `VendorContactCard` et retombe systématiquement sur le contact support — les vrais numéros vendeurs ne s'affichent jamais.
 
-C'est un choix historique de confidentialité (commentaire « Support info (not vendor personal info) »). L'utilisateur souhaite désormais l'inverse : exposer les coordonnées réelles du prestataire pour faciliter le contact direct.
-
-Les données existent déjà dans l'objet `vendor` : `vendor.phone`, `vendor.email`, `vendor.websiteUrl` (déjà utilisées pour le SEO Schema.org lignes 182-188).
-
-Le composant `VendorContactCard` accepte déjà `phone`, `email`, `websiteUrl` — aucune modification de composant n'est requise.
+**Schéma actuel** : `business_accounts` contient déjà `phone`, `email`, `website_url` mais aucun flag de visibilité. La vue publique exclut volontairement `phone` et `email` (anon + authenticated y ont accès SELECT).
 
 ## Plan d'implémentation
 
-### 1. `src/pages/VendorShop.tsx`
+### 1. Migration BDD
 
-Remplacer le bloc 286-297 par :
+Ajouter deux booléens sur `business_accounts` :
 
-```tsx
-<VendorContactCard
-  address={vendor.address}
-  phone={vendor.phone || undefined}
-  email={vendor.email || undefined}
-  websiteUrl={vendor.websiteUrl || undefined}
-  countryCode={vendor.countryCode}
-/>
+```sql
+ALTER TABLE public.business_accounts
+  ADD COLUMN IF NOT EXISTS show_phone_publicly boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS show_email_publicly boolean NOT NULL DEFAULT false;
 ```
 
-Si la boutique n'a renseigné aucun téléphone ni email, on affiche une **carte de repli** avec le contact de support JOIE DE VIVRE (`countryConfig.legalEntity.phone/email`) pour ne pas laisser l'utilisateur sans recours :
+Recréer la vue `business_public_info` pour exposer **conditionnellement** le téléphone et l'email :
 
-```tsx
-const hasVendorContact = vendor.phone || vendor.email;
-const countryConfig = getCountryConfig(vendor.countryCode || 'CI');
+```sql
+DROP VIEW IF EXISTS public.business_public_info;
+CREATE VIEW public.business_public_info AS
+SELECT
+  id, business_name, business_type, description, logo_url,
+  is_active, is_verified, status, opening_hours, delivery_zones, delivery_settings,
+  created_at, updated_at, latitude, longitude, address, country_code, website_url,
+  CASE WHEN show_phone_publicly THEN phone ELSE NULL END AS phone,
+  CASE WHEN show_email_publicly THEN email ELSE NULL END AS email,
+  show_phone_publicly,
+  show_email_publicly
+FROM business_accounts
+WHERE is_active = true AND deleted_at IS NULL AND status = 'active';
 
-<VendorContactCard
-  address={vendor.address}
-  phone={hasVendorContact ? vendor.phone || undefined : countryConfig.legalEntity.phone}
-  email={hasVendorContact ? vendor.email || undefined : countryConfig.legalEntity.email}
-  websiteUrl={vendor.websiteUrl || undefined}
-  countryCode={vendor.countryCode}
-/>
+GRANT SELECT ON public.business_public_info TO anon, authenticated;
 ```
 
-### 2. `src/components/VendorContactCard.tsx`
+Cette approche garantit que phone/email ne quittent JAMAIS la BDD côté public si le toggle est OFF, même si un attaquant manipule le client.
 
-Pour améliorer la lisibilité (problème visible sur la capture : `+225 0...` et `contact...` tronqués) :
-- Faire passer le téléphone et l'email **en pleine largeur** (`col-span-2`) au lieu de la grille 2 colonnes qui force la troncature sur mobile.
-- Conserver `truncate` comme garde-fou mais avec assez de place pour le contenu réel.
+### 2. Hook `useVendorProducts.ts`
 
-### 3. Mémoire
+- Sélectionner `phone, email` (en plus des colonnes existantes) depuis la vue.
+- Renseigner `vendor.phone` / `vendor.email` avec les valeurs réelles (qui seront `null` si non autorisées par le vendeur).
 
-- Supprimer / mettre à jour la règle `mem://features/vendor/support-contact-policy` (qui interdisait l'affichage des coordonnées personnelles) pour refléter la nouvelle décision : **les coordonnées du prestataire sont publiques sur sa boutique**, avec repli sur le support JOIE DE VIVRE si elles sont absentes.
+### 3. Page `VendorShop.tsx`
+
+Le bloc actuel reste correct : si `vendor.phone` ou `vendor.email` arrive `null` (cas par défaut ou toggle OFF), on retombe sur `countryConfig.legalEntity`. Aucun changement nécessaire — la sécurité est portée par la vue.
+
+### 4. Hook `useBusinessAccount.ts`
+
+Étendre le `select` pour inclure `show_phone_publicly, show_email_publicly` afin que les paramètres puissent les afficher.
+
+### 5. Page `BusinessProfileSettings.tsx`
+
+Dans la carte « Coordonnées professionnelles » :
+- Sous chaque champ (email + téléphone), ajouter un `Switch` shadcn avec libellé : « Afficher publiquement sur ma boutique » (sous-titre court : « Permet aux visiteurs de me contacter directement. Sinon, le support JOIE DE VIVRE est affiché. »)
+- Ajouter `show_phone_publicly` et `show_email_publicly` à l'état `business`, à `useEffect` de pré-remplissage et à `handleSave` (UPDATE de `business_accounts`).
+- Désactiver le switch (greyed out) si le champ correspondant est vide, avec un texte d'aide : « Renseignez d'abord votre téléphone/email. »
+
+### 6. Mémoire
+
+Mettre à jour `mem://features/vendor/shop-contact-visibility.md` :
+- Visibilité contrôlée par le prestataire via deux toggles indépendants `show_phone_publicly` / `show_email_publicly`.
+- Par défaut (false), seuls les coordonnées de support JOIE DE VIVRE sont affichées.
+- L'application de la règle est faite **côté BDD** dans la vue `business_public_info` (filtrage `CASE WHEN ... THEN ... ELSE NULL`).
 
 ## Fichiers modifiés
 
-- `src/pages/VendorShop.tsx` (passer les vraies coordonnées vendor au `VendorContactCard`)
-- `src/components/VendorContactCard.tsx` (téléphone/email en pleine largeur pour éviter la troncature)
-- `.lovable/mem/...` (mise à jour de la règle de visibilité des coordonnées prestataire)
+- Nouvelle migration SQL : ajout des 2 colonnes + recréation de la vue
+- `src/hooks/useVendorProducts.ts` (sélection + mapping de phone/email)
+- `src/hooks/useBusinessAccount.ts` (sélection des nouveaux flags)
+- `src/pages/BusinessProfileSettings.tsx` (état + 2 toggles + sauvegarde)
+- `.lovable/mem/features/vendor/shop-contact-visibility.md` (mise à jour de la règle)
 
 ## Hors-scope
 
-- Pas de migration SQL : `business_accounts.phone`, `email`, `website_url` existent déjà.
-- Pas de changement sur les autres pages (preview business, cards de listing) — uniquement la page boutique publique.
+- Pas de toggle pour `website_url` (un site web est déjà publié par nature, sa visibilité reste systématique s'il est rempli).
+- Pas de modification de `BusinessPreview.tsx` (page interne au prestataire, déjà privée).
+- Pas de changement RLS sur `business_accounts` directement : la table conserve ses politiques actuelles ; c'est la vue qui filtre.
