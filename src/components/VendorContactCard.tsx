@@ -66,7 +66,7 @@ export function VendorContactCard({
           {phone && (
             <a 
               href={`tel:${phone}`}
-              className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-primary/10 transition-colors group"
+              className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-primary/10 transition-colors group col-span-2"
             >
               <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/20 transition-colors">
                 <Phone className="h-4 w-4 text-green-600" />
@@ -82,7 +82,7 @@ export function VendorContactCard({
           {email && (
             <a 
               href={`mailto:${email}`}
-              className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-primary/10 transition-colors group"
+              className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-primary/10 transition-colors group col-span-2"
             >
               <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/20 transition-colors">
                 <Mail className="h-4 w-4 text-blue-600" />
