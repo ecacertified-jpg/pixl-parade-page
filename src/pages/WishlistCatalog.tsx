@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 import { SEOHead } from "@/components/SEOHead";
@@ -13,6 +20,8 @@ import { CountrySelector } from "@/components/CountrySelector";
 import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
 import {
   CatalogProduct,
+  CatalogSortOption,
+  CATALOG_SORT_OPTIONS,
   useCatalogProducts,
   useCatalogSearch,
   useDebouncedValue,
@@ -24,12 +33,13 @@ export default function WishlistCatalog() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const [selectedTaste, setSelectedTaste] = useState<string>("tous");
+  const [sortBy, setSortBy] = useState<CatalogSortOption>("popularity");
   const { isFavorite, addFavorite, removeFavorite, getFavoriteId, stats } = useFavorites();
 
   const isSearching = debouncedQuery.trim().length >= 2;
 
-  const catalog = useCatalogProducts(countryCode);
-  const search = useCatalogSearch(countryCode, debouncedQuery);
+  const catalog = useCatalogProducts(countryCode, sortBy);
+  const search = useCatalogSearch(countryCode, debouncedQuery, sortBy);
 
   const products: CatalogProduct[] = useMemo(() => {
     if (isSearching) return search.data ?? [];
@@ -117,6 +127,23 @@ export default function WishlistCatalog() {
                 className="pl-10"
               />
             </div>
+          </div>
+
+          {/* Sort selector */}
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-xs text-muted-foreground">Trier par</span>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as CatalogSortOption)}>
+              <SelectTrigger className="h-8 w-[180px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATALOG_SORT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Taste Category Filters */}
