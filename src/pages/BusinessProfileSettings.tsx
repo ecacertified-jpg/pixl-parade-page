@@ -207,6 +207,8 @@ const BusinessProfileSettings = () => {
           website_url: business.website_url,
           latitude: business.latitude,
           longitude: business.longitude,
+          show_phone_publicly: business.show_phone_publicly && Boolean(business.phone?.trim()),
+          show_email_publicly: business.show_email_publicly && Boolean(business.email?.trim()),
         })
         .eq("id", businessAccount.id);
       
