@@ -1,0 +1,219 @@
+// Edge function : sert un aperçu OG (Open Graph) localisé selon le pays
+// du partageur, lu depuis le paramètre `?c=` (CI / BJ / SN / TG / ML / BF).
+//
+// - Pour les crawlers (WhatsApp, Facebook, X, LinkedIn, Telegram…) :
+//   renvoie un HTML statique avec <title> et meta og:* / twitter:* adaptés
+//   au pays, ce qui donne un aperçu localisé dans les apps de messagerie.
+// - Pour les humains : redirige vers la home `https://joiedevivre-africa.com/`
+//   en conservant le paramètre `?c=` si présent.
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const SITE_URL = "https://joiedevivre-africa.com";
+const OG_IMAGE = `${SITE_URL}/og-image.png?v=20260426`;
+
+const CRAWLER_PATTERNS = [
+  "facebookexternalhit",
+  "Facebot",
+  "Twitterbot",
+  "WhatsApp",
+  "LinkedInBot",
+  "Slackbot",
+  "TelegramBot",
+  "Discordbot",
+  "Googlebot",
+  "bingbot",
+  "Applebot",
+  "PinterestBot",
+  "vkShare",
+  "Viber",
+  "Snapchat",
+  "redditbot",
+  "Embedly",
+  "Iframely",
+];
+
+interface CountryMeta {
+  country: string;       // Nom du pays (ex: "Côte d'Ivoire")
+  capital: string;       // Capitale économique (ex: "Abidjan")
+  locale: string;        // og:locale (ex: "fr_CI")
+  description: string;   // Description localisée
+}
+
+const COUNTRY_META: Record<string, CountryMeta> = {
+  CI: {
+    country: "Côte d'Ivoire",
+    capital: "Abidjan",
+    locale: "fr_CI",
+    description:
+      "Première plateforme de cadeaux collaboratifs en Côte d'Ivoire. Créez des cagnottes pour anniversaires, mariages et célébrations. Boutiques artisanales ivoiriennes.",
+  },
+  BJ: {
+    country: "Bénin",
+    capital: "Cotonou",
+    locale: "fr_BJ",
+    description:
+      "Première plateforme de cadeaux collaboratifs au Bénin. Créez des cagnottes pour anniversaires, mariages et célébrations. Boutiques artisanales béninoises.",
+  },
+  SN: {
+    country: "Sénégal",
+    capital: "Dakar",
+    locale: "fr_SN",
+    description:
+      "Première plateforme de cadeaux collaboratifs au Sénégal. Créez des cagnottes pour anniversaires, mariages et célébrations. Boutiques artisanales sénégalaises.",
+  },
+  TG: {
+    country: "Togo",
+    capital: "Lomé",
+    locale: "fr_TG",
+    description:
+      "Première plateforme de cadeaux collaboratifs au Togo. Créez des cagnottes pour anniversaires, mariages et célébrations. Boutiques artisanales togolaises.",
+  },
+  ML: {
+    country: "Mali",
+    capital: "Bamako",
+    locale: "fr_ML",
+    description:
+      "Première plateforme de cadeaux collaboratifs au Mali. Créez des cagnottes pour anniversaires, mariages et célébrations. Boutiques artisanales maliennes.",
+  },
+  BF: {
+    country: "Burkina Faso",
+    capital: "Ouagadougou",
+    locale: "fr_BF",
+    description:
+      "Première plateforme de cadeaux collaboratifs au Burkina Faso. Créez des cagnottes pour anniversaires, mariages et célébrations. Boutiques artisanales burkinabées.",
+  },
+};
+
+const DEFAULT_COUNTRY = "CI";
+
+function isCrawler(userAgent: string | null): boolean {
+  if (!userAgent) return false;
+  return CRAWLER_PATTERNS.some((p) => userAgent.includes(p));
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function resolveCountry(code: string | null): string {
+  if (!code) return DEFAULT_COUNTRY;
+  const upper = code.toUpperCase();
+  return upper in COUNTRY_META ? upper : DEFAULT_COUNTRY;
+}
+
+function buildOgHtml(countryCode: string): string {
+  const meta = COUNTRY_META[countryCode];
+  const title = `Joie de Vivre - Cadeaux Collectifs ${meta.country} | Cagnottes Anniversaire ${meta.capital}`;
+  const description = meta.description;
+  const url = `${SITE_URL}/?c=${countryCode}`;
+
+  const titleSafe = escapeHtml(title);
+  const descriptionSafe = escapeHtml(description);
+
+  return `<!DOCTYPE html>
+<html lang="fr" prefix="og: https://ogp.me/ns#">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>${titleSafe}</title>
+  <meta name="description" content="${descriptionSafe}"/>
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="${titleSafe}"/>
+  <meta property="og:description" content="${descriptionSafe}"/>
+  <meta property="og:image" content="${OG_IMAGE}"/>
+  <meta property="og:image:secure_url" content="${OG_IMAGE}"/>
+  <meta property="og:image:type" content="image/png"/>
+  <meta property="og:image:width" content="1376"/>
+  <meta property="og:image:height" content="768"/>
+  <meta property="og:url" content="${url}"/>
+  <meta property="og:site_name" content="Joie de Vivre"/>
+  <meta property="og:locale" content="${meta.locale}"/>
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="${titleSafe}"/>
+  <meta name="twitter:description" content="${descriptionSafe}"/>
+  <meta name="twitter:image" content="${OG_IMAGE}"/>
+
+  <link rel="canonical" href="${url}"/>
+
+  <!-- Redirection pour humains qui atterriraient ici -->
+  <meta http-equiv="refresh" content="0;url=${url}"/>
+
+  <!-- Schema.org -->
+  <script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: title,
+    description,
+    url,
+    image: OG_IMAGE,
+    publisher: {
+      "@type": "Organization",
+      name: "Joie de Vivre",
+      url: SITE_URL,
+    },
+  })}</script>
+</head>
+<body>
+  <p>Redirection vers <a href="${url}">${titleSafe}</a>...</p>
+</body>
+</html>`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const countryParam = url.searchParams.get("c");
+    const countryCode = resolveCountry(countryParam);
+
+    const userAgent = req.headers.get("user-agent");
+
+    // Humains : redirection 302 vers la home (en conservant ?c= si présent)
+    if (!isCrawler(userAgent)) {
+      const target = countryParam
+        ? `${SITE_URL}/?c=${countryCode}`
+        : `${SITE_URL}/`;
+      return new Response(null, {
+        status: 302,
+        headers: {
+          ...corsHeaders,
+          Location: target,
+          "Cache-Control": "no-cache",
+        },
+      });
+    }
+
+    // Crawlers : renvoie l'HTML OG localisé
+    const html = buildOgHtml(countryCode);
+    return new Response(html, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  } catch (error) {
+    console.error("home-preview error:", error);
+    return new Response("Internal error", {
+      status: 500,
+      headers: corsHeaders,
+    });
+  }
+});
