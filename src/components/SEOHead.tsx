@@ -44,7 +44,7 @@ export interface SEOHeadProps {
 }
 
 const APP_NAME = "JOIE DE VIVRE";
-const DEFAULT_IMAGE = "https://joiedevivre-africa.com/og-image.png";
+const DEFAULT_IMAGE = "https://joiedevivre-africa.com/og-image.png?v=20260426";
 const DEFAULT_IMAGE_WIDTH = 1200;
 const DEFAULT_IMAGE_HEIGHT = 630;
 const BASE_URL = "https://joiedevivre-africa.com";
