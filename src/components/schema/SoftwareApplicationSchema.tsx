@@ -49,7 +49,7 @@ export function SoftwareApplicationSchema({ variant }: SoftwareApplicationSchema
       "Paiement sécurisé via Mobile Money",
       "Visibilité auprès de milliers d'acheteurs"
     ],
-    "screenshot": `${DOMAIN}/og-image.png`,
+    "screenshot": `${DOMAIN}/og-image.png?v=20260426`,
     "author": {
       "@type": "Organization",
       "name": "AMTEY'S SARLU",
