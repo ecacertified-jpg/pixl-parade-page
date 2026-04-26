@@ -88,6 +88,17 @@ const COUNTRY_META: Record<string, CountryMeta> = {
   },
 };
 
+// Fallback générique panafricain : utilisé quand un code pays est fourni
+// mais non supporté (ex: ?c=US, ?c=ZZ). On évite de tromper l'utilisateur
+// avec un titre Côte d'Ivoire alors qu'il a explicitement demandé autre chose.
+const GENERIC_META: CountryMeta = {
+  country: "Afrique francophone",
+  capital: "Capitales africaines",
+  locale: "fr",
+  description:
+    "Première plateforme de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes pour anniversaires, mariages et célébrations partout en Afrique.",
+};
+
 const DEFAULT_COUNTRY = "CI";
 
 function isCrawler(userAgent: string | null): boolean {
@@ -104,17 +115,35 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function resolveCountry(code: string | null): string {
-  if (!code) return DEFAULT_COUNTRY;
-  const upper = code.toUpperCase();
-  return upper in COUNTRY_META ? upper : DEFAULT_COUNTRY;
+/**
+ * Normalise et catégorise le paramètre `?c=` :
+ * - Pas de paramètre → défaut CI (lien canonique partagé sans contexte).
+ * - Paramètre supporté → meta du pays correspondant.
+ * - Paramètre fourni mais inconnu → meta générique "Afrique francophone".
+ */
+function resolveCountry(code: string | null): {
+  meta: CountryMeta;
+  code: string;
+  isGeneric: boolean;
+} {
+  if (code === null || code.trim() === "") {
+    return { meta: COUNTRY_META[DEFAULT_COUNTRY], code: DEFAULT_COUNTRY, isGeneric: false };
+  }
+  // Sanitise pour éviter d'injecter des caractères exotiques dans titres/URL.
+  const upper = code.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+  if (upper && upper in COUNTRY_META) {
+    return { meta: COUNTRY_META[upper], code: upper, isGeneric: false };
+  }
+  return { meta: GENERIC_META, code: "", isGeneric: true };
 }
 
-function buildOgHtml(countryCode: string): string {
-  const meta = COUNTRY_META[countryCode];
-  const title = `Joie de Vivre - Cadeaux Collectifs ${meta.country} | Cagnottes Anniversaire ${meta.capital}`;
+function buildOgHtml(meta: CountryMeta, isGeneric: boolean, countryCode: string): string {
+  const title = isGeneric
+    ? `Joie de Vivre - Cadeaux Collectifs en ${meta.country} | Cagnottes Anniversaire`
+    : `Joie de Vivre - Cadeaux Collectifs ${meta.country} | Cagnottes Anniversaire ${meta.capital}`;
   const description = meta.description;
-  const url = `${SITE_URL}/?c=${countryCode}`;
+  // Pour le générique on pointe vers la home propre (pas de ?c= invalide indexé).
+  const url = isGeneric ? `${SITE_URL}/` : `${SITE_URL}/?c=${countryCode}`;
 
   const titleSafe = escapeHtml(title);
   const descriptionSafe = escapeHtml(description);
@@ -180,15 +209,17 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const countryParam = url.searchParams.get("c");
-    const countryCode = resolveCountry(countryParam);
+    const { meta, code: countryCode, isGeneric } = resolveCountry(countryParam);
 
     const userAgent = req.headers.get("user-agent");
 
     // Humains : redirection 302 vers la home (en conservant ?c= si présent)
     if (!isCrawler(userAgent)) {
-      const target = countryParam
-        ? `${SITE_URL}/?c=${countryCode}`
-        : `${SITE_URL}/`;
+      // Si code invalide (générique) : on ne propage PAS le ?c= invalide.
+      const target =
+        !isGeneric && countryParam
+          ? `${SITE_URL}/?c=${countryCode}`
+          : `${SITE_URL}/`;
       return new Response(null, {
         status: 302,
         headers: {
@@ -200,7 +231,7 @@ Deno.serve(async (req) => {
     }
 
     // Crawlers : renvoie l'HTML OG localisé
-    const html = buildOgHtml(countryCode);
+    const html = buildOgHtml(meta, isGeneric, countryCode);
     return new Response(html, {
       status: 200,
       headers: {
