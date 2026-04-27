@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { getAppBaseUrl } from "@/utils/appUrl";
+import { buildShareUrl, buildHomeShareUrl } from "@/utils/buildShareUrl";
+import { useShareCountry } from "@/hooks/useShareCountry";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,9 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
   const { sendInvitation, sendBulkInvitations, loading } = useInvitations();
   const { isSupported, loading: contactsLoading, contacts, error: contactsError, pickContacts, clearContacts } = useDeviceContacts();
   const { user } = useAuth();
+  // Pays détecté côté client (IP/profil/session) — déjà pré-rempli au boot
+  // de l'app via CountryProvider. Disponible immédiatement au clic.
+  const { countryCode } = useShareCountry();
   
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -69,25 +73,32 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
     const result = await sendInvitation(email.trim() || undefined, phone.trim(), message.trim() || undefined);
 
     if (result.success) {
-      const link = `${getAppBaseUrl()}/auth?invited=true`;
+      // Lien transactionnel d'invitation : conserve `?invited=true` pour le
+      // tracking d'acceptation, et ajoute `?c=XX` si le pays détecté est
+      // supporté afin de pré-remplir le contexte du destinataire.
+      const link = buildShareUrl("/auth?invited=true", countryCode);
       setInvitationLink(link);
       setShowShareMenu(true);
     }
   };
 
   const senderName = userFirstName || "Un ami";
-  const inviteMessage = `Salut ! ${senderName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉\n\nInscris-toi ici : ${invitationLink}`;
+  // Lien social (WhatsApp/Facebook/LinkedIn/copier/partage natif) : pointe
+  // vers l'aperçu OG localisé via l'edge function `home-preview`. Si le pays
+  // n'est pas détecté ou vaut CI, retombe sur l'URL canonique.
+  const homeShareLink = buildHomeShareUrl(countryCode);
+  const inviteMessage = `Salut ! ${senderName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉\n\nDécouvre ici : ${homeShareLink}`;
 
   const shareViaWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(inviteMessage)}`, '_blank');
   };
 
   const shareViaFacebook = () => {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(invitationLink)}`, '_blank', 'width=600,height=400');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(homeShareLink)}`, '_blank', 'width=600,height=400');
   };
 
   const shareViaLinkedIn = () => {
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(invitationLink)}`, '_blank', 'width=600,height=400');
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(homeShareLink)}`, '_blank', 'width=600,height=400');
   };
 
   const shareViaGmail = () => {
@@ -105,13 +116,13 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
   };
 
   const copyLink = () => {
-    navigator.clipboard.writeText(invitationLink);
+    navigator.clipboard.writeText(homeShareLink);
     toast.success('Lien copié !');
   };
 
   const shareNative = () => {
     if (navigator.share) {
-      navigator.share({ title: 'Joie de Vivre', text: inviteMessage, url: invitationLink }).catch(() => {});
+      navigator.share({ title: 'Joie de Vivre', text: inviteMessage, url: homeShareLink }).catch(() => {});
     } else {
       copyLink();
     }
@@ -272,7 +283,7 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
                     firstName = profile?.first_name || "";
                     setUserFirstName(firstName);
                   }
-                  const link = `${getAppBaseUrl()}/auth?invited=true`;
+                  const link = buildShareUrl("/auth?invited=true", countryCode);
                   setInvitationLink(link);
                   setShowShareMenu(true);
                 }}
