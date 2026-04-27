@@ -13,10 +13,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { Info, Loader2, Search, MessageCircle } from 'lucide-react';
+import { Info, Loader2, Search, MessageCircle, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AddFriendModal } from '@/components/AddFriendModal';
 import {
   getStoredFriendSelection,
   setStoredFriendSelection,
@@ -48,6 +49,8 @@ export function BirthdayPageFriendsPicker({
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Load contacts + initial selection
   useEffect(() => {
@@ -87,7 +90,7 @@ export function BirthdayPageFriendsPicker({
     return () => {
       cancelled = true;
     };
-  }, [open, user?.id, pageId]);
+  }, [open, user?.id, pageId, refreshKey]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -148,6 +151,70 @@ export function BirthdayPageFriendsPicker({
     }
   };
 
+  const handleAddFriend = async (newFriend: {
+    name: string;
+    phone: string;
+    relation: string;
+    location: string;
+    birthday: Date;
+  }) => {
+    if (!user?.id) return;
+    try {
+      // 1. Look up existing user by phone to create relationship
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('phone', newFriend.phone)
+        .maybeSingle();
+
+      if (existingUser?.user_id && existingUser.user_id !== user.id) {
+        await supabase.from('contact_relationships').insert({
+          user_a: user.id,
+          user_b: existingUser.user_id,
+          can_see_funds: true,
+          relationship_type: 'friend',
+        });
+      }
+
+      // 2. Insert the contact
+      const birthdayStr = (() => {
+        const d =
+          newFriend.birthday instanceof Date
+            ? newFriend.birthday
+            : new Date(newFriend.birthday);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })();
+
+      const { data: insertedContact, error } = await supabase
+        .from('contacts')
+        .insert({
+          user_id: user.id,
+          name: newFriend.name,
+          phone: newFriend.phone,
+          relationship: newFriend.relation,
+          notes: newFriend.location,
+          birthday: birthdayStr,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      // 3. Pre-select the new contact and refresh list
+      if (insertedContact?.id) {
+        setSelected((prev) =>
+          prev.includes(insertedContact.id) ? prev : [...prev, insertedContact.id],
+        );
+      }
+      setRefreshKey((k) => k + 1);
+      setShowAddFriendModal(false);
+      toast.success(`${newFriend.name} ajouté à ton cercle ✨`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Impossible d'ajouter cet ami");
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -155,8 +222,19 @@ export function BirthdayPageFriendsPicker({
         className="rounded-t-3xl p-0 h-[90vh] max-h-[700px] flex flex-col"
       >
         <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/40">
-          <SheetTitle>Associer mes amis à ma page</SheetTitle>
-          <SheetDescription className="text-xs">
+          <div className="flex items-start justify-between gap-3 pr-6">
+            <SheetTitle className="text-left">Associer mes amis à ma page</SheetTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8 text-xs shrink-0"
+              onClick={() => setShowAddFriendModal(true)}
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Ajouter
+            </Button>
+          </div>
+          <SheetDescription className="text-xs text-left">
             Sélectionne les personnes que tu veux associer à ta page
             d'anniversaire.
           </SheetDescription>
@@ -261,6 +339,13 @@ export function BirthdayPageFriendsPicker({
             {selected.length > 1 ? 's' : ''})
           </Button>
         </div>
+
+        <AddFriendModal
+          isOpen={showAddFriendModal}
+          onClose={() => setShowAddFriendModal(false)}
+          onAddFriend={handleAddFriend}
+          existingPhones={contacts.map((c) => c.phone || '').filter(Boolean)}
+        />
       </SheetContent>
     </Sheet>
   );
