@@ -283,7 +283,7 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
                     firstName = profile?.first_name || "";
                     setUserFirstName(firstName);
                   }
-                  const link = `${getAppBaseUrl()}/auth?invited=true`;
+                  const link = buildShareUrl("/auth?invited=true", countryCode);
                   setInvitationLink(link);
                   setShowShareMenu(true);
                 }}
