@@ -1,40 +1,92 @@
 ## Objectif
 
-Ajouter un bouton **"Ajouter un ami"** (icône `UserPlus`) dans l'en-tête du modal **"Associer mes amis à ma page"** (`BirthdayPageFriendsPicker`), réutilisant le même `AddFriendModal` que celui du dashboard ("Mon cercle d'amis"). Une fois l'ami créé, il apparaît immédiatement dans la liste sélectionnable du picker.
+Transformer l'entrée "Publications" en "Mes pages" : un espace centralisé où l'utilisateur retrouve toutes ses pages (anniversaires + événements) publiées, son compte à rebours d'anniversaire, ses amis en commun cliquables vers leurs pages, et un bouton "Ajouter" qui ouvre le même modal que le bouton PLUS du menu du bas.
 
-## Contexte
+## Ce qui sera fait
 
-- Le modal `BirthdayPageFriendsPicker` (Sheet bottom) liste les contacts de l'utilisateur (`contacts` table) avec une barre de recherche et un bouton "Enregistrer".
-- Sur le Dashboard, l'ajout d'ami se fait via `AddFriendModal` (formulaire complet : nom, téléphone, relation, adresse, anniversaire) couplé au handler `handleAddFriend` qui insère dans `contacts` + crée éventuellement une `contact_relationships`.
-- Aujourd'hui, si l'utilisateur n'a pas encore l'ami dans son carnet, il doit fermer le picker, retourner au dashboard, ajouter l'ami, puis rouvrir le picker.
+### 1. Renommage du libellé "Publications" → "Mes pages"
 
-## Changements
+Dans `src/components/ProfileDropdown.tsx` :
+- Remplacer le texte "Publications" par "Mes pages".
+- Remplacer l'icône `Users` par `BookHeart` (ou `LayoutGrid`) plus représentative de pages.
+- Conserver la route `/publications` pour compatibilité (pas de migration de chemins nécessaire).
 
-### 1. `src/components/BirthdayPageFriendsPicker.tsx`
+### 2. Refonte de la page `/publications` (`src/pages/Publications.tsx`)
 
-- Ajouter un bouton icône **"Ajouter"** (`UserPlus`, variant outline, taille sm) dans le `SheetHeader`, aligné à droite du titre (flex justify-between).
-- Ajouter un état local `showAddFriendModal`.
-- Importer et monter `<AddFriendModal>` à l'intérieur du Sheet.
-- Implémenter un handler `handleAddFriend` local qui :
-  - Reproduit la logique d'insertion (`contacts` + recherche `profiles` par téléphone + `contact_relationships`) déjà présente dans `Dashboard.handleAddFriend` (extraite ou dupliquée — duplication acceptable, code court).
-  - Recharge la liste des contacts (relance du `useEffect` via un compteur `refreshKey` ou refetch direct).
-  - Pré-coche automatiquement le contact nouvellement créé (`setSelected(prev => [...prev, newContactId])`).
-  - Ferme le `AddFriendModal` et affiche un toast succès.
-- Passer `existingPhones={contacts.map(c => c.phone || '')}` pour empêcher les doublons.
+La page sera entièrement repensée. L'ancien contenu (liste de `posts`) est supprimé. Nouvelle structure verticale, mobile-first :
 
-### 2. UI
+```text
+┌─────────────────────────────────────┐
+│ ← Mes pages              [+ Ajouter]│  ← header avec bouton icône
+├─────────────────────────────────────┤
+│ 🎂 Compte à rebours anniversaire    │  ← BirthdayCountdownCard existant
+├─────────────────────────────────────┤
+│ Mes pages publiées                  │
+│ ┌──────┐ ┌──────┐ ┌──────┐          │
+│ │cover │ │cover │ │cover │  ← grille│
+│ │Année │ │Mariage│ │ ... │  cliquable│
+│ └──────┘ └──────┘ └──────┘          │
+├─────────────────────────────────────┤
+│ Amis en commun                      │
+│ ┌──┐ ┌──┐ ┌──┐ ┌──┐                 │
+│ │👤│ │👤│ │👤│ │👤│  ← avatars      │
+│ └──┘ └──┘ └──┘ └──┘    cliquables   │
+└─────────────────────────────────────┘
+```
 
-- Le bouton reprend le style exact du Dashboard : `Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs"` avec icône `UserPlus` 3.5×3.5 + label "Ajouter".
-- Placé dans le header du Sheet à droite du titre (X de fermeture reste à sa place native du Sheet).
+#### a) En-tête
+- Garder le bouton retour.
+- Titre : "Mes pages".
+- Bouton icône `Plus` à droite (variant outline, h-9 w-9). Au clic, ouvre le `BirthdayPageBuilderModal`.
+
+#### b) Compte à rebours
+- Réutiliser tel quel le composant `BirthdayCountdownCard` (déjà utilisé dans `Dashboard.tsx`).
+- Récupérer `birthday` et `first_name` depuis `profiles` via une simple requête Supabase au montage.
+- N'afficher la carte que si l'utilisateur a renseigné une date d'anniversaire.
+
+#### c) Section "Mes pages publiées"
+- Source de données : créer un petit hook `useMyPublishedPages` qui fait deux requêtes en parallèle :
+  - `birthday_pages` où `user_id = auth.uid()` ET `is_active = true`.
+  - `event_pages` où `creator_id = auth.uid()` ET `is_active = true`.
+- Fusionner et trier par `celebration_year`/`event_date` desc.
+- Afficher en grille 2 colonnes avec : image de couverture, titre, occasion, année.
+- Au clic : navigation vers `/p/:slug` (birthday) ou `/event/:slug` (event), routes existantes.
+- État vide : message + CTA secondaire qui ouvre aussi le `BirthdayPageBuilderModal`.
+
+#### d) Section "Amis en commun"
+- Source : la table `contact_relationships` (déjà utilisée par `useFriendRequests.ts`) — ce sont les liens d'amitié réciproques de l'utilisateur.
+- Créer un hook `useMyFriends` qui :
+  - Récupère depuis `contact_relationships` toutes les paires impliquant `auth.uid()`.
+  - Récupère les `profiles` correspondants (first_name, avatar_url).
+- Affichage : carrousel horizontal d'avatars (taille 14) avec prénom dessous.
+- Au clic sur un avatar :
+  - Naviguer vers `/u/:userId` (route profil public si elle existe) OU vers la dernière page publiée de cet ami (`birthday_pages` la plus récente). On utilisera la route profil publique si présente, sinon on rabattra sur la page anniversaire la plus récente de l'ami.
+- État vide : "Aucun ami pour le moment" avec lien vers `/invitations`.
+
+### 3. Bouton "Ajouter" — réutilisation du modal existant
+
+- Importer `BirthdayPageBuilderModal` depuis `@/components/BirthdayPageBuilderModal`.
+- État local `isBuilderOpen` ; le bouton `+` du header et la CTA d'état vide partagent le même setter.
+- Le modal est exactement le même que celui ouvert depuis `CreateActionMenu` (bouton PLUS du menu du bas), donc cohérence garantie.
 
 ## Détails techniques
 
-- Le `AddFriendModal` est un `Dialog` Radix : il s'ouvre par-dessus le `Sheet` sans conflit (z-index gérés).
-- Refresh des contacts : ajouter un `refreshKey` au state et l'inclure dans les deps du `useEffect` de chargement, puis `setRefreshKey(k => k+1)` après création réussie.
-- Le nouvel ami sera automatiquement coché pour fluidifier le flow (l'utilisateur a cliqué "Ajouter" précisément pour l'associer).
+- Aucune nouvelle table ni migration.
+- Aucun changement aux routes (la route `/publications` reste).
+- Hook `useMyPublishedPages` : type `PublishedPage = { id, type: 'birthday'|'event', slug, title, cover_image_url, occasion, year }`. Stockage local via `useState`/`useEffect` (cohérent avec `useBirthdayPages`).
+- Hook `useMyFriends` : type `FriendItem = { user_id, first_name, avatar_url }`.
+- L'icône du bouton "+" : `Plus` de `lucide-react`, déjà disponible.
+- Conventions de couleurs/typographie : conserver le style existant de la page (gradient `from-background via-violet-50/30 to-rose-50/20`, font Poppins pour le titre).
 
-## Fichiers modifiés
+## Fichiers impactés
 
-- `src/components/BirthdayPageFriendsPicker.tsx` (ajout bouton + modal + handler + refresh)
+- Modifié : `src/components/ProfileDropdown.tsx` (libellé + icône)
+- Modifié : `src/pages/Publications.tsx` (refonte complète)
+- Créé : `src/hooks/useMyPublishedPages.ts`
+- Créé : `src/hooks/useMyFriends.ts`
 
-Aucune migration DB, aucune nouvelle dépendance.
+## Hors scope
+
+- Pas de renommage de la route `/publications` (compatibilité liens existants).
+- Pas de modification du `BirthdayPageBuilderModal` lui-même.
+- Pas de nouveau breadcrumb.
