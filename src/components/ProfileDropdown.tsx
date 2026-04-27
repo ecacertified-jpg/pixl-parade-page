@@ -1,4 +1,4 @@
-import { User, BarChart3, Heart, Users, LogOut, Edit3, Store, Settings, UserPlus, Cog, ShoppingBag, Gift, PackageOpen } from "lucide-react";
+import { User, BarChart3, Heart, Users, LogOut, Edit3, Store, Settings, UserPlus, Cog, ShoppingBag, Gift, PackageOpen, BookHeart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -187,8 +187,8 @@ export const ProfileDropdown = () => {
             onClick={() => navigate("/publications")}
             className="w-full flex items-center px-4 py-3 text-left text-foreground hover:bg-muted/50 rounded-lg transition-colors"
           >
-            <Users className="h-4 w-4 mr-3 text-muted-foreground" />
-            <span className="text-sm font-medium">Publications</span>
+            <BookHeart className="h-4 w-4 mr-3 text-muted-foreground" />
+            <span className="text-sm font-medium">Mes pages</span>
           </button>
           
           <button 
