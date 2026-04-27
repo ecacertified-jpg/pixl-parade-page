@@ -22,7 +22,7 @@ export function isSupportedCountry(code?: string | null): code is SupportedCount
  * Nettoie un code pays brut : trim, uppercase, retire tout caractère non
  * alphabétique, tronque à 3 caractères max. Renvoie `""` si rien d'exploitable.
  */
-function normalizeCountryCode(code?: string | null): string {
+export function normalizeCountryCode(code?: string | null): string {
   if (!code) return "";
   return code.trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
 }
