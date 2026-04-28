@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Gift, Plus, Heart, Sparkles } from "lucide-react";
+import { Gift, Plus, Heart, Sparkles, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ExternalProductFundModal } from "@/components/ExternalProductFundModal";
 
 interface EmptyFundsStateProps {
   occasionFilter?: string | null;
@@ -14,6 +16,7 @@ export function EmptyFundsState({
   onCreateFund 
 }: EmptyFundsStateProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [externalOpen, setExternalOpen] = useState(false);
   
   // Animations désactivées si préférence utilisateur
   const floatAnimation = shouldReduceMotion 
@@ -100,6 +103,7 @@ export function EmptyFundsState({
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
+        className="flex flex-col sm:flex-row gap-2 items-center justify-center"
       >
         <Button 
           onClick={onCreateFund}
@@ -107,6 +111,13 @@ export function EmptyFundsState({
         >
           <Plus className="h-4 w-4 mr-2" />
           Créer la première
+        </Button>
+        <Button
+          onClick={() => setExternalOpen(true)}
+          variant="outline"
+        >
+          <Globe className="h-4 w-4 mr-2" />
+          Produit d'une autre plateforme
         </Button>
       </motion.div>
 
@@ -119,6 +130,11 @@ export function EmptyFundsState({
       >
         Soyez le premier à organiser un cadeau collectif !
       </motion.p>
+
+      <ExternalProductFundModal
+        isOpen={externalOpen}
+        onClose={() => setExternalOpen(false)}
+      />
     </motion.div>
   );
 }
