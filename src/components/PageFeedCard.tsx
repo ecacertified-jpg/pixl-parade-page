@@ -73,14 +73,33 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
     <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-shadow">
       {/* Header: creator info */}
       <div className="flex items-center gap-3 p-4 pb-2">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={page.creator.avatar_url || undefined} />
-          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-            {initials || '?'}
-          </AvatarFallback>
-        </Avatar>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/u/${page.creator.user_id}/pages`);
+          }}
+          className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40"
+          aria-label={`Voir les pages de ${creatorName}`}
+        >
+          <Avatar className="h-10 w-10 ring-2 ring-transparent hover:ring-primary/40 transition-all">
+            <AvatarImage src={page.creator.avatar_url || undefined} />
+            <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+              {initials || '?'}
+            </AvatarFallback>
+          </Avatar>
+        </button>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{creatorName}</p>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/u/${page.creator.user_id}/pages`);
+            }}
+            className="text-left hover:underline focus:outline-none focus:underline"
+          >
+            <p className="text-sm font-semibold truncate">{creatorName}</p>
+          </button>
           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
             <p className="text-xs text-muted-foreground">{formatRelativeDate(page.created_at)}</p>
             {isOwnPage && (

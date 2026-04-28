@@ -12,13 +12,14 @@ export interface PublishedPage {
   year: number | null;
 }
 
-export function useMyPublishedPages() {
+export function useMyPublishedPages(targetUserId?: string | null) {
   const { user } = useAuth();
+  const effectiveUserId = targetUserId ?? user?.id ?? null;
   const [pages, setPages] = useState<PublishedPage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) {
+    if (!effectiveUserId) {
       setPages([]);
       setLoading(false);
       return;
@@ -32,12 +33,12 @@ export function useMyPublishedPages() {
           supabase
             .from('birthday_pages')
             .select('id, slug, title, cover_image_url, celebration_year')
-            .eq('user_id', user.id)
+            .eq('user_id', effectiveUserId)
             .eq('is_active', true),
           supabase
             .from('event_pages')
             .select('id, slug, title, cover_image_url, occasion, event_date, created_at')
-            .eq('creator_id', user.id)
+            .eq('creator_id', effectiveUserId)
             .eq('is_active', true),
         ]);
 
@@ -85,7 +86,7 @@ export function useMyPublishedPages() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   return { pages, loading };
 }
