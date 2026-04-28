@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Gift, Users, ArrowRight, Heart } from "lucide-react";
+import { Loader2, Gift, Users, ArrowRight, Heart, Globe, ExternalLink } from "lucide-react";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { cleanMetaParam } from "@/utils/cleanMetaParam";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
@@ -30,6 +30,11 @@ interface FundData {
     image_url: string | null;
     price: number;
   } | null;
+  is_external_product?: boolean | null;
+  external_product_url?: string | null;
+  external_product_name?: string | null;
+  external_product_image_url?: string | null;
+  external_platform?: string | null;
   contact?: {
     id: string;
     name: string;
@@ -86,6 +91,11 @@ export default function FundPreview() {
             status,
             deadline_date,
             created_at,
+            is_external_product,
+            external_product_url,
+            external_product_name,
+            external_product_image_url,
+            external_platform,
             products:business_product_id (
               id,
               name,
