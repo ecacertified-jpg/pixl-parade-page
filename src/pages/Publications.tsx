@@ -89,13 +89,39 @@ const MyPagesPage = () => {
       />
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-8">
-        {/* Birthday countdown */}
-        {!profileLoading && profile?.birthday && (
+        {/* Birthday countdown / CTA */}
+        {!profileLoading && (
           <section>
-            <BirthdayCountdownCard
-              birthday={profile.birthday}
-              userName={profile.first_name ?? undefined}
-            />
+            {profile?.birthday ? (
+              <BirthdayCountdownCard
+                birthday={profile.birthday}
+                userName={profile.first_name ?? undefined}
+              />
+            ) : (
+              <Card className="p-5 bg-gradient-to-br from-primary/10 via-accent/10 to-gift/10 border-primary/20">
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-background/80 shrink-0">
+                    <Cake className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-poppins font-semibold text-foreground text-sm mb-1">
+                      Active ton compte à rebours
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Ajoute ta date d'anniversaire pour voir le compte à rebours et permettre à tes proches de te souhaiter joyeusement ce jour-là.
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => navigate('/profile-settings')}
+                      className="w-full sm:w-auto"
+                    >
+                      <Cake className="h-4 w-4 mr-1.5" />
+                      Renseigner mon anniversaire
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )}
           </section>
         )}
 
