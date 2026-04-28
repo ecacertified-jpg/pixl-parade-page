@@ -32,7 +32,8 @@ import {
   MessageSquare,
   Cake,
   Bot,
-  ListChecks
+  ListChecks,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -75,6 +76,7 @@ const navItems: NavItem[] = [
   { title: 'Contenu', href: '/admin/content', icon: FileText },
   { title: 'Finances', href: '/admin/finances', icon: DollarSign },
   { title: 'Commissions', href: '/admin/commissions', icon: DollarSign },
+  { title: 'Achats externes', href: '/admin/external-purchases', icon: Globe },
   { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { title: 'Stats Partages', href: '/admin/share-analytics', icon: Share2 },
   { title: 'IndexNow SEO', href: '/admin/indexnow', icon: Rocket },
