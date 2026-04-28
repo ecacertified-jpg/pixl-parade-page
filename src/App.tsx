@@ -262,6 +262,7 @@ const App = () => (
             <Route path="/community" element={<ProtectedRoute><L><Community /></L></ProtectedRoute>} />
             <Route path="/reciprocity-profile" element={<ProtectedRoute><L><ReciprocityProfile /></L></ProtectedRoute>} />
             <Route path="/profile/:userId" element={<ProtectedRoute><L><UserProfile /></L></ProtectedRoute>} />
+            <Route path="/u/:userId/pages" element={<ProtectedRoute><L><UserPagesPage /></L></ProtectedRoute>} />
             <Route path="/invitations" element={<ProtectedRoute><L><Invitations /></L></ProtectedRoute>} />
             <Route path="/referral-codes" element={<ProtectedRoute><L><ReferralCodes /></L></ProtectedRoute>} />
             <Route path="/profile-settings" element={<ProtectedRoute><L><ProfileSettings /></L></ProtectedRoute>} />
