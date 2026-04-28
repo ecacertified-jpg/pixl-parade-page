@@ -46,6 +46,7 @@ const BusinessAuth = lazy(() => import("./pages/BusinessAuth"));
 const JoinAdmin = lazy(() => import("./pages/JoinAdmin"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Publications = lazy(() => import("./pages/Publications"));
+const UserPagesPage = lazy(() => import("./pages/UserPagesPage"));
 const BusinessAccount = lazy(() => import("./pages/BusinessAccount"));
 const BusinessSetup = lazy(() => import("./pages/BusinessSetup"));
 const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
