@@ -2436,7 +2436,12 @@ export type Database = {
           current_amount: number | null
           deadline_date: string | null
           description: string | null
+          external_platform: string | null
+          external_product_image_url: string | null
+          external_product_name: string | null
+          external_product_url: string | null
           id: string
+          is_external_product: boolean
           is_public: boolean | null
           is_surprise: boolean | null
           occasion: string | null
@@ -2461,7 +2466,12 @@ export type Database = {
           current_amount?: number | null
           deadline_date?: string | null
           description?: string | null
+          external_platform?: string | null
+          external_product_image_url?: string | null
+          external_product_name?: string | null
+          external_product_url?: string | null
           id?: string
+          is_external_product?: boolean
           is_public?: boolean | null
           is_surprise?: boolean | null
           occasion?: string | null
@@ -2486,7 +2496,12 @@ export type Database = {
           current_amount?: number | null
           deadline_date?: string | null
           description?: string | null
+          external_platform?: string | null
+          external_product_image_url?: string | null
+          external_product_name?: string | null
+          external_product_url?: string | null
           id?: string
+          is_external_product?: boolean
           is_public?: boolean | null
           is_surprise?: boolean | null
           occasion?: string | null
@@ -3456,6 +3471,84 @@ export type Database = {
             columns: ["event_page_id"]
             isOneToOne: false
             referencedRelation: "event_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_purchase_requests: {
+        Row: {
+          actual_purchase_amount: number | null
+          admin_notes: string | null
+          beneficiary_phone: string | null
+          created_at: string
+          currency: string
+          delivery_address: string | null
+          estimated_price: number
+          external_order_reference: string | null
+          external_platform: string | null
+          external_url: string
+          fund_id: string
+          id: string
+          product_name: string
+          proof_url: string | null
+          purchased_at: string | null
+          purchased_by_admin_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_purchase_amount?: number | null
+          admin_notes?: string | null
+          beneficiary_phone?: string | null
+          created_at?: string
+          currency?: string
+          delivery_address?: string | null
+          estimated_price: number
+          external_order_reference?: string | null
+          external_platform?: string | null
+          external_url: string
+          fund_id: string
+          id?: string
+          product_name: string
+          proof_url?: string | null
+          purchased_at?: string | null
+          purchased_by_admin_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_purchase_amount?: number | null
+          admin_notes?: string | null
+          beneficiary_phone?: string | null
+          created_at?: string
+          currency?: string
+          delivery_address?: string | null
+          estimated_price?: number
+          external_order_reference?: string | null
+          external_platform?: string | null
+          external_url?: string
+          fund_id?: string
+          id?: string
+          product_name?: string
+          proof_url?: string | null
+          purchased_at?: string | null
+          purchased_by_admin_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_purchase_requests_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: true
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_purchase_requests_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: true
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
