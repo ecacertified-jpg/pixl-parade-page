@@ -38,11 +38,78 @@ Deno.serve(async (req) => {
     // 2. Get fund details
     const { data: fund, error: fundErr } = await supabaseAdmin
       .from('collective_funds')
-      .select('id, title, current_amount, target_amount, creator_id, beneficiary_contact_id')
+      .select('id, title, current_amount, target_amount, creator_id, beneficiary_contact_id, is_external_product, external_product_url, external_product_name, external_product_image_url, external_platform')
       .eq('id', fund_id)
       .single()
 
     if (fundErr || !fund) throw new Error('Fund not found: ' + fundErr?.message)
+
+    // 2bis. External-product fund: create an external_purchase_request instead of a business order
+    if (fund.is_external_product) {
+      const { data: existingReq } = await supabaseAdmin
+        .from('external_purchase_requests')
+        .select('id')
+        .eq('fund_id', fund_id)
+        .maybeSingle()
+
+      if (existingReq) {
+        console.log(`⏭️ External purchase request already exists: ${existingReq.id}`)
+        return new Response(JSON.stringify({ skipped: true, reason: 'external_request_exists', request_id: existingReq.id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // Best-effort beneficiary phone lookup via beneficiary contact
+      let beneficiaryPhone: string | null = null
+      if (fund.beneficiary_contact_id) {
+        const { data: c } = await supabaseAdmin
+          .from('contacts')
+          .select('phone')
+          .eq('id', fund.beneficiary_contact_id)
+          .maybeSingle()
+        beneficiaryPhone = c?.phone ?? null
+      }
+
+      const { data: req, error: reqErr } = await supabaseAdmin
+        .from('external_purchase_requests')
+        .insert({
+          fund_id,
+          status: 'pending',
+          external_url: fund.external_product_url ?? '',
+          product_name: fund.external_product_name ?? fund.title,
+          estimated_price: fund.target_amount,
+          currency: 'XOF',
+          external_platform: fund.external_platform,
+          beneficiary_phone: beneficiaryPhone,
+        })
+        .select()
+        .single()
+
+      if (reqErr) throw new Error('Failed to create external purchase request: ' + reqErr.message)
+
+      console.log(`✅ External purchase request created: ${req.id}`)
+
+      // Notify the creator (best-effort, non-blocking)
+      try {
+        await supabaseAdmin.from('notifications').insert({
+          user_id: fund.creator_id,
+          type: 'fund_completed',
+          title: 'Cagnotte complète 🎉',
+          message: `Votre cagnotte « ${fund.title} » a atteint son objectif. L'équipe Joie de Vivre va commander le produit sur ${fund.external_platform ?? 'la plateforme externe'}.`,
+          action_url: `/f/${fund_id}`,
+        })
+      } catch (e) {
+        console.warn('notification insert failed', e)
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        external_purchase_request_id: req.id,
+        kind: 'external_product',
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     // 3. Get linked business fund
     const { data: bf, error: bfErr } = await supabaseAdmin
