@@ -108,6 +108,7 @@ const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
 const BusinessManagement = lazy(() => import("./pages/Admin/BusinessManagement"));
 const ContentModeration = lazy(() => import("./pages/Admin/ContentModeration"));
 const FinancialManagement = lazy(() => import("./pages/Admin/FinancialManagement"));
+const ExternalPurchases = lazy(() => import("./pages/Admin/ExternalPurchases"));
 const Analytics = lazy(() => import("./pages/Admin/Analytics"));
 const AdminManagement = lazy(() => import("./pages/Admin/AdminManagement"));
 const AuditLogs = lazy(() => import("./pages/Admin/AuditLogs"));
@@ -312,6 +313,7 @@ const App = () => (
             <Route path="/admin/countries/comparison" element={<AdminRoute><L><CountryMonthlyComparisonPage /></L></AdminRoute>} />
             <Route path="/admin/forecast" element={<AdminRoute><L><ForecastPage /></L></AdminRoute>} />
             <Route path="/admin/commissions" element={<AdminRoute><L><CommissionsDashboard /></L></AdminRoute>} />
+            <Route path="/admin/external-purchases" element={<AdminRoute><L><ExternalPurchases /></L></AdminRoute>} />
             <Route path="/admin/birthdays" element={<AdminRoute><L><AdminBirthdays /></L></AdminRoute>} />
             <Route path="/admin/whatsapp-ai" element={<AdminRoute><L><WhatsAppAIChat /></L></AdminRoute>} />
             <Route path="/admin/onboarding" element={<AdminRoute><L><OnboardingProgressDashboard /></L></AdminRoute>} />
