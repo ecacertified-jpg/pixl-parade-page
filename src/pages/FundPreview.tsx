@@ -315,7 +315,41 @@ export default function FundPreview() {
       {/* Main content */}
       <main className="max-w-lg mx-auto p-4 py-8 space-y-6">
         {/* Product image */}
-        {fund.product?.image_url && (
+        {fund.is_external_product ? (
+          <div className="relative aspect-square w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-lg bg-muted">
+            {fund.external_product_image_url ? (
+              <img
+                src={fund.external_product_image_url}
+                alt={fund.external_product_name ?? "Produit externe"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Globe className="h-16 w-16 text-muted-foreground" />
+              </div>
+            )}
+            <div className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+              <Globe className="h-3 w-3" />
+              {fund.external_platform ?? "Produit externe"}
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 text-primary-foreground">
+              <p className="text-sm opacity-90">Cadeau choisi</p>
+              <p className="font-semibold">{fund.external_product_name}</p>
+              {fund.external_product_url && (
+                <a
+                  href={fund.external_product_url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="inline-flex items-center gap-1 mt-1 text-xs underline"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Voir le produit
+                </a>
+              )}
+            </div>
+          </div>
+        ) : fund.product?.image_url && (
           <div className="relative aspect-square w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-lg">
             <img
               src={fund.product.image_url}
