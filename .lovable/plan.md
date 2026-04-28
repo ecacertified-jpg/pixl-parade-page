@@ -1,92 +1,92 @@
 ## Objectif
 
-Transformer l'entrée "Publications" en "Mes pages" : un espace centralisé où l'utilisateur retrouve toutes ses pages (anniversaires + événements) publiées, son compte à rebours d'anniversaire, ses amis en commun cliquables vers leurs pages, et un bouton "Ajouter" qui ouvre le même modal que le bouton PLUS du menu du bas.
+Permettre à un utilisateur de créer une **cagnotte Joie de Vivre** pour financer collectivement l'achat d'un produit qui se trouve sur **une plateforme externe** (Amazon, Jumia, AliExpress, boutique Instagram, site marchand quelconque, etc.). La mécanique de cagnotte JDV (collecte, partage, contributions, complétion à 100%) reste identique. Seule la phase d'achat final change : c'est l'équipe JDV qui procède à l'achat sur la plateforme externe une fois la cagnotte complétée.
 
-## Ce qui sera fait
+## Parcours utilisateur
 
-### 1. Renommage du libellé "Publications" → "Mes pages"
+1. Sur la wishlist ou un nouveau bouton « Cagnotte produit externe », l'utilisateur clique sur **« Ajouter un produit d'une autre plateforme »**.
+2. Une modale lui demande :
+   - URL du produit (Amazon, Jumia, etc.)
+   - Nom du produit
+   - Prix estimé (XOF) — sert de `target_amount`
+   - Photo (upload ou URL de l'image récupérée du lien)
+   - Bénéficiaire (lui-même, un contact, ou une page d'anniversaire)
+   - Occasion + date limite + visibilité
+3. La cagnotte est créée comme une cagnotte JDV classique, **mais marquée « externe »**. Elle est partageable, recevant des contributions normalement (Wave, etc.).
+4. Quand la cagnotte atteint 100 %, au lieu de déclencher un `business_order` chez un prestataire JDV, le système :
+   - Crée une **demande d'achat externe** (`external_purchase_requests`) en statut `pending`.
+   - Notifie les admins (WhatsApp + tableau de bord).
+   - Notifie le bénéficiaire que sa cagnotte est complète et que JDV s'occupe de l'achat.
+5. Un admin ouvre la demande, clique sur le lien externe, achète le produit, saisit le numéro de commande / preuve d'achat, et marque la demande `purchased`.
+6. Le bénéficiaire et le créateur reçoivent une notification de confirmation. Quand le colis est livré, l'admin marque `delivered` (réutilisation du flux satisfaction/livraison existant si possible).
 
-Dans `src/components/ProfileDropdown.tsx` :
-- Remplacer le texte "Publications" par "Mes pages".
-- Remplacer l'icône `Users` par `BookHeart` (ou `LayoutGrid`) plus représentative de pages.
-- Conserver la route `/publications` pour compatibilité (pas de migration de chemins nécessaire).
+## Conformité avec l'architecture existante
 
-### 2. Refonte de la page `/publications` (`src/pages/Publications.tsx`)
+- Réutilise **`collective_funds`** (mécanique de collecte, partage, contributions inchangée).
+- Réutilise **`fund_contributions`**, **partage viral**, **complétion 100%**.
+- Le split paiement Wave actuel (vendeur/plateforme) ne s'applique pas : la totalité va à JDV qui rachète ailleurs. La marge = différence entre montant collecté et coût réel d'achat (saisi par l'admin).
 
-La page sera entièrement repensée. L'ancien contenu (liste de `posts`) est supprimé. Nouvelle structure verticale, mobile-first :
+## Changements techniques
 
-```text
-┌─────────────────────────────────────┐
-│ ← Mes pages              [+ Ajouter]│  ← header avec bouton icône
-├─────────────────────────────────────┤
-│ 🎂 Compte à rebours anniversaire    │  ← BirthdayCountdownCard existant
-├─────────────────────────────────────┤
-│ Mes pages publiées                  │
-│ ┌──────┐ ┌──────┐ ┌──────┐          │
-│ │cover │ │cover │ │cover │  ← grille│
-│ │Année │ │Mariage│ │ ... │  cliquable│
-│ └──────┘ └──────┘ └──────┘          │
-├─────────────────────────────────────┤
-│ Amis en commun                      │
-│ ┌──┐ ┌──┐ ┌──┐ ┌──┐                 │
-│ │👤│ │👤│ │👤│ │👤│  ← avatars      │
-│ └──┘ └──┘ └──┘ └──┘    cliquables   │
-└─────────────────────────────────────┘
-```
+### 1. Base de données (migration)
 
-#### a) En-tête
-- Garder le bouton retour.
-- Titre : "Mes pages".
-- Bouton icône `Plus` à droite (variant outline, h-9 w-9). Au clic, ouvre le `BirthdayPageBuilderModal`.
+Sur `collective_funds`, ajouter :
+- `is_external_product boolean default false`
+- `external_product_url text`
+- `external_product_name text`
+- `external_product_image_url text`
+- `external_platform text` (Amazon, Jumia, etc., détecté depuis l'URL ou saisi)
 
-#### b) Compte à rebours
-- Réutiliser tel quel le composant `BirthdayCountdownCard` (déjà utilisé dans `Dashboard.tsx`).
-- Récupérer `birthday` et `first_name` depuis `profiles` via une simple requête Supabase au montage.
-- N'afficher la carte que si l'utilisateur a renseigné une date d'anniversaire.
+Nouvelle table `external_purchase_requests` :
+- `id`, `fund_id` (FK collective_funds), `status` (pending / purchased / shipped / delivered / cancelled)
+- `external_url`, `product_name`, `estimated_price`, `actual_purchase_amount`
+- `purchased_by_admin_id`, `purchased_at`, `external_order_reference`, `proof_url`
+- `delivery_address`, `beneficiary_phone`, `admin_notes`
+- `created_at`, `updated_at`
 
-#### c) Section "Mes pages publiées"
-- Source de données : créer un petit hook `useMyPublishedPages` qui fait deux requêtes en parallèle :
-  - `birthday_pages` où `user_id = auth.uid()` ET `is_active = true`.
-  - `event_pages` où `creator_id = auth.uid()` ET `is_active = true`.
-- Fusionner et trier par `celebration_year`/`event_date` desc.
-- Afficher en grille 2 colonnes avec : image de couverture, titre, occasion, année.
-- Au clic : navigation vers `/p/:slug` (birthday) ou `/event/:slug` (event), routes existantes.
-- État vide : message + CTA secondaire qui ouvre aussi le `BirthdayPageBuilderModal`.
+RLS :
+- `collective_funds` : pas de changement (les nouveaux champs suivent les policies existantes).
+- `external_purchase_requests` : SELECT pour le créateur de la cagnotte et le bénéficiaire, ALL pour les admins (via `has_role`).
 
-#### d) Section "Amis en commun"
-- Source : la table `contact_relationships` (déjà utilisée par `useFriendRequests.ts`) — ce sont les liens d'amitié réciproques de l'utilisateur.
-- Créer un hook `useMyFriends` qui :
-  - Récupère depuis `contact_relationships` toutes les paires impliquant `auth.uid()`.
-  - Récupère les `profiles` correspondants (first_name, avatar_url).
-- Affichage : carrousel horizontal d'avatars (taille 14) avec prénom dessous.
-- Au clic sur un avatar :
-  - Naviguer vers `/u/:userId` (route profil public si elle existe) OU vers la dernière page publiée de cet ami (`birthday_pages` la plus récente). On utilisera la route profil publique si présente, sinon on rabattra sur la page anniversaire la plus récente de l'ami.
-- État vide : "Aucun ami pour le moment" avec lien vers `/invitations`.
+### 2. Front-end
 
-### 3. Bouton "Ajouter" — réutilisation du modal existant
+**Nouveau composant** `ExternalProductFundModal.tsx` :
+- Champs URL / nom / prix / image / bénéficiaire / occasion / deadline.
+- Bouton « Récupérer les infos » (optionnel, V2) qui appelle une edge function de scraping léger (oEmbed / og:image). Pour la V1, saisie manuelle suffit.
+- À la validation, insère dans `collective_funds` avec `is_external_product = true`.
 
-- Importer `BirthdayPageBuilderModal` depuis `@/components/BirthdayPageBuilderModal`.
-- État local `isBuilderOpen` ; le bouton `+` du header et la CTA d'état vide partagent le même setter.
-- Le modal est exactement le même que celui ouvert depuis `CreateActionMenu` (bouton PLUS du menu du bas), donc cohérence garantie.
+**Intégration UI** :
+- Bouton « Ajouter un produit externe » dans :
+  - La wishlist (`Favorites` / wishlist du dashboard),
+  - Le menu de création de cagnotte (`CelebrateMenu`, `WishlistFundPickerModal`, `EmptyFundsState`),
+  - La page d'anniversaire (section cagnotte permanente).
+- Sur la **page publique d'une cagnotte externe**, afficher un badge « Produit externe » + un lien sortant vers le produit (avec `rel="noopener nofollow"`).
 
-## Détails techniques
+### 3. Edge function `process-fund-completion`
 
-- Aucune nouvelle table ni migration.
-- Aucun changement aux routes (la route `/publications` reste).
-- Hook `useMyPublishedPages` : type `PublishedPage = { id, type: 'birthday'|'event', slug, title, cover_image_url, occasion, year }`. Stockage local via `useState`/`useEffect` (cohérent avec `useBirthdayPages`).
-- Hook `useMyFriends` : type `FriendItem = { user_id, first_name, avatar_url }`.
-- L'icône du bouton "+" : `Plus` de `lucide-react`, déjà disponible.
-- Conventions de couleurs/typographie : conserver le style existant de la page (gradient `from-background via-violet-50/30 to-rose-50/20`, font Poppins pour le titre).
+Adapter la logique de complétion : si `is_external_product = true`, ne pas créer de `business_order` ni appeler `process-wave-payment`. À la place :
+- Insérer un `external_purchase_requests` en `pending`.
+- Envoyer une notification WhatsApp aux admins (template existant ou simple message) avec lien vers `/admin/external-purchases/:id`.
+- Notifier le bénéficiaire et le créateur.
 
-## Fichiers impactés
+### 4. Tableau de bord admin
 
-- Modifié : `src/components/ProfileDropdown.tsx` (libellé + icône)
-- Modifié : `src/pages/Publications.tsx` (refonte complète)
-- Créé : `src/hooks/useMyPublishedPages.ts`
-- Créé : `src/hooks/useMyFriends.ts`
+Nouvelle page `/admin/external-purchases` :
+- Liste des demandes (filtres par statut, pays).
+- Détail : lien externe cliquable, infos cagnotte, bénéficiaire, adresse de livraison.
+- Actions : « Marquer acheté » (saisie référence + montant réel + preuve), « Marquer expédié », « Marquer livré », « Annuler + rembourser ».
+- Lien dans la sidebar admin sous Commissions / Financial Management.
 
-## Hors scope
+## Ce qui n'est PAS dans ce plan
 
-- Pas de renommage de la route `/publications` (compatibilité liens existants).
-- Pas de modification du `BirthdayPageBuilderModal` lui-même.
-- Pas de nouveau breadcrumb.
+- Scraping automatique des pages produit externes (peut être une V2 avec une edge function dédiée + clé API type `microlink.io`).
+- Conversion automatique de devises (l'utilisateur saisit le prix estimé en XOF).
+- Remboursement automatique en cas d'échec d'achat (à faire manuellement via l'admin pour la V1).
+
+## Estimation du périmètre
+
+- 1 migration SQL (colonnes + nouvelle table + RLS).
+- 1 nouvelle modale front + intégration dans 3-4 points d'entrée.
+- Adaptation de `process-fund-completion`.
+- 1 nouvelle page admin + 1 hook.
+- Adaptation de la page publique de cagnotte (badge + lien).
