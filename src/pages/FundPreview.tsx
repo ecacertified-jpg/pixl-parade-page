@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Gift, Users, ArrowRight, Heart, Globe, ExternalLink } from "lucide-react";
+import { Loader2, Gift, Users, ArrowRight, Heart, Globe, ExternalLink, Wallet } from "lucide-react";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { cleanMetaParam } from "@/utils/cleanMetaParam";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
@@ -430,6 +430,41 @@ export default function FundPreview() {
             <ArrowRight className="w-5 h-5" />
           </Button>
         </Card>
+
+        {/* Beneficiary self-purchase panel — Jumia & similar self-purchase platforms */}
+        {fund.is_external_product &&
+          fund.external_platform === "Jumia" &&
+          progressPercent >= 100 && (
+            <Card className="p-5 space-y-3 border-orange-300 bg-orange-50/60 dark:bg-orange-500/5">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-orange-600" />
+                <h2 className="font-semibold">Cagnotte complète — finalisez l'achat</h2>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Les contributeurs ont atteint l'objectif. Le bénéficiaire peut maintenant
+                recevoir les fonds via Wave et commander le produit directement sur {fund.external_platform}.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button asChild className="flex-1 gap-1.5 bg-[#1DC8FF] hover:bg-[#19b3e6] text-white">
+                  <a href="https://pay.wave.com/" target="_blank" rel="noopener noreferrer">
+                    <Wallet className="h-4 w-4" />
+                    Recevoir mes fonds (Wave)
+                  </a>
+                </Button>
+                {fund.external_product_url && (
+                  <Button asChild variant="outline" className="flex-1 gap-1.5 border-orange-400 text-orange-700 hover:bg-orange-100">
+                    <a href={fund.external_product_url} target="_blank" rel="noopener noreferrer nofollow">
+                      <ExternalLink className="h-4 w-4" />
+                      Acheter sur {fund.external_platform}
+                    </a>
+                  </Button>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Astuce : confirmez la réception du produit dans JDV après livraison pour clôturer la cagnotte.
+              </p>
+            </Card>
+          )}
 
         {/* App promo */}
         <div className="text-center space-y-2 py-4">
