@@ -3475,6 +3475,51 @@ export type Database = {
           },
         ]
       }
+      external_favorites: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          currency: string
+          estimated_price: number
+          external_url: string
+          id: string
+          image_url: string | null
+          notes: string | null
+          platform: string
+          product_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          currency?: string
+          estimated_price: number
+          external_url: string
+          id?: string
+          image_url?: string | null
+          notes?: string | null
+          platform: string
+          product_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          currency?: string
+          estimated_price?: number
+          external_url?: string
+          id?: string
+          image_url?: string | null
+          notes?: string | null
+          platform?: string
+          product_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       external_purchase_requests: {
         Row: {
           actual_purchase_amount: number | null
