@@ -1,92 +1,98 @@
 ## Objectif
 
-Permettre à un utilisateur de créer une **cagnotte Joie de Vivre** pour financer collectivement l'achat d'un produit qui se trouve sur **une plateforme externe** (Amazon, Jumia, AliExpress, boutique Instagram, site marchand quelconque, etc.). La mécanique de cagnotte JDV (collecte, partage, contributions, complétion à 100%) reste identique. Seule la phase d'achat final change : c'est l'équipe JDV qui procède à l'achat sur la plateforme externe une fois la cagnotte complétée.
+Ajouter dans le **Catalogue de souhaits** un bouton **Jumia** (sous la barre de recherche) qui permet à l'utilisateur d'importer un produit depuis Jumia.ci via son lien, de l'épingler dans ses favoris au même titre qu'un produit JDV, puis de lancer une cagnotte JDV qui, une fois complète, débloque les fonds vers le bénéficiaire (lien Wave + lien Jumia direct) pour qu'il finalise lui-même l'achat.
 
-## Parcours utilisateur
+## Pourquoi cette approche
 
-1. Sur la wishlist ou un nouveau bouton « Cagnotte produit externe », l'utilisateur clique sur **« Ajouter un produit d'une autre plateforme »**.
-2. Une modale lui demande :
-   - URL du produit (Amazon, Jumia, etc.)
-   - Nom du produit
-   - Prix estimé (XOF) — sert de `target_amount`
-   - Photo (upload ou URL de l'image récupérée du lien)
-   - Bénéficiaire (lui-même, un contact, ou une page d'anniversaire)
-   - Occasion + date limite + visibilité
-3. La cagnotte est créée comme une cagnotte JDV classique, **mais marquée « externe »**. Elle est partageable, recevant des contributions normalement (Wave, etc.).
-4. Quand la cagnotte atteint 100 %, au lieu de déclencher un `business_order` chez un prestataire JDV, le système :
-   - Crée une **demande d'achat externe** (`external_purchase_requests`) en statut `pending`.
-   - Notifie les admins (WhatsApp + tableau de bord).
-   - Notifie le bénéficiaire que sa cagnotte est complète et que JDV s'occupe de l'achat.
-5. Un admin ouvre la demande, clique sur le lien externe, achète le produit, saisit le numéro de commande / preuve d'achat, et marque la demande `purchased`.
-6. Le bénéficiaire et le créateur reçoivent une notification de confirmation. Quand le colis est livré, l'admin marque `delivered` (réutilisation du flux satisfaction/livraison existant si possible).
+Jumia n'expose pas d'API publique et leurs CGU interdisent le scraping de catalogue complet. La voie sûre, légale et rapide est **l'import par URL** : l'utilisateur va sur Jumia.ci (ouvert dans un nouvel onglet), copie le lien d'un produit, le colle dans JDV. Une edge function récupère uniquement les **métadonnées Open Graph** publiques (titre, image, prix) — comme le ferait un partage WhatsApp — et crée l'entrée.
 
-## Conformité avec l'architecture existante
+## UX — Catalogue de souhaits
 
-- Réutilise **`collective_funds`** (mécanique de collecte, partage, contributions inchangée).
-- Réutilise **`fund_contributions`**, **partage viral**, **complétion 100%**.
-- Le split paiement Wave actuel (vendeur/plateforme) ne s'applique pas : la totalité va à JDV qui rachète ailleurs. La marge = différence entre montant collecté et coût réel d'achat (saisi par l'admin).
+```text
+┌─ Catalogue de souhaits ─────────────────────┐
+│  [🇨🇮▼] [🔍 Rechercher...]                  │
+│  [🛒 Ajouter depuis Jumia.ci]   ← NOUVEAU   │
+│  Essayez plutôt: Robe • Chemise • Parfum    │
+│  ...grille produits JDV + favoris Jumia ... │
+└─────────────────────────────────────────────┘
+```
+
+1. Bouton **"Ajouter depuis Jumia.ci"** sous la barre de recherche (style outline + logo Jumia orange).
+2. Au clic → modal `JumiaImportModal` :
+   - Lien "Ouvrir Jumia.ci ↗" (nouvelle fenêtre, copie automatique d'un message d'aide).
+   - Champ **URL produit Jumia** + bouton **Aperçu**.
+   - Aperçu auto-rempli (image, nom, prix XOF) — éditable si la détection échoue.
+   - Bouton **Ajouter à mes souhaits**.
+3. Le produit Jumia apparaît dans la grille du catalogue avec un **badge orange "Jumia"** sur la carte, mélangé aux favoris JDV.
+4. Sur la carte favori Jumia : icône cœur + bouton **"Lancer une cagnotte"** qui pré-remplit le modal de cagnotte externe existant.
+
+## UX — Cagnotte → bénéficiaire
+
+Pour les cagnottes liées à un produit Jumia (`is_external_product = true` + `external_platform = 'Jumia'`), à 100% :
+1. Le créateur reçoit une notification **"Cagnotte complète — versement vers le bénéficiaire"**.
+2. La page de la cagnotte affiche un panneau dédié au bénéficiaire :
+   - Bouton **"Recevoir mes fonds (Wave)"** → lien Wave pré-rempli vers son numéro avec le montant collecté (net de la commission JDV).
+   - Bouton **"Acheter sur Jumia ↗"** → ouvre l'URL du produit Jumia.
+   - Mémo : "Vous avez X jours pour finaliser l'achat. Confirmez la réception ensuite."
+3. Bouton **"J'ai reçu le produit"** côté bénéficiaire → marque la cagnotte `delivered` (réutilise le flow de satisfaction existant).
 
 ## Changements techniques
 
-### 1. Base de données (migration)
+### Base de données
+Aucune table nouvelle nécessaire. Réutilise l'infrastructure `external_product` existante sur `collective_funds` (champs `is_external_product`, `external_product_url`, `external_product_name`, `external_product_image_url`, `external_platform`).
 
-Sur `collective_funds`, ajouter :
-- `is_external_product boolean default false`
-- `external_product_url text`
-- `external_product_name text`
-- `external_product_image_url text`
-- `external_platform text` (Amazon, Jumia, etc., détecté depuis l'URL ou saisi)
+Nouvelle table légère pour stocker les **favoris externes** (Jumia ne peut pas FK vers `products`) :
 
-Nouvelle table `external_purchase_requests` :
-- `id`, `fund_id` (FK collective_funds), `status` (pending / purchased / shipped / delivered / cancelled)
-- `external_url`, `product_name`, `estimated_price`, `actual_purchase_amount`
-- `purchased_by_admin_id`, `purchased_at`, `external_order_reference`, `proof_url`
-- `delivery_address`, `beneficiary_phone`, `admin_notes`
-- `created_at`, `updated_at`
+```sql
+CREATE TABLE public.external_favorites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  platform text NOT NULL,           -- 'Jumia', 'Amazon', etc.
+  external_url text NOT NULL,
+  product_name text NOT NULL,
+  image_url text,
+  estimated_price numeric NOT NULL,
+  currency text NOT NULL DEFAULT 'XOF',
+  country_code text,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (user_id, external_url)
+);
+ALTER TABLE public.external_favorites ENABLE ROW LEVEL SECURITY;
+-- SELECT/INSERT/DELETE: owner only
+```
 
-RLS :
-- `collective_funds` : pas de changement (les nouveaux champs suivent les policies existantes).
-- `external_purchase_requests` : SELECT pour le créateur de la cagnotte et le bénéficiaire, ALL pour les admins (via `has_role`).
+### Edge function `fetch-external-product-meta` (nouvelle)
+- Auth obligatoire (JWT).
+- Validation Zod de l'URL + allowlist (`jumia.ci`, `jumia.com`, `amazon.*`, etc.).
+- Fetch HTML, parse les balises Open Graph (`og:title`, `og:image`, `product:price:amount`).
+- Retourne `{ name, image_url, price, currency, platform }`.
+- Pas de stockage / pas de scraping massif — une URL à la fois.
+- Rate-limit 30 req/h/user.
 
-### 2. Front-end
+### Frontend
+| Fichier | Action |
+|---|---|
+| `src/components/wishlist/JumiaImportModal.tsx` | **Nouveau** — saisie URL, aperçu, sauvegarde |
+| `src/hooks/useExternalFavorites.ts` | **Nouveau** — CRUD external_favorites |
+| `src/pages/WishlistCatalog.tsx` | Bouton "Ajouter depuis Jumia.ci" + fusion grille |
+| `src/components/wishlist/ExternalFavoriteCard.tsx` | **Nouveau** — carte Jumia (badge, prix, CTA cagnotte) |
+| `src/pages/FundPreview.tsx` | Panneau bénéficiaire (Wave + lien Jumia) pour funds externes complets |
+| `src/components/ExternalProductFundModal.tsx` | Pré-rempli quand lancé depuis un favori Jumia |
 
-**Nouveau composant** `ExternalProductFundModal.tsx` :
-- Champs URL / nom / prix / image / bénéficiaire / occasion / deadline.
-- Bouton « Récupérer les infos » (optionnel, V2) qui appelle une edge function de scraping léger (oEmbed / og:image). Pour la V1, saisie manuelle suffit.
-- À la validation, insère dans `collective_funds` avec `is_external_product = true`.
+### Logique cagnotte complète (réutilisation)
+L'edge function `process-fund-completion` existante détecte déjà `is_external_product`. On l'étend pour les funds **Jumia** : au lieu de créer une `external_purchase_request` (achat manuel admin), on bascule en mode **payout bénéficiaire** :
+- Crée une notification au bénéficiaire avec lien Wave + lien Jumia.
+- L'admin reste copié pour traçabilité dans `/admin/external-purchases` (statut `awaiting_beneficiary_purchase` — nouveau statut).
 
-**Intégration UI** :
-- Bouton « Ajouter un produit externe » dans :
-  - La wishlist (`Favorites` / wishlist du dashboard),
-  - Le menu de création de cagnotte (`CelebrateMenu`, `WishlistFundPickerModal`, `EmptyFundsState`),
-  - La page d'anniversaire (section cagnotte permanente).
-- Sur la **page publique d'une cagnotte externe**, afficher un badge « Produit externe » + un lien sortant vers le produit (avec `rel="noopener nofollow"`).
+## Limitations à connaître
+- Le parsing Open Graph dépend de Jumia : si la page produit n'a pas de balise `og:image` ou `product:price`, l'utilisateur devra remplir manuellement. Le modal le permet.
+- Les prix Jumia peuvent évoluer entre l'import et la fin de la cagnotte → on affiche un message "Prix indicatif au jour de l'import".
+- Pas d'inventaire/stock vérifié : si le produit n'est plus dispo sur Jumia au moment du payout, le bénéficiaire choisit un équivalent.
 
-### 3. Edge function `process-fund-completion`
-
-Adapter la logique de complétion : si `is_external_product = true`, ne pas créer de `business_order` ni appeler `process-wave-payment`. À la place :
-- Insérer un `external_purchase_requests` en `pending`.
-- Envoyer une notification WhatsApp aux admins (template existant ou simple message) avec lien vers `/admin/external-purchases/:id`.
-- Notifier le bénéficiaire et le créateur.
-
-### 4. Tableau de bord admin
-
-Nouvelle page `/admin/external-purchases` :
-- Liste des demandes (filtres par statut, pays).
-- Détail : lien externe cliquable, infos cagnotte, bénéficiaire, adresse de livraison.
-- Actions : « Marquer acheté » (saisie référence + montant réel + preuve), « Marquer expédié », « Marquer livré », « Annuler + rembourser ».
-- Lien dans la sidebar admin sous Commissions / Financial Management.
-
-## Ce qui n'est PAS dans ce plan
-
-- Scraping automatique des pages produit externes (peut être une V2 avec une edge function dédiée + clé API type `microlink.io`).
-- Conversion automatique de devises (l'utilisateur saisit le prix estimé en XOF).
-- Remboursement automatique en cas d'échec d'achat (à faire manuellement via l'admin pour la V1).
-
-## Estimation du périmètre
-
-- 1 migration SQL (colonnes + nouvelle table + RLS).
-- 1 nouvelle modale front + intégration dans 3-4 points d'entrée.
-- Adaptation de `process-fund-completion`.
-- 1 nouvelle page admin + 1 hook.
-- Adaptation de la page publique de cagnotte (badge + lien).
+## Étapes de livraison
+1. Migration `external_favorites` + RLS.
+2. Edge function `fetch-external-product-meta` + secret allowlist.
+3. Hook `useExternalFavorites` + modal `JumiaImportModal`.
+4. Intégration dans `WishlistCatalog` (bouton + grille fusionnée + carte Jumia).
+5. Adaptation `process-fund-completion` + panneau bénéficiaire dans `FundPreview`.
+6. Mémo `mem://features/jumia-external-wishlist`.
