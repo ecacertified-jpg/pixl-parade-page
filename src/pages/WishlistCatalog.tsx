@@ -323,7 +323,7 @@ export default function WishlistCatalog() {
                 <Skeleton key={i} className="h-56 rounded-xl" />
               ))}
             </div>
-          ) : filteredProducts.length === 0 ? (
+          ) : filteredProducts.length === 0 && filteredExternalFavorites.length === 0 ? (
             <div className="text-center py-10 px-4 text-muted-foreground">
               <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 opacity-40" />
               {isSearching ? (
