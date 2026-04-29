@@ -70,11 +70,18 @@ Deno.serve(async (req) => {
         beneficiaryPhone = c?.phone ?? null
       }
 
+      // Jumia (and other "self-purchase" platforms) = funds are paid out to the
+      // beneficiary via Wave; the beneficiary places the order themselves.
+      // Other platforms (Amazon, AliExpress…) keep the manual admin-purchase flow.
+      const SELF_PURCHASE_PLATFORMS = new Set(['Jumia'])
+      const isSelfPurchase = SELF_PURCHASE_PLATFORMS.has(fund.external_platform ?? '')
+      const status = isSelfPurchase ? 'awaiting_beneficiary_purchase' : 'pending'
+
       const { data: req, error: reqErr } = await supabaseAdmin
         .from('external_purchase_requests')
         .insert({
           fund_id,
-          status: 'pending',
+          status,
           external_url: fund.external_product_url ?? '',
           product_name: fund.external_product_name ?? fund.title,
           estimated_price: fund.target_amount,
@@ -87,15 +94,18 @@ Deno.serve(async (req) => {
 
       if (reqErr) throw new Error('Failed to create external purchase request: ' + reqErr.message)
 
-      console.log(`✅ External purchase request created: ${req.id}`)
+      console.log(`✅ External purchase request created (${status}): ${req.id}`)
 
       // Notify the creator (best-effort, non-blocking)
       try {
+        const message = isSelfPurchase
+          ? `Votre cagnotte « ${fund.title} » a atteint son objectif. Les fonds sont prêts à être versés au bénéficiaire via Wave pour finaliser l'achat sur ${fund.external_platform}.`
+          : `Votre cagnotte « ${fund.title} » a atteint son objectif. L'équipe Joie de Vivre va commander le produit sur ${fund.external_platform ?? 'la plateforme externe'}.`
         await supabaseAdmin.from('notifications').insert({
           user_id: fund.creator_id,
           type: 'fund_completed',
           title: 'Cagnotte complète 🎉',
-          message: `Votre cagnotte « ${fund.title} » a atteint son objectif. L'équipe Joie de Vivre va commander le produit sur ${fund.external_platform ?? 'la plateforme externe'}.`,
+          message,
           action_url: `/f/${fund_id}`,
         })
       } catch (e) {
@@ -105,7 +115,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         external_purchase_request_id: req.id,
-        kind: 'external_product',
+        kind: isSelfPurchase ? 'external_self_purchase' : 'external_product',
+        status,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
