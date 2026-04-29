@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Heart, SlidersHorizontal, X, AlertCircle, RotateCcw, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Heart, SlidersHorizontal, X, AlertCircle, RotateCcw, Loader2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,14 @@ import { getCountryConfig } from "@/config/countries";
 import { CountrySelector } from "@/components/CountrySelector";
 import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
 import { WishlistProductCard } from "@/components/wishlist/WishlistProductCard";
+import { ExternalFavoriteCard } from "@/components/wishlist/ExternalFavoriteCard";
+import { JumiaImportModal } from "@/components/wishlist/JumiaImportModal";
+import { ExternalProductFundModal } from "@/components/ExternalProductFundModal";
+import {
+  useExternalFavorites,
+  useRemoveExternalFavorite,
+  type ExternalFavorite,
+} from "@/hooks/useExternalFavorites";
 import {
   CatalogProduct,
   CatalogSortOption,
@@ -44,6 +52,24 @@ export default function WishlistCatalog() {
 
   const catalog = useCatalogProducts(countryCode, sortBy);
   const search = useCatalogSearch(countryCode, debouncedQuery, sortBy);
+
+  // External favorites (Jumia, Amazon, etc.)
+  const externalFavoritesQuery = useExternalFavorites(countryCode);
+  const removeExternalFavorite = useRemoveExternalFavorite();
+  const [jumiaModalOpen, setJumiaModalOpen] = useState(false);
+  const [fundPreset, setFundPreset] = useState<ExternalFavorite | null>(null);
+
+  const externalFavorites = externalFavoritesQuery.data ?? [];
+  const filteredExternalFavorites = useMemo(() => {
+    if (selectedTaste !== "tous") return [];
+    if (!isSearching) return externalFavorites;
+    const q = debouncedQuery.trim().toLowerCase();
+    return externalFavorites.filter(
+      (f) =>
+        f.product_name.toLowerCase().includes(q) ||
+        f.platform.toLowerCase().includes(q),
+    );
+  }, [externalFavorites, isSearching, debouncedQuery, selectedTaste]);
 
   const products: CatalogProduct[] = useMemo(() => {
     if (isSearching) return search.data ?? [];
@@ -165,6 +191,17 @@ export default function WishlistCatalog() {
               />
             </div>
           </div>
+
+          {/* Import depuis une plateforme externe (Jumia, etc.) */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setJumiaModalOpen(true)}
+            className="w-full gap-2 border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-800 dark:border-orange-500/40 dark:text-orange-300 dark:hover:bg-orange-500/10"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            Ajouter depuis Jumia.ci
+          </Button>
 
           {/* Bandeau d'erreur de chargement du pays profil */}
           {profileLoadError && (
@@ -345,6 +382,14 @@ export default function WishlistCatalog() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
+              {filteredExternalFavorites.map((fav) => (
+                <ExternalFavoriteCard
+                  key={`ext-${fav.id}`}
+                  favorite={fav}
+                  onRemove={(id) => removeExternalFavorite.mutate(id)}
+                  onCreateFund={(f) => setFundPreset(f)}
+                />
+              ))}
               {filteredProducts.map((product) => (
                 <WishlistProductCard
                   key={product.id}
@@ -374,6 +419,28 @@ export default function WishlistCatalog() {
           )}
         </div>
       </div>
+
+      <JumiaImportModal
+        isOpen={jumiaModalOpen}
+        onClose={() => setJumiaModalOpen(false)}
+        countryCode={countryCode}
+      />
+
+      <ExternalProductFundModal
+        isOpen={!!fundPreset}
+        onClose={() => setFundPreset(null)}
+        preset={
+          fundPreset
+            ? {
+                productUrl: fundPreset.external_url,
+                productName: fundPreset.product_name,
+                productImageUrl: fundPreset.image_url,
+                estimatedPrice: fundPreset.estimated_price,
+                platform: fundPreset.platform,
+              }
+            : null
+        }
+      />
     </>
   );
 }
