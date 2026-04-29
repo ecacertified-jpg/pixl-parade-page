@@ -24,6 +24,14 @@ interface ExternalProductFundModalProps {
   beneficiaryName?: string | null;
   occasion?: "birthday" | "wedding" | "promotion" | "other";
   onSuccess?: (fundId: string) => void;
+  /** Optional preset to pre-fill the form (e.g. from an external favorite). */
+  preset?: {
+    productUrl?: string;
+    productName?: string;
+    productImageUrl?: string | null;
+    estimatedPrice?: number;
+    platform?: string | null;
+  } | null;
 }
 
 function detectPlatform(url: string): string | null {
@@ -51,6 +59,7 @@ export function ExternalProductFundModal({
   beneficiaryName,
   occasion = "birthday",
   onSuccess,
+  preset,
 }: ExternalProductFundModalProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -72,8 +81,15 @@ export function ExternalProductFundModal({
       setDescription("");
       setDeadline("");
       setLoading(false);
+      return;
     }
-  }, [isOpen]);
+    if (preset) {
+      if (preset.productUrl) setProductUrl(preset.productUrl);
+      if (preset.productName) setProductName(preset.productName);
+      if (preset.productImageUrl) setProductImageUrl(preset.productImageUrl);
+      if (preset.estimatedPrice) setEstimatedPrice(String(preset.estimatedPrice));
+    }
+  }, [isOpen, preset]);
 
   const platform = productUrl ? detectPlatform(productUrl) : null;
 
