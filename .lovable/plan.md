@@ -1,98 +1,98 @@
+
 ## Objectif
 
-Ajouter dans le **Catalogue de souhaits** un bouton **Jumia** (sous la barre de recherche) qui permet à l'utilisateur d'importer un produit depuis Jumia.ci via son lien, de l'épingler dans ses favoris au même titre qu'un produit JDV, puis de lancer une cagnotte JDV qui, une fois complète, débloque les fonds vers le bénéficiaire (lien Wave + lien Jumia direct) pour qu'il finalise lui-même l'achat.
+Transformer le formulaire d'inscription multi-champs (Auth.tsx) en un parcours immersif et émotionnel intégré dans `PreAuthDiscovery.tsx`. L'utilisateur ne verra plus jamais un grand formulaire : il avancera étape par étape, et l'inscription se fera silencieusement à la dernière étape avec uniquement OTP téléphone (pré-rempli) **ou** Google.
 
-## Pourquoi cette approche
+## Nouvelle structure du parcours (10 écrans)
 
-Jumia n'expose pas d'API publique et leurs CGU interdisent le scraping de catalogue complet. La voie sûre, légale et rapide est **l'import par URL** : l'utilisateur va sur Jumia.ci (ouvert dans un nouvel onglet), copie le lien d'un produit, le colle dans JDV. Une edge function récupère uniquement les **métadonnées Open Graph** publiques (titre, image, prix) — comme le ferait un partage WhatsApp — et crée l'entrée.
+| # | Écran | Source | Type |
+|---|-------|--------|------|
+| 0 | "Imagine que tous tes proches se réunissent..." | conservé | Émotion |
+| 1 | **"C'est quand ton anniversaire ?"** (NOUVEAU — remplace "C'est pour...") | `BirthdayPicker` du formulaire | Champ → `birthday` |
+| 2 | "L'évènement, c'est..." | conservé | Quiz `timing` |
+| 3 | "Ce qui te ferait le plus plaisir" | conservé | Quiz `desire` |
+| 4 | **"À quel lieu veux-tu que la livraison de ton cadeau soit faite ?"** (NOUVEAU) | `AddressSelector` (pays + ville/commune + quartier) | Champ → `city` |
+| 5 | **"Sur quel numéro de téléphone es-tu joignable ?"** (NOUVEAU) | sélecteur indicatif + `Input` téléphone | Champ → `phone` + `countryCode` |
+| 6 | **"Quel prénom aimes-tu que tes proches t'appellent ?"** (NOUVEAU) | `Input` | Champ → `firstName` |
+| 7 | "Combien de proches veux-tu réunir ?" | conservé | Quiz `guest_count` |
+| 8 | Projection animée (messages + cagnotte) | conservé | Récap |
+| 9 | **Inscription finale** : 2 boutons exclusifs | NOUVEAU | Action |
 
-## UX — Catalogue de souhaits
+**Écran 9 — Action finale** (au lieu du bouton générique actuel) :
+- **Bouton 1 — "Recevoir mon code de vérification"** → affiche le numéro pré-rempli (lecture seule, modifiable via lien "Modifier") puis appelle `sendOtpSignUp` avec toutes les données collectées (firstName, birthday, city, phone, countryCode). Bascule ensuite vers l'écran OTP existant.
+- **Séparateur "ou"**
+- **Bouton 2 — "S'inscrire avec Google"** → appelle `signInWithGoogle()`.
+- Lien discret "Peut-être plus tard" pour fermer.
 
-```text
-┌─ Catalogue de souhaits ─────────────────────┐
-│  [🇨🇮▼] [🔍 Rechercher...]                  │
-│  [🛒 Ajouter depuis Jumia.ci]   ← NOUVEAU   │
-│  Essayez plutôt: Robe • Chemise • Parfum    │
-│  ...grille produits JDV + favoris Jumia ... │
-└─────────────────────────────────────────────┘
-```
+## Implémentation technique
 
-1. Bouton **"Ajouter depuis Jumia.ci"** sous la barre de recherche (style outline + logo Jumia orange).
-2. Au clic → modal `JumiaImportModal` :
-   - Lien "Ouvrir Jumia.ci ↗" (nouvelle fenêtre, copie automatique d'un message d'aide).
-   - Champ **URL produit Jumia** + bouton **Aperçu**.
-   - Aperçu auto-rempli (image, nom, prix XOF) — éditable si la détection échoue.
-   - Bouton **Ajouter à mes souhaits**.
-3. Le produit Jumia apparaît dans la grille du catalogue avec un **badge orange "Jumia"** sur la carte, mélangé aux favoris JDV.
-4. Sur la carte favori Jumia : icône cœur + bouton **"Lancer une cagnotte"** qui pré-remplit le modal de cagnotte externe existant.
+### `src/components/PreAuthDiscovery.tsx`
 
-## UX — Cagnotte → bénéficiaire
+1. **Étendre `DiscoveryAnswers`** avec les nouveaux champs :
+   ```ts
+   interface DiscoveryAnswers {
+     birthday?: string;        // 'YYYY-MM-DD' (étape 1)
+     timing?: string;
+     desire?: string;
+     city?: string;            // adresse complète (étape 4)
+     phone?: string;           // 10 chiffres (étape 5)
+     countryCode?: string;     // '+225' etc. (étape 5)
+     firstName?: string;       // étape 6
+     guest_count?: string;
+   }
+   ```
+2. **Supprimer** la question `purpose` ("C'est pour..."). Ne pas re-router selon le type de page (cette logique du `localStorage 'bp_type_*'` peut rester — par défaut `self`).
+3. **Restructurer le state machine** : passer de 7 à 10 étapes. Renuméroter les conditions (`step === 0` émotion, `step === 8` projection, `step === 9` action). Utiliser un tableau de descripteurs d'étape pour la navigation et la barre de progression (10 segments).
+4. **Créer 4 nouveaux écrans de saisie** dans le même rendu, chacun avec :
+   - Titre incitatif gros (Poppins) + sous-titre court (Nunito)
+   - Un seul champ visible, large, centré
+   - Bouton "Continuer" désactivé tant que la valeur n'est pas valide (validation Zod par étape)
+   - Animation slide identique aux quiz
+   - Micro-encouragement après saisie (ex. après ville : "Parfait, tes proches sauront où t'envoyer leur amour 💝")
+5. **Réutiliser les composants existants** :
+   - `BirthdayPicker` (étape 1)
+   - `AddressSelector` avec `label="Lieu de livraison"`, `cityLabel="Ville / Commune"`, `neighborhoodLabel="Quartier (optionnel)"` (étape 4)
+   - Sélecteur d'indicatif `+225/+221/...` issu de `getAllCountries()` + `Input` téléphone (étape 5)
+   - `Input` simple (étape 6)
+6. **Persister** les réponses dans `localStorage` (`jdv_discovery_answers`) à chaque étape (déjà fait pour les quiz — étendre).
+7. **Étape 9** : recevoir 2 nouvelles props :
+   ```ts
+   onSubmitPhoneSignup: (data: { firstName, birthday, city, phone, countryCode }) => Promise<void>
+   onSubmitGoogleSignup: () => Promise<void>
+   ```
 
-Pour les cagnottes liées à un produit Jumia (`is_external_product = true` + `external_platform = 'Jumia'`), à 100% :
-1. Le créateur reçoit une notification **"Cagnotte complète — versement vers le bénéficiaire"**.
-2. La page de la cagnotte affiche un panneau dédié au bénéficiaire :
-   - Bouton **"Recevoir mes fonds (Wave)"** → lien Wave pré-rempli vers son numéro avec le montant collecté (net de la commission JDV).
-   - Bouton **"Acheter sur Jumia ↗"** → ouvre l'URL du produit Jumia.
-   - Mémo : "Vous avez X jours pour finaliser l'achat. Confirmez la réception ensuite."
-3. Bouton **"J'ai reçu le produit"** côté bénéficiaire → marque la cagnotte `delivered` (réutilise le flow de satisfaction existant).
+### `src/pages/Auth.tsx`
 
-## Changements techniques
+1. **Brancher les nouvelles props** sur `<PreAuthDiscovery />` (lignes ~1900-1910) :
+   - `onSubmitPhoneSignup` → préremplit `signUpForm` avec les valeurs collectées puis appelle `sendOtpSignUp(values, false)`. Le flux OTP existant prend ensuite le relais (modal de vérification, `verifyOtp`, création du compte avec metadata `first_name/birthday/city/phone`).
+   - `onSubmitGoogleSignup` → appelle `signInWithGoogle()` (avec les valeurs collectées stockées en localStorage `pendingSignupMetadata`, lues côté callback Google pour compléter le profil).
+2. **Supprimer le formulaire long** de l'onglet "S'inscrire" (lignes ~1565-1805) : ne conserver que la version "expérience" (le `PreAuthDiscovery` plein écran). L'onglet "S'inscrire" devient un simple écran qui auto-lance le `PreAuthDiscovery`.
+3. **Conserver intacts** :
+   - L'onglet "Se connecter" (Google + téléphone OTP) — inchangé
+   - Tous les schémas Zod (`signUpSchema`), `sendOtpSignUp`, `verifyOtp`, `signInWithGoogle`, la détection de doublons, le `DuplicateAccountModal`
+   - Les composants `PhoneSignupProgress` et `EmailSignupProgress` (devenus inutiles → à supprimer pour nettoyer)
+4. **Méthode email + mot de passe** : retirée du parcours d'inscription (l'utilisateur a 2 chemins : OTP téléphone ou Google, comme demandé). La connexion email reste possible côté "Se connecter" pour les comptes existants.
 
-### Base de données
-Aucune table nouvelle nécessaire. Réutilise l'infrastructure `external_product` existante sur `collective_funds` (champs `is_external_product`, `external_product_url`, `external_product_name`, `external_product_image_url`, `external_platform`).
+### Validations par étape (Zod inline)
+- birthday : date < aujourd'hui, âge > 5 ans
+- city : non vide
+- phone : `/^[0-9]{10}$/`
+- firstName : min 1, max 50, trim
 
-Nouvelle table légère pour stocker les **favoris externes** (Jumia ne peut pas FK vers `products`) :
+### Encouragements micro (exemples)
+- Après anniversaire : "On a noté ! On te préparera quelque chose de spécial 🎂"
+- Après adresse : "Top, tes proches sauront où envoyer leurs cadeaux 📍"
+- Après téléphone : "On gardera ça en sécurité 🔒"
+- Après prénom : "Enchanté(e), {firstName} ! ✨"
 
-```sql
-CREATE TABLE public.external_favorites (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  platform text NOT NULL,           -- 'Jumia', 'Amazon', etc.
-  external_url text NOT NULL,
-  product_name text NOT NULL,
-  image_url text,
-  estimated_price numeric NOT NULL,
-  currency text NOT NULL DEFAULT 'XOF',
-  country_code text,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE (user_id, external_url)
-);
-ALTER TABLE public.external_favorites ENABLE ROW LEVEL SECURITY;
--- SELECT/INSERT/DELETE: owner only
-```
+## Fichiers modifiés
 
-### Edge function `fetch-external-product-meta` (nouvelle)
-- Auth obligatoire (JWT).
-- Validation Zod de l'URL + allowlist (`jumia.ci`, `jumia.com`, `amazon.*`, etc.).
-- Fetch HTML, parse les balises Open Graph (`og:title`, `og:image`, `product:price:amount`).
-- Retourne `{ name, image_url, price, currency, platform }`.
-- Pas de stockage / pas de scraping massif — une URL à la fois.
-- Rate-limit 30 req/h/user.
+- `src/components/PreAuthDiscovery.tsx` — restructuration majeure (10 étapes, nouveaux champs, écran final dual)
+- `src/pages/Auth.tsx` — suppression du long formulaire signup, branchement des callbacks, nettoyage `PhoneSignupProgress`/`EmailSignupProgress`/schémas email
+- (Aucune migration DB, aucune nouvelle dépendance)
 
-### Frontend
-| Fichier | Action |
-|---|---|
-| `src/components/wishlist/JumiaImportModal.tsx` | **Nouveau** — saisie URL, aperçu, sauvegarde |
-| `src/hooks/useExternalFavorites.ts` | **Nouveau** — CRUD external_favorites |
-| `src/pages/WishlistCatalog.tsx` | Bouton "Ajouter depuis Jumia.ci" + fusion grille |
-| `src/components/wishlist/ExternalFavoriteCard.tsx` | **Nouveau** — carte Jumia (badge, prix, CTA cagnotte) |
-| `src/pages/FundPreview.tsx` | Panneau bénéficiaire (Wave + lien Jumia) pour funds externes complets |
-| `src/components/ExternalProductFundModal.tsx` | Pré-rempli quand lancé depuis un favori Jumia |
-
-### Logique cagnotte complète (réutilisation)
-L'edge function `process-fund-completion` existante détecte déjà `is_external_product`. On l'étend pour les funds **Jumia** : au lieu de créer une `external_purchase_request` (achat manuel admin), on bascule en mode **payout bénéficiaire** :
-- Crée une notification au bénéficiaire avec lien Wave + lien Jumia.
-- L'admin reste copié pour traçabilité dans `/admin/external-purchases` (statut `awaiting_beneficiary_purchase` — nouveau statut).
-
-## Limitations à connaître
-- Le parsing Open Graph dépend de Jumia : si la page produit n'a pas de balise `og:image` ou `product:price`, l'utilisateur devra remplir manuellement. Le modal le permet.
-- Les prix Jumia peuvent évoluer entre l'import et la fin de la cagnotte → on affiche un message "Prix indicatif au jour de l'import".
-- Pas d'inventaire/stock vérifié : si le produit n'est plus dispo sur Jumia au moment du payout, le bénéficiaire choisit un équivalent.
-
-## Étapes de livraison
-1. Migration `external_favorites` + RLS.
-2. Edge function `fetch-external-product-meta` + secret allowlist.
-3. Hook `useExternalFavorites` + modal `JumiaImportModal`.
-4. Intégration dans `WishlistCatalog` (bouton + grille fusionnée + carte Jumia).
-5. Adaptation `process-fund-completion` + panneau bénéficiaire dans `FundPreview`.
-6. Mémo `mem://features/jumia-external-wishlist`.
+## Ce qui reste inchangé
+- Backend OTP (WhatsApp/SMS), edge functions, RLS, Google OAuth
+- Onglet "Se connecter"
+- Détection de doublons et `DuplicateAccountModal`
+- Tous les hooks et la suite du parcours post-inscription (onboarding interne)
