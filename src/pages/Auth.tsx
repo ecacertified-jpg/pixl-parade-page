@@ -173,11 +173,12 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   
-  const [isLoading, setIsLoading] = useState(false);
-   const [showDiscovery, setShowDiscovery] = useState(() => {
-     const params = new URLSearchParams(window.location.search);
-     return params.get('discovery') === 'true' && !localStorage.getItem('jdv_discovery_seen');
-   });
+   const [isLoading, setIsLoading] = useState(false);
+    // Discovery flow is now mandatory for all signups — show whenever signup tab is active
+    const [showDiscovery, setShowDiscovery] = useState(() => {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('tab') === 'signup' || params.get('discovery') === 'true';
+    });
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -239,6 +240,14 @@ const Auth = () => {
       console.log('🔄 [OTP Restore] Restored OTP flow from sessionStorage:', { phone: savedPhone, method: savedMethod });
     }
   }, []);
+
+  // Force discovery flow whenever user is on signup tab without an active OTP session.
+  // The classic signup form is no longer accessible — discovery is the only path to OTP.
+  useEffect(() => {
+    if (authMode === 'signup' && !otpSent) {
+      setShowDiscovery(true);
+    }
+  }, [authMode, otpSent]);
   
   // États pour détection des doublons
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -1902,7 +1911,12 @@ const Auth = () => {
         {showDiscovery && (
           <Suspense fallback={null}>
             <PreAuthDiscovery
-              onClose={() => setShowDiscovery(false)}
+              onClose={() => {
+                // Closing the discovery returns the user to the sign-in tab —
+                // the classic signup form is no longer accessible as a fallback.
+                setShowDiscovery(false);
+                setAuthMode('signin');
+              }}
               onSubmitPhoneSignup={async (data) => {
                 // Prefill signup form with discovery answers and trigger OTP signup
                 signUpForm.setValue('firstName', data.firstName);
