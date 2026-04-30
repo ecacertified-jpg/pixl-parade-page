@@ -1911,7 +1911,12 @@ const Auth = () => {
         {showDiscovery && (
           <Suspense fallback={null}>
             <PreAuthDiscovery
-              onClose={() => setShowDiscovery(false)}
+              onClose={() => {
+                // Closing the discovery returns the user to the sign-in tab —
+                // the classic signup form is no longer accessible as a fallback.
+                setShowDiscovery(false);
+                setAuthMode('signin');
+              }}
               onSubmitPhoneSignup={async (data) => {
                 // Prefill signup form with discovery answers and trigger OTP signup
                 signUpForm.setValue('firstName', data.firstName);
