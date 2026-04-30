@@ -173,11 +173,12 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   
-  const [isLoading, setIsLoading] = useState(false);
-   const [showDiscovery, setShowDiscovery] = useState(() => {
-     const params = new URLSearchParams(window.location.search);
-     return params.get('discovery') === 'true' && !localStorage.getItem('jdv_discovery_seen');
-   });
+   const [isLoading, setIsLoading] = useState(false);
+    // Discovery flow is now mandatory for all signups — show whenever signup tab is active
+    const [showDiscovery, setShowDiscovery] = useState(() => {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('tab') === 'signup' || params.get('discovery') === 'true';
+    });
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
