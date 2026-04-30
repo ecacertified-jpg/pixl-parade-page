@@ -1903,9 +1903,29 @@ const Auth = () => {
           <Suspense fallback={null}>
             <PreAuthDiscovery
               onClose={() => setShowDiscovery(false)}
-              onSignUp={() => {
-                setShowDiscovery(false);
+              onSubmitPhoneSignup={async (data) => {
+                // Prefill signup form with discovery answers and trigger OTP signup
+                signUpForm.setValue('firstName', data.firstName);
+                signUpForm.setValue('birthday', data.birthday);
+                signUpForm.setValue('city', data.city);
+                signUpForm.setValue('phone', data.phone);
+                signUpForm.setValue('countryCode', data.countryCode);
                 setAuthMode('signup');
+                setShowDiscovery(false);
+                await sendOtpSignUp(
+                  {
+                    firstName: data.firstName,
+                    birthday: data.birthday,
+                    city: data.city,
+                    phone: data.phone,
+                    countryCode: data.countryCode,
+                  } as SignUpFormData,
+                  false,
+                );
+              }}
+              onSubmitGoogleSignup={async () => {
+                setShowDiscovery(false);
+                await signInWithGoogle();
               }}
             />
           </Suspense>
