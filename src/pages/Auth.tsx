@@ -240,6 +240,14 @@ const Auth = () => {
       console.log('🔄 [OTP Restore] Restored OTP flow from sessionStorage:', { phone: savedPhone, method: savedMethod });
     }
   }, []);
+
+  // Force discovery flow whenever user is on signup tab without an active OTP session.
+  // The classic signup form is no longer accessible — discovery is the only path to OTP.
+  useEffect(() => {
+    if (authMode === 'signup' && !otpSent) {
+      setShowDiscovery(true);
+    }
+  }, [authMode, otpSent]);
   
   // États pour détection des doublons
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
