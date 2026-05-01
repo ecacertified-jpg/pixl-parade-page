@@ -787,13 +787,13 @@ export const OnboardingExperience = ({
                 toast.info(stepHintMessage(currentStep));
                 return;
               }
-              if (currentStep === 2 && savingCategories) {
+              if (currentStep === 1 && savingCategories) {
                 toast.info('Sauvegarde en cours...');
                 return;
               }
               if (currentStep < DYNAMIC_TOTAL_STEPS - 1) onSetStep(currentStep + 1);
             }}
-            disabled={currentStep >= DYNAMIC_TOTAL_STEPS - 1 || (currentStep === 2 && savingCategories)}
+            disabled={currentStep >= DYNAMIC_TOTAL_STEPS - 1 || (currentStep === 1 && savingCategories)}
             aria-label="Étape suivante"
             className={cn(
               'rounded-full flex items-center gap-1 transition-all duration-200',
