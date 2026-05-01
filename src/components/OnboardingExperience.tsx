@@ -863,85 +863,10 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 1: Birthday */}
+          {/* Step 1: Goûts (anciennement step 2) — date d'anniversaire supprimée car déjà capturée par PreAuthDiscovery */}
           {currentStep === 1 && (
             <motion.div
-              key="birthday"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              className="text-center max-w-md mx-auto w-full"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring' }}
-                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center mb-6 shadow-lg"
-              >
-                <CalendarDays className="h-10 w-10 text-white" />
-              </motion.div>
-
-              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                {birthdayPreFilled && birthday ? "C'est bien ta date ? 🎂" : "Quand est ton anniversaire ? 🎂"}
-              </h2>
-              <p className="text-muted-foreground font-nunito mb-6">
-                {birthdayPreFilled && birthday
-                  ? "Tu peux la modifier si besoin."
-                  : "Pour que tes proches ne l'oublient jamais !"}
-              </p>
-
-              <div className="w-full max-w-sm mx-auto text-left">
-                <BirthdayPicker
-                  value={birthday}
-                  onChange={setBirthday}
-                  placeholder="jj/mm/aaaa"
-                  helperText="Tape ta date ou utilise le calendrier"
-                  minYear={1920}
-                  maxYear={new Date().getFullYear()}
-                  disableFuture
-                />
-              </div>
-
-              <AnimatePresence>
-                {!birthday && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
-                  >
-                    📅 Sélectionne ta date d'anniversaire pour que tes proches puissent te célébrer !
-                  </motion.div>
-                )}
-                {birthday && birthdayPreFilled && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 text-sm font-nunito"
-                  >
-                    ✅ Date trouvée depuis ton profil
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {birthday && daysUntilBirthday !== null && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20"
-                >
-                  <p className="text-4xl font-poppins font-bold text-primary">J-{daysUntilBirthday}</p>
-                  <p className="text-sm text-muted-foreground font-nunito">avant ton prochain anniversaire ! 🎉</p>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Step 2: Gift preferences */}
-          {currentStep === 2 && (
-            <motion.div
-              key="wishes"
+              key="tastes-redirect"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
@@ -1014,8 +939,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 3: Wishlist */}
-          {currentStep === 3 && (
+          {/* Step 2: Wishlist (anciennement step 3) */}
+          {currentStep === 2 && (
             <motion.div
               key="wishlist"
               initial={{ opacity: 0, y: 30 }}
