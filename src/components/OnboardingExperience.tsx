@@ -10,7 +10,7 @@ import {
   Sparkles, CalendarDays, Gift, Users, Share2, ArrowRight, ArrowLeft,
   Heart, Star, Laptop, ShoppingBag, Plane, Music, Utensils, Dumbbell,
   Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight, ExternalLink,
-  Cake
+  Cake, Tag, UserPlus, Calendar as CalendarIcon, Rocket, Camera
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
@@ -29,6 +29,9 @@ interface OnboardingExperienceProps {
 
 import { TASTE_CATEGORIES } from "@/data/taste-categories";
 import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
+import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
+import { OnboardingFirstPhotoStep } from '@/components/OnboardingFirstPhotoStep';
+import type { PageType } from '@/hooks/useBirthdayPageBuilderStatus';
 
 // Floating particles component
 const FloatingParticles = () => (
