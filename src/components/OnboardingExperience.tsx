@@ -292,7 +292,7 @@ export const OnboardingExperience = ({
     }
   }, [open, currentStep, isReturningUser]);
 
-  // Poll completed friend form tokens every 5 seconds
+  // Poll completed friend form tokens every 5 seconds while on the "Amis" step (4)
   useEffect(() => {
     if (currentStep !== 4 || !user) return;
 
@@ -312,27 +312,29 @@ export const OnboardingExperience = ({
     return () => clearInterval(interval);
   }, [currentStep, user]);
 
-  // Auto-redirect when 3 friends invited (step 4) — always move to step 5
+  // Auto-advance from "Amis" (4) → "Cagnotte" (5) when validated:
+  // either ≥1 friend already associated to the page, or ≥3 invitations completed
   useEffect(() => {
-    if (invitationsSentCount >= 3 && currentStep === 4) {
+    if (currentStep !== 4) return;
+    if (associatedFriendsCount >= 1 || invitationsSentCount >= 3) {
       confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onSetStep(5);
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [invitationsSentCount, currentStep, onSetStep]);
+  }, [invitationsSentCount, associatedFriendsCount, currentStep, onSetStep]);
 
-  // Auto-redirect when step 5 is fully complete (page + fund + shares ≥ 3)
+  // Auto-complete onboarding when step 7 (publish + share) is fully done
   useEffect(() => {
-    if (hasBirthdayPage && hasFund && shareCount >= 3 && currentStep === 5) {
+    if (currentStep === 7 && hasBirthdayPage && shareCount >= 3) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [hasBirthdayPage, hasFund, shareCount, currentStep, onComplete]);
+  }, [hasBirthdayPage, shareCount, currentStep, onComplete]);
 
   // Build category_name list from selected tastes
   const tasteCategoryNames = useMemo(() => {
