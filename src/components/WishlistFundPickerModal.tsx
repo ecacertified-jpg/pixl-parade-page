@@ -181,6 +181,7 @@ export function WishlistFundPickerModal({
               fund_id: fundData.id,
               business_id: businessAccountId,
               product_id: product.id,
+              beneficiary_user_id: beneficiaryUserId,
             } as any);
           } catch (e) {
             console.warn('business_collective_funds insert failed (non-blocking):', e);
