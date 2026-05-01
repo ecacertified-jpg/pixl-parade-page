@@ -129,12 +129,45 @@ export const OnboardingExperience = ({
     return () => { cancelled = true; };
   }, [selectedCategories, user]);
 
-  // Always 6 steps
-  const DYNAMIC_TOTAL_STEPS = 6;
+  // 8 steps total (0=welcome → 7=publish+share)
+  const DYNAMIC_TOTAL_STEPS = 8;
   const isFriendPurpose = discoveryPurpose === 'friend_birthday';
   const isOtherEvent = discoveryPurpose === 'other_event';
   const [selectedOccasion, setSelectedOccasion] = useState<string>('wedding');
-  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', isOtherEvent ? 'Événement' : isFriendPurpose ? 'Page proche' : 'Ma page'];
+  const stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Amis', 'Cagnotte', 'Photo', 'Publier'];
+
+  // ---- Birthday-page-builder synced states ----
+  const [pageType, setPageTypeState] = useState<PageType | null>(null);
+  const [showFriendsPicker, setShowFriendsPicker] = useState(false);
+  const [associatedFriendsCount, setAssociatedFriendsCount] = useState(0);
+  const [firstPhotoCount, setFirstPhotoCount] = useState(0);
+  const [fundSkipped, setFundSkipped] = useState(false);
+  const [publishingPage, setPublishingPage] = useState(false);
+
+  // Hydrate from localStorage
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const t = localStorage.getItem(`bp_type_${user.id}`);
+      if (t === 'self' || t === 'friend' || t === 'other_event') setPageTypeState(t);
+      const skipped = localStorage.getItem(`bp_fund_skipped_${user.id}`);
+      setFundSkipped(skipped === '1');
+    } catch { /* ignore */ }
+  }, [user?.id]);
+
+  const setPageType = useCallback((t: PageType) => {
+    setPageTypeState(t);
+    if (user?.id) {
+      try { localStorage.setItem(`bp_type_${user.id}`, t); } catch { /* ignore */ }
+    }
+  }, [user?.id]);
+
+  const skipFund = useCallback(() => {
+    if (!user?.id) return;
+    try { localStorage.setItem(`bp_fund_skipped_${user.id}`, '1'); } catch { /* ignore */ }
+    setFundSkipped(true);
+    toast.message('Étape passée — tu pourras la créer plus tard ✨');
+  }, [user?.id]);
 
   // Read discovery answers from pre-auth quiz
   useEffect(() => {
