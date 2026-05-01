@@ -21,7 +21,7 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     supabase.from('profiles').select('birthday, selected_tastes, onboarding_completed, onboarding_furthest_step').eq('user_id', userId).single(),
     supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('friend_form_tokens').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'completed'),
-    supabase.from('birthday_pages').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('is_active', true),
+    supabase.from('birthday_pages').select('id, slug, published_at, published_via_onboarding').eq('user_id', userId).eq('is_active', true).maybeSingle(),
     supabase.from('collective_funds').select('id', { count: 'exact', head: true }).eq('creator_id', userId).eq('occasion', 'birthday').eq('status', 'active'),
     supabase.from('friend_circles').select('id').eq('user_id', userId),
   ]);
@@ -33,22 +33,26 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     return { shouldShow: false, firstIncompleteStep: 0, dbFurthestStep };
   }
 
-  // Step 1: Birthday
-  if (!profileRes.data?.birthday) {
+  // NOTE: Birthday date is captured during pre-auth (PreAuthDiscovery), so we
+  // do NOT include a birthday step here anymore.
+
+  // Step 1: Goûts (≥1 taste selected)
+  if (!(profileRes.data as any)?.selected_tastes?.length) {
     return { shouldShow: true, firstIncompleteStep: 1, dbFurthestStep };
   }
 
-  // Step 2: Goûts (≥1 taste selected)
-  if (!(profileRes.data as any)?.selected_tastes?.length) {
+  // Step 2: Souhaits (≥3 favorites)
+  if ((favRes.count || 0) < 3) {
     return { shouldShow: true, firstIncompleteStep: 2, dbFurthestStep };
   }
 
-  // Step 3: Souhaits (≥3 favorites)
-  if ((favRes.count || 0) < 3) {
+  // Step 3: Type de page (read from localStorage like the BirthdayPageBuilderModal)
+  const storedType = localStorage.getItem(`bp_type_${userId}`);
+  if (storedType !== 'self' && storedType !== 'friend' && storedType !== 'other_event') {
     return { shouldShow: true, firstIncompleteStep: 3, dbFurthestStep };
   }
 
-  // Step 4: Amis — skip if ≥3 members in friend circles OR ≥3 completed friend forms
+  // Step 4: Amis — skip if ≥1 friend associated to page OR ≥3 members in circles OR ≥3 completed friend forms
   const friendFormCount = friendRes.count || 0;
   let circleMemberCount = 0;
   const circleIds = (circlesRes.data || []).map((c: any) => c.id);
@@ -59,19 +63,48 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
       .in('circle_id', circleIds);
     circleMemberCount = count || 0;
   }
-  if (friendFormCount < 3 && circleMemberCount < 3) {
+  const page = (bpRes.data as any) || null;
+  let pageFriendsCount = 0;
+  if (page?.id) {
+    const { count } = await supabase
+      .from('birthday_page_friends')
+      .select('*', { count: 'exact', head: true })
+      .eq('page_id', page.id);
+    pageFriendsCount = count || 0;
+  }
+  if (pageFriendsCount < 1 && friendFormCount < 3 && circleMemberCount < 3) {
     return { shouldShow: true, firstIncompleteStep: 4, dbFurthestStep };
   }
 
-  // Step 5: Birthday page + fund + shares
-  const hasPage = (bpRes.count || 0) >= 1;
+  // Step 5: Cagnotte (skippable via flag bp_fund_skipped_${userId})
   const hasFund = (fundRes.count || 0) >= 1;
+  const fundSkipped = localStorage.getItem(`bp_fund_skipped_${userId}`) === '1';
+  if (!hasFund && !fundSkipped) {
+    return { shouldShow: true, firstIncompleteStep: 5, dbFurthestStep };
+  }
+
+  // Step 6: Première photo
+  let firstPhotoCount = 0;
+  if (page?.id) {
+    const { count } = await supabase
+      .from('birthday_page_photos')
+      .select('*', { count: 'exact', head: true })
+      .eq('birthday_page_id', page.id);
+    firstPhotoCount = count || 0;
+  }
+  if (firstPhotoCount < 1) {
+    return { shouldShow: true, firstIncompleteStep: 6, dbFurthestStep };
+  }
+
+  // Step 7: Publier + partager
+  const hasPage = !!page;
+  const isPublished = !!(page?.published_at);
   const { count: shareCount } = await supabase
     .from('onboarding_shares')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId);
-  if (!hasPage || !hasFund || (shareCount || 0) < 3) {
-    return { shouldShow: true, firstIncompleteStep: 5, dbFurthestStep };
+  if (!hasPage || !isPublished || (shareCount || 0) < 3) {
+    return { shouldShow: true, firstIncompleteStep: 7, dbFurthestStep };
   }
 
   // All steps done
