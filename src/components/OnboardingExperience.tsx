@@ -1230,8 +1230,127 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 5: Birthday Page + Fund + Share */}
+          {/* Step 3: Type de page */}
+          {currentStep === 3 && (
+            <motion.div
+              key="type"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="text-center max-w-md mx-auto w-full"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring' }}
+                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-6 shadow-lg"
+              >
+                <Tag className="h-10 w-10 text-white" />
+              </motion.div>
+              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
+                Choisis le type de page 🏷️
+              </h2>
+              <p className="text-muted-foreground font-nunito mb-6 text-sm">
+                Pour qui crées-tu cette page ?
+              </p>
+              <div className="space-y-3 text-left">
+                {[
+                  { value: 'self' as PageType, label: 'Pour moi-même', desc: "Crée ta propre page d'anniversaire", Icon: Cake },
+                  { value: 'friend' as PageType, label: 'Pour un proche', desc: 'Surprends un(e) ami(e) ou un proche', Icon: UserPlus },
+                  { value: 'other_event' as PageType, label: 'Autre événement', desc: 'Mariage, baptême, diplôme…', Icon: CalendarIcon },
+                ].map(({ value, label, desc, Icon }) => {
+                  const selected = pageType === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setPageType(value)}
+                      className={cn(
+                        'w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all text-left',
+                        selected ? 'border-primary bg-primary/10 shadow-md' : 'border-border bg-card hover:border-primary/40'
+                      )}
+                    >
+                      <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', selected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary')}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-poppins font-semibold text-foreground">{label}</p>
+                        <p className="text-xs text-muted-foreground font-nunito">{desc}</p>
+                      </div>
+                      {selected && <Check className="h-5 w-5 text-primary shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 5: Cagnotte */}
           {currentStep === 5 && (
+            <motion.div
+              key="fund-step"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="text-center max-w-md mx-auto w-full"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring' }}
+                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-heart to-gift flex items-center justify-center mb-6 shadow-lg"
+              >
+                <Gift className="h-10 w-10 text-white" />
+              </motion.div>
+              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
+                Crée ta cagnotte 🎁
+              </h2>
+              <p className="text-muted-foreground font-nunito mb-6 text-sm leading-relaxed">
+                {hasFund
+                  ? 'Ta cagnotte est en place ✨'
+                  : 'Une cagnotte permet à tes proches de cotiser ensemble pour ton cadeau de rêve.'}
+              </p>
+
+              {hasFund ? (
+                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 mb-4">
+                  <Check className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-sm font-poppins font-semibold text-foreground">Cagnotte créée !</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Button
+                    onClick={() => setShowFundPickerModal(true)}
+                    className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-2"
+                    size="lg"
+                  >
+                    <Gift className="h-4 w-4" />
+                    Créer ma cagnotte
+                  </Button>
+                  <Button onClick={skipFund} variant="ghost" className="w-full text-sm text-muted-foreground">
+                    Plus tard
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Step 6: Première photo */}
+          {currentStep === 6 && (
+            <OnboardingFirstPhotoStep
+              birthdayPageId={birthdayPageId}
+              birthdayPageSlug={birthdayPageSlug}
+              firstName={firstName}
+              initialPhotoCount={firstPhotoCount}
+              onPhotoUploaded={() => setFirstPhotoCount((c) => c + 1)}
+              onPageCreated={(p) => {
+                setBirthdayPageId(p.id);
+                setBirthdayPageSlug(p.slug);
+                setHasBirthdayPage(true);
+              }}
+            />
+          )}
+
+          {/* Step 7: Publish + Share (anciennement step 5) */}
+          {currentStep === 7 && (
             <motion.div
               key="birthday-page-full"
               initial={{ opacity: 0, y: 30 }}
