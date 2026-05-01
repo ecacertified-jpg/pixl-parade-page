@@ -259,6 +259,22 @@ export const OnboardingExperience = ({
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
       setShareCount(count || 0);
+
+      // First-photo count + associated friends count (synced with builder)
+      if (pageRes.data?.id) {
+        const [{ count: photos }, { count: friends }] = await Promise.all([
+          supabase
+            .from('birthday_page_photos')
+            .select('*', { count: 'exact', head: true })
+            .eq('birthday_page_id', pageRes.data.id),
+          supabase
+            .from('birthday_page_friends')
+            .select('*', { count: 'exact', head: true })
+            .eq('page_id', pageRes.data.id),
+        ]);
+        setFirstPhotoCount(photos || 0);
+        setAssociatedFriendsCount(friends || 0);
+      }
     };
     checkBirthdayPageAndFund();
   }, [user]);
