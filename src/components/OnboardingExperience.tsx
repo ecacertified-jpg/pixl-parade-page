@@ -342,9 +342,9 @@ export const OnboardingExperience = ({
     return selectedCategories.flatMap(taste => TASTE_TO_PRODUCT_CATEGORIES[taste] || []);
   }, [selectedCategories]);
 
-  // Load wishlist products when reaching step 3
+  // Load wishlist products when reaching step 2 (souhaits)
   useEffect(() => {
-    if (currentStep !== 3 || !user) return;
+    if (currentStep !== 2 || !user) return;
     const loadProducts = async () => {
       setLoadingProducts(true);
       let query = supabase
@@ -682,34 +682,38 @@ export const OnboardingExperience = ({
   const isStepCompleted = (step: number): boolean => {
     switch (step) {
       case 0: return true;
-      case 1: return !!birthday;
-      case 2: return selectedCategories.length >= 1;
-      case 3: return favoriteIds.length >= 3;
-      case 4: return true;
-      case 5: return hasBirthdayPage && hasFund && shareCount >= 3;
+      case 1: return selectedCategories.length >= 1;
+      case 2: return favoriteIds.length >= 3;
+      case 3: return pageType !== null;
+      case 4: return associatedFriendsCount >= 1 || invitationsSentCount >= 3;
+      case 5: return hasFund || fundSkipped;
+      case 6: return firstPhotoCount >= 1;
+      case 7: return hasBirthdayPage && shareCount >= 3;
       default: return false;
     }
   };
 
   const stepHintMessage = (step: number): string => {
     switch (step) {
-      case 1: return "Sélectionne ta date d'anniversaire pour continuer 🎂";
-      case 2: return "Choisis au moins une catégorie de cadeau 🎁";
-      case 3: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
-      case 5: return "Crée ta page, ta cagnotte et partage avec tes amis 🎂";
+      case 1: return "Choisis au moins une catégorie de cadeau 🎁";
+      case 2: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
+      case 3: return "Choisis le type de page (toi, un proche, ou un événement) 🏷️";
+      case 4: return "Associe au moins 1 ami ou envoie 3 invitations 👥";
+      case 5: return "Crée ta cagnotte ou clique sur « Plus tard » 🎁";
+      case 6: return "Ajoute une première photo à ton album 📸";
+      case 7: return "Publie ta page et partage-la avec 3 amis 🚀";
       default: return "Complète cette étape pour continuer";
     }
   };
 
-  const canGoNext = isStepCompleted(currentStep) && !(currentStep === 2 && savingCategories);
+  const canGoNext = isStepCompleted(currentStep) && !(currentStep === 1 && savingCategories);
 
   const handleNext = async () => {
     if (!isStepCompleted(currentStep)) {
       toast.info(stepHintMessage(currentStep));
       return;
     }
-    if (currentStep === 1 && birthday) await saveBirthday();
-    if (currentStep === 2 && user) {
+    if (currentStep === 1 && user) {
       const { error } = await supabase.from('profiles').update({ selected_tastes: selectedCategories }).eq('user_id', user.id);
       if (error) {
         console.error('Error saving tastes:', error);
