@@ -10,7 +10,7 @@ import {
   Sparkles, CalendarDays, Gift, Users, Share2, ArrowRight, ArrowLeft,
   Heart, Star, Laptop, ShoppingBag, Plane, Music, Utensils, Dumbbell,
   Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight, ExternalLink,
-  Cake
+  Cake, Tag, UserPlus, Calendar as CalendarIcon, Rocket, Camera
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
@@ -29,6 +29,9 @@ interface OnboardingExperienceProps {
 
 import { TASTE_CATEGORIES } from "@/data/taste-categories";
 import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
+import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
+import { OnboardingFirstPhotoStep } from '@/components/OnboardingFirstPhotoStep';
+import type { PageType } from '@/hooks/useBirthdayPageBuilderStatus';
 
 // Floating particles component
 const FloatingParticles = () => (
@@ -126,12 +129,45 @@ export const OnboardingExperience = ({
     return () => { cancelled = true; };
   }, [selectedCategories, user]);
 
-  // Always 6 steps
-  const DYNAMIC_TOTAL_STEPS = 6;
+  // 8 steps total (0=welcome → 7=publish+share)
+  const DYNAMIC_TOTAL_STEPS = 8;
   const isFriendPurpose = discoveryPurpose === 'friend_birthday';
   const isOtherEvent = discoveryPurpose === 'other_event';
   const [selectedOccasion, setSelectedOccasion] = useState<string>('wedding');
-  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', isOtherEvent ? 'Événement' : isFriendPurpose ? 'Page proche' : 'Ma page'];
+  const stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Amis', 'Cagnotte', 'Photo', 'Publier'];
+
+  // ---- Birthday-page-builder synced states ----
+  const [pageType, setPageTypeState] = useState<PageType | null>(null);
+  const [showFriendsPicker, setShowFriendsPicker] = useState(false);
+  const [associatedFriendsCount, setAssociatedFriendsCount] = useState(0);
+  const [firstPhotoCount, setFirstPhotoCount] = useState(0);
+  const [fundSkipped, setFundSkipped] = useState(false);
+  const [publishingPage, setPublishingPage] = useState(false);
+
+  // Hydrate from localStorage
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const t = localStorage.getItem(`bp_type_${user.id}`);
+      if (t === 'self' || t === 'friend' || t === 'other_event') setPageTypeState(t);
+      const skipped = localStorage.getItem(`bp_fund_skipped_${user.id}`);
+      setFundSkipped(skipped === '1');
+    } catch { /* ignore */ }
+  }, [user?.id]);
+
+  const setPageType = useCallback((t: PageType) => {
+    setPageTypeState(t);
+    if (user?.id) {
+      try { localStorage.setItem(`bp_type_${user.id}`, t); } catch { /* ignore */ }
+    }
+  }, [user?.id]);
+
+  const skipFund = useCallback(() => {
+    if (!user?.id) return;
+    try { localStorage.setItem(`bp_fund_skipped_${user.id}`, '1'); } catch { /* ignore */ }
+    setFundSkipped(true);
+    toast.message('Étape passée — tu pourras la créer plus tard ✨');
+  }, [user?.id]);
 
   // Read discovery answers from pre-auth quiz
   useEffect(() => {
@@ -223,6 +259,22 @@ export const OnboardingExperience = ({
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
       setShareCount(count || 0);
+
+      // First-photo count + associated friends count (synced with builder)
+      if (pageRes.data?.id) {
+        const [{ count: photos }, { count: friends }] = await Promise.all([
+          supabase
+            .from('birthday_page_photos')
+            .select('*', { count: 'exact', head: true })
+            .eq('birthday_page_id', pageRes.data.id),
+          supabase
+            .from('birthday_page_friends')
+            .select('*', { count: 'exact', head: true })
+            .eq('page_id', pageRes.data.id),
+        ]);
+        setFirstPhotoCount(photos || 0);
+        setAssociatedFriendsCount(friends || 0);
+      }
     };
     checkBirthdayPageAndFund();
   }, [user]);
@@ -240,7 +292,7 @@ export const OnboardingExperience = ({
     }
   }, [open, currentStep, isReturningUser]);
 
-  // Poll completed friend form tokens every 5 seconds
+  // Poll completed friend form tokens every 5 seconds while on the "Amis" step (4)
   useEffect(() => {
     if (currentStep !== 4 || !user) return;
 
@@ -260,27 +312,29 @@ export const OnboardingExperience = ({
     return () => clearInterval(interval);
   }, [currentStep, user]);
 
-  // Auto-redirect when 3 friends invited (step 4) — always move to step 5
+  // Auto-advance from "Amis" (4) → "Cagnotte" (5) when validated:
+  // either ≥1 friend already associated to the page, or ≥3 invitations completed
   useEffect(() => {
-    if (invitationsSentCount >= 3 && currentStep === 4) {
+    if (currentStep !== 4) return;
+    if (associatedFriendsCount >= 1 || invitationsSentCount >= 3) {
       confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onSetStep(5);
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [invitationsSentCount, currentStep, onSetStep]);
+  }, [invitationsSentCount, associatedFriendsCount, currentStep, onSetStep]);
 
-  // Auto-redirect when step 5 is fully complete (page + fund + shares ≥ 3)
+  // Auto-complete onboarding when step 7 (publish + share) is fully done
   useEffect(() => {
-    if (hasBirthdayPage && hasFund && shareCount >= 3 && currentStep === 5) {
+    if (currentStep === 7 && hasBirthdayPage && shareCount >= 3) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [hasBirthdayPage, hasFund, shareCount, currentStep, onComplete]);
+  }, [hasBirthdayPage, shareCount, currentStep, onComplete]);
 
   // Build category_name list from selected tastes
   const tasteCategoryNames = useMemo(() => {
@@ -288,9 +342,9 @@ export const OnboardingExperience = ({
     return selectedCategories.flatMap(taste => TASTE_TO_PRODUCT_CATEGORIES[taste] || []);
   }, [selectedCategories]);
 
-  // Load wishlist products when reaching step 3
+  // Load wishlist products when reaching step 2 (souhaits)
   useEffect(() => {
-    if (currentStep !== 3 || !user) return;
+    if (currentStep !== 2 || !user) return;
     const loadProducts = async () => {
       setLoadingProducts(true);
       let query = supabase
@@ -628,34 +682,38 @@ export const OnboardingExperience = ({
   const isStepCompleted = (step: number): boolean => {
     switch (step) {
       case 0: return true;
-      case 1: return !!birthday;
-      case 2: return selectedCategories.length >= 1;
-      case 3: return favoriteIds.length >= 3;
-      case 4: return true;
-      case 5: return hasBirthdayPage && hasFund && shareCount >= 3;
+      case 1: return selectedCategories.length >= 1;
+      case 2: return favoriteIds.length >= 3;
+      case 3: return pageType !== null;
+      case 4: return associatedFriendsCount >= 1 || invitationsSentCount >= 3;
+      case 5: return hasFund || fundSkipped;
+      case 6: return firstPhotoCount >= 1;
+      case 7: return hasBirthdayPage && shareCount >= 3;
       default: return false;
     }
   };
 
   const stepHintMessage = (step: number): string => {
     switch (step) {
-      case 1: return "Sélectionne ta date d'anniversaire pour continuer 🎂";
-      case 2: return "Choisis au moins une catégorie de cadeau 🎁";
-      case 3: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
-      case 5: return "Crée ta page, ta cagnotte et partage avec tes amis 🎂";
+      case 1: return "Choisis au moins une catégorie de cadeau 🎁";
+      case 2: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
+      case 3: return "Choisis le type de page (toi, un proche, ou un événement) 🏷️";
+      case 4: return "Associe au moins 1 ami ou envoie 3 invitations 👥";
+      case 5: return "Crée ta cagnotte ou clique sur « Plus tard » 🎁";
+      case 6: return "Ajoute une première photo à ton album 📸";
+      case 7: return "Publie ta page et partage-la avec 3 amis 🚀";
       default: return "Complète cette étape pour continuer";
     }
   };
 
-  const canGoNext = isStepCompleted(currentStep) && !(currentStep === 2 && savingCategories);
+  const canGoNext = isStepCompleted(currentStep) && !(currentStep === 1 && savingCategories);
 
   const handleNext = async () => {
     if (!isStepCompleted(currentStep)) {
       toast.info(stepHintMessage(currentStep));
       return;
     }
-    if (currentStep === 1 && birthday) await saveBirthday();
-    if (currentStep === 2 && user) {
+    if (currentStep === 1 && user) {
       const { error } = await supabase.from('profiles').update({ selected_tastes: selectedCategories }).eq('user_id', user.id);
       if (error) {
         console.error('Error saving tastes:', error);
@@ -729,13 +787,13 @@ export const OnboardingExperience = ({
                 toast.info(stepHintMessage(currentStep));
                 return;
               }
-              if (currentStep === 2 && savingCategories) {
+              if (currentStep === 1 && savingCategories) {
                 toast.info('Sauvegarde en cours...');
                 return;
               }
               if (currentStep < DYNAMIC_TOTAL_STEPS - 1) onSetStep(currentStep + 1);
             }}
-            disabled={currentStep >= DYNAMIC_TOTAL_STEPS - 1 || (currentStep === 2 && savingCategories)}
+            disabled={currentStep >= DYNAMIC_TOTAL_STEPS - 1 || (currentStep === 1 && savingCategories)}
             aria-label="Étape suivante"
             className={cn(
               'rounded-full flex items-center gap-1 transition-all duration-200',
@@ -805,85 +863,10 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 1: Birthday */}
+          {/* Step 1: Goûts (anciennement step 2) — date d'anniversaire supprimée car déjà capturée par PreAuthDiscovery */}
           {currentStep === 1 && (
             <motion.div
-              key="birthday"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              className="text-center max-w-md mx-auto w-full"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring' }}
-                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center mb-6 shadow-lg"
-              >
-                <CalendarDays className="h-10 w-10 text-white" />
-              </motion.div>
-
-              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                {birthdayPreFilled && birthday ? "C'est bien ta date ? 🎂" : "Quand est ton anniversaire ? 🎂"}
-              </h2>
-              <p className="text-muted-foreground font-nunito mb-6">
-                {birthdayPreFilled && birthday
-                  ? "Tu peux la modifier si besoin."
-                  : "Pour que tes proches ne l'oublient jamais !"}
-              </p>
-
-              <div className="w-full max-w-sm mx-auto text-left">
-                <BirthdayPicker
-                  value={birthday}
-                  onChange={setBirthday}
-                  placeholder="jj/mm/aaaa"
-                  helperText="Tape ta date ou utilise le calendrier"
-                  minYear={1920}
-                  maxYear={new Date().getFullYear()}
-                  disableFuture
-                />
-              </div>
-
-              <AnimatePresence>
-                {!birthday && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
-                  >
-                    📅 Sélectionne ta date d'anniversaire pour que tes proches puissent te célébrer !
-                  </motion.div>
-                )}
-                {birthday && birthdayPreFilled && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 text-sm font-nunito"
-                  >
-                    ✅ Date trouvée depuis ton profil
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {birthday && daysUntilBirthday !== null && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20"
-                >
-                  <p className="text-4xl font-poppins font-bold text-primary">J-{daysUntilBirthday}</p>
-                  <p className="text-sm text-muted-foreground font-nunito">avant ton prochain anniversaire ! 🎉</p>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Step 2: Gift preferences */}
-          {currentStep === 2 && (
-            <motion.div
-              key="wishes"
+              key="tastes-redirect"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
@@ -956,8 +939,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 3: Wishlist */}
-          {currentStep === 3 && (
+          {/* Step 2: Wishlist (anciennement step 3) */}
+          {currentStep === 2 && (
             <motion.div
               key="wishlist"
               initial={{ opacity: 0, y: 30 }}
@@ -1247,8 +1230,127 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 5: Birthday Page + Fund + Share */}
+          {/* Step 3: Type de page */}
+          {currentStep === 3 && (
+            <motion.div
+              key="type"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="text-center max-w-md mx-auto w-full"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring' }}
+                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-6 shadow-lg"
+              >
+                <Tag className="h-10 w-10 text-white" />
+              </motion.div>
+              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
+                Choisis le type de page 🏷️
+              </h2>
+              <p className="text-muted-foreground font-nunito mb-6 text-sm">
+                Pour qui crées-tu cette page ?
+              </p>
+              <div className="space-y-3 text-left">
+                {[
+                  { value: 'self' as PageType, label: 'Pour moi-même', desc: "Crée ta propre page d'anniversaire", Icon: Cake },
+                  { value: 'friend' as PageType, label: 'Pour un proche', desc: 'Surprends un(e) ami(e) ou un proche', Icon: UserPlus },
+                  { value: 'other_event' as PageType, label: 'Autre événement', desc: 'Mariage, baptême, diplôme…', Icon: CalendarIcon },
+                ].map(({ value, label, desc, Icon }) => {
+                  const selected = pageType === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setPageType(value)}
+                      className={cn(
+                        'w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all text-left',
+                        selected ? 'border-primary bg-primary/10 shadow-md' : 'border-border bg-card hover:border-primary/40'
+                      )}
+                    >
+                      <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', selected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary')}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-poppins font-semibold text-foreground">{label}</p>
+                        <p className="text-xs text-muted-foreground font-nunito">{desc}</p>
+                      </div>
+                      {selected && <Check className="h-5 w-5 text-primary shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 5: Cagnotte */}
           {currentStep === 5 && (
+            <motion.div
+              key="fund-step"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="text-center max-w-md mx-auto w-full"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring' }}
+                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-heart to-gift flex items-center justify-center mb-6 shadow-lg"
+              >
+                <Gift className="h-10 w-10 text-white" />
+              </motion.div>
+              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
+                Crée ta cagnotte 🎁
+              </h2>
+              <p className="text-muted-foreground font-nunito mb-6 text-sm leading-relaxed">
+                {hasFund
+                  ? 'Ta cagnotte est en place ✨'
+                  : 'Une cagnotte permet à tes proches de cotiser ensemble pour ton cadeau de rêve.'}
+              </p>
+
+              {hasFund ? (
+                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 mb-4">
+                  <Check className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-sm font-poppins font-semibold text-foreground">Cagnotte créée !</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Button
+                    onClick={() => setShowFundPickerModal(true)}
+                    className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-2"
+                    size="lg"
+                  >
+                    <Gift className="h-4 w-4" />
+                    Créer ma cagnotte
+                  </Button>
+                  <Button onClick={skipFund} variant="ghost" className="w-full text-sm text-muted-foreground">
+                    Plus tard
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Step 6: Première photo */}
+          {currentStep === 6 && (
+            <OnboardingFirstPhotoStep
+              birthdayPageId={birthdayPageId}
+              birthdayPageSlug={birthdayPageSlug}
+              firstName={firstName}
+              initialPhotoCount={firstPhotoCount}
+              onPhotoUploaded={() => setFirstPhotoCount((c) => c + 1)}
+              onPageCreated={(p) => {
+                setBirthdayPageId(p.id);
+                setBirthdayPageSlug(p.slug);
+                setHasBirthdayPage(true);
+              }}
+            />
+          )}
+
+          {/* Step 7: Publish + Share (anciennement step 5) */}
+          {currentStep === 7 && (
             <motion.div
               key="birthday-page-full"
               initial={{ opacity: 0, y: 30 }}

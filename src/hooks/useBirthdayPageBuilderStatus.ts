@@ -17,6 +17,7 @@ export interface BirthdayPageBuilderStatus {
     friends: StepStatus;
     type: StepStatus;
     fund: StepStatus;
+    firstPhoto: StepStatus;
     publish: StepStatus;
     share: StepStatus;
   };
@@ -27,6 +28,7 @@ export interface BirthdayPageBuilderStatus {
   fundId: string | null;
   fundTargetAmount: number | null;
   fundContributionsCount: number;
+  firstPhotoCount: number;
   completedCount: number;
   totalCount: number;
 }
@@ -121,6 +123,16 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
     associatedFriendsCount = getStoredFriendSelection(userId).length;
   }
 
+  // First photo: count media uploaded to the user's birthday page album
+  let firstPhotoCount = 0;
+  if (page?.id) {
+    const { count } = await supabase
+      .from('birthday_page_photos')
+      .select('*', { count: 'exact', head: true })
+      .eq('birthday_page_id', page.id);
+    firstPhotoCount = count || 0;
+  }
+
   const wishlist: StepStatus = {
     done: wishlistCount >= TARGET_WISHLIST,
     value: wishlistCount,
@@ -134,6 +146,11 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
   const type: StepStatus = { done: pageType !== null };
   const fundDone = !!fund;
   const fundStep: StepStatus = { done: fundDone };
+  const firstPhoto: StepStatus = {
+    done: firstPhotoCount >= 1,
+    value: firstPhotoCount,
+    target: 1,
+  };
   const publish: StepStatus = {
     done: !!page && !!page.published_at && page.published_via_onboarding === true,
   };
@@ -143,8 +160,8 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
     target: TARGET_SHARES,
   };
 
-  // Order: wishlist → type → friends → fund → publish → share
-  const steps = { wishlist, type, friends, fund: fundStep, publish, share };
+  // Order: wishlist → type → friends → fund → firstPhoto → publish → share
+  const steps = { wishlist, type, friends, fund: fundStep, firstPhoto, publish, share };
   const completedCount = Object.values(steps).filter((s) => s.done).length;
 
   return {
@@ -156,8 +173,9 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
     fundId: fund?.id ?? null,
     fundTargetAmount: fund?.target_amount ?? null,
     fundContributionsCount,
+    firstPhotoCount,
     completedCount,
-    totalCount: 6,
+    totalCount: 7,
   };
 };
 

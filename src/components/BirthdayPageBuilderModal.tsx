@@ -42,6 +42,7 @@ import {
   X,
   Eye,
   Lock,
+  Camera,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -386,6 +387,15 @@ export function BirthdayPageBuilderModal({
     setShowShareSheet(true);
   };
 
+  const handleAddFirstPhoto = () => {
+    if (!status?.birthdayPageSlug) {
+      toast.info('Crée d\'abord ta page pour ajouter une photo');
+      return;
+    }
+    onOpenChange(false);
+    navigate(`/birthday/${status.birthdayPageSlug}#album`);
+  };
+
   // ---------- Steps definition ----------
   const steps = useMemo(() => {
     if (!status) return [];
@@ -452,6 +462,18 @@ export function BirthdayPageBuilderModal({
         cta: s.fund.done ? 'Voir' : 'Créer',
         onClick: handleCreateFund,
         disabled: !pageType,
+      },
+      {
+        key: 'firstPhoto',
+        icon: Camera,
+        title: 'Ajouter ma première photo',
+        description: s.firstPhoto.done
+          ? `${s.firstPhoto.value} média${(s.firstPhoto.value || 0) > 1 ? 's' : ''} dans ton album ✨`
+          : 'Lance ton album souvenir avec une première photo',
+        done: s.firstPhoto.done,
+        cta: s.firstPhoto.done ? 'Voir l\'album' : 'Ajouter',
+        onClick: handleAddFirstPhoto,
+        disabled: false,
       },
       {
         key: 'publish',
