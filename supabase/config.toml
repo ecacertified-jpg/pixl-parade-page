@@ -291,3 +291,6 @@ verify_jwt = true
 
 [functions.notify-admins-fund-created]
 verify_jwt = true
+
+[functions.link-fund-to-birthday-page]
+verify_jwt = true

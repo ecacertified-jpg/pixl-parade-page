@@ -536,6 +536,7 @@ const BirthdayPage = () => {
         <WishlistFundPickerModal
           isOpen={showWishlistPicker}
           onClose={() => setShowWishlistPicker(false)}
+          onFundCreated={() => loadPage()}
           beneficiaryUserId={page.user_id}
           beneficiaryFirstName={firstName}
           beneficiaryAvatarUrl={birthdayPerson.avatar_url || undefined}

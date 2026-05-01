@@ -13,6 +13,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface FavoriteProduct {
   id: string;
@@ -56,6 +57,7 @@ export function WishlistFundPickerModal({
 
   const [externalFavorites, setExternalFavorites] = useState<FavoriteItem[]>([]);
   const [externalLoading, setExternalLoading] = useState(false);
+  const [creatingFundFor, setCreatingFundFor] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
@@ -123,25 +125,101 @@ export function WishlistFundPickerModal({
     return `${f} ${l}`.trim();
   })();
 
-  const handleCreateFund = (fav: FavoriteItem) => {
+  const handleCreateFund = async (fav: FavoriteItem) => {
     const product = fav.product;
     if (!product) return;
 
+    // External beneficiary (friend) → create a PUBLIC collective fund directly,
+    // do NOT route through the single-buyer checkout.
+    if (isExternalBeneficiary && beneficiaryUserId) {
+      if (!user) {
+        toast.error('Connectez-vous pour créer une cagnotte');
+        return;
+      }
+      setCreatingFundFor(fav.id);
+      try {
+        // Lookup the product's business to keep parity with the existing flow
+        let businessAccountId: string | null = null;
+        const { data: productRow } = await supabase
+          .from('products')
+          .select('id, business_account_id')
+          .eq('id', product.id)
+          .maybeSingle();
+        if (productRow?.business_account_id) {
+          businessAccountId = productRow.business_account_id as string;
+        }
+
+        const beneficiaryName = beneficiaryDisplayName || 'Bénéficiaire';
+
+        const { data: fundData, error: fundError } = await supabase
+          .from('collective_funds')
+          .insert({
+            creator_id: user.id,
+            title: `${product.name} pour ${beneficiaryName}`,
+            description: product.description || `Cadeau collectif pour ${beneficiaryName}`,
+            target_amount: product.price,
+            currency: product.currency || 'XOF',
+            occasion: 'birthday',
+            status: 'active',
+            is_public: true,
+            business_product_id: product.id,
+            created_by_business_id: businessAccountId,
+          } as any)
+          .select('id')
+          .single();
+
+        if (fundError || !fundData) {
+          console.error('Fund creation error:', fundError);
+          toast.error("Impossible de créer la cagnotte. Veuillez réessayer.");
+          return;
+        }
+
+        // Best-effort: link to business_collective_funds
+        if (businessAccountId) {
+          try {
+            await supabase.from('business_collective_funds').insert({
+              fund_id: fundData.id,
+              business_id: businessAccountId,
+              product_id: product.id,
+              beneficiary_user_id: beneficiaryUserId,
+            } as any);
+          } catch (e) {
+            console.warn('business_collective_funds insert failed (non-blocking):', e);
+          }
+        }
+
+        // Best-effort: link the fund to the friend's active birthday page
+        try {
+          await supabase.functions.invoke('link-fund-to-birthday-page', {
+            body: {
+              fund_id: fundData.id,
+              beneficiary_user_id: beneficiaryUserId,
+            },
+          });
+        } catch (e) {
+          console.warn('link-fund-to-birthday-page failed (non-blocking):', e);
+        }
+
+        toast.success(`Cagnotte créée pour ${beneficiaryName} !`);
+        onClose();
+        onFundCreated?.();
+        navigate(`/f/${fundData.id}`);
+      } finally {
+        setCreatingFundFor(null);
+      }
+      return;
+    }
+
+    // Self-fund: keep existing cart-based flow
     let beneficiaryName: string;
     let beneficiaryId: string | undefined;
     let isSelfFund: boolean;
 
-    if (isExternalBeneficiary) {
-      beneficiaryName = beneficiaryDisplayName || 'Bénéficiaire';
-      beneficiaryId = beneficiaryUserId;
-      isSelfFund = false;
-    } else {
-      const firstName = user?.user_metadata?.first_name || user?.user_metadata?.firstName || '';
-      const lastName = user?.user_metadata?.last_name || user?.user_metadata?.lastName || '';
-      beneficiaryName = `${firstName} ${lastName}`.trim() || 'Moi-même';
-      beneficiaryId = user?.id;
-      isSelfFund = true;
-    }
+    const firstName = user?.user_metadata?.first_name || user?.user_metadata?.firstName || '';
+    const lastName = user?.user_metadata?.last_name || user?.user_metadata?.lastName || '';
+    beneficiaryName = `${firstName} ${lastName}`.trim() || 'Moi-même';
+    beneficiaryId = user?.id;
+    isSelfFund = true;
 
     addItem({
       id: product.id,
@@ -257,8 +335,13 @@ export function WishlistFundPickerModal({
                         size="sm"
                         className="h-8 text-xs shrink-0"
                         onClick={() => handleCreateFund(fav)}
+                        disabled={creatingFundFor === fav.id}
                       >
-                        Créer
+                        {creatingFundFor === fav.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          'Créer'
+                        )}
                       </Button>
                     </div>
                   </div>
