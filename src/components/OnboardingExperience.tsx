@@ -1122,7 +1122,7 @@ export const OnboardingExperience = ({
                     Plus ton cercle est grand, plus tu recevras de surprises ! 🎁
                   </p>
                   <p className="text-xs text-muted-foreground/80 font-nunito mb-5 italic">
-                    Tu peux continuer dès maintenant — on te notifiera quand tes proches rempliront le formulaire.
+                    Génère et partage ton lien — tu peux <span className="font-semibold text-primary">continuer immédiatement</span>. On te notifiera quand tes proches rempliront le formulaire. ✨
                   </p>
 
                   {/* Progress dots + bar */}
