@@ -24,7 +24,7 @@ import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
 import { handleSmartRedirect } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
-import { useDuplicateAccountDetection, type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
+import { type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useAccountLinking } from '@/hooks/useAccountLinking';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
@@ -268,7 +268,8 @@ const Auth = () => {
   const countryContext = useCountrySafe();
   const country = countryContext?.country ?? { code: 'CI', name: 'Côte d\'Ivoire', phonePrefix: '+225', currency: 'XOF', flag: '🇨🇮' };
   const { trackReferralEvent, getActiveReferralCode, setActiveReferralCode } = useReferralTracking();
-  const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
+  // Détection de doublon désormais 100% côté serveur (correspondance exacte uniquement).
+  const isChecking = false;
   const { checkExistingAccount } = useAccountLinking();
   const { trackSignUp, trackLogin } = useGoogleAnalytics();
   const [isServerChecking, setIsServerChecking] = useState(false);
@@ -589,11 +590,21 @@ const Auth = () => {
         const serverResult = await checkExistingAccount(fullPhone, undefined, data.firstName, data.city);
         setIsServerChecking(false);
         
-        if (serverResult && serverResult.exists && serverResult.accounts.length > 0) {
-          console.log('⚠️ [Server Check] Found existing account:', serverResult);
-          
-          // Convertir le résultat serveur en format DuplicateCheckResult
-          const matchingProfiles: MatchingProfile[] = serverResult.accounts.map((acc: any) => ({
+        // N'afficher la modale QUE pour une correspondance EXACTE téléphone/email
+        // (un simple match de prénom génère trop de faux positifs).
+        const exactMatches = (serverResult?.accounts || []).filter(
+          (a: any) => a.is_exact_phone_match || a.is_exact_email_match,
+        );
+
+        if (
+          serverResult &&
+          serverResult.exists &&
+          exactMatches.length > 0 &&
+          serverResult.confidence === 'high'
+        ) {
+          console.log('⚠️ [Server Check] Found EXACT existing account:', exactMatches);
+
+          const matchingProfiles: MatchingProfile[] = exactMatches.map((acc: any) => ({
             id: acc.user_id,
             user_id: acc.user_id,
             first_name: acc.first_name,
@@ -608,9 +619,9 @@ const Auth = () => {
 
           const duplicateCheck: DuplicateCheckResult = {
             hasPotentialDuplicate: true,
-            duplicateType: serverResult.accounts[0]?.is_exact_phone_match ? 'phone' : 'name',
+            duplicateType: exactMatches[0]?.is_exact_phone_match ? 'phone' : 'name',
             matchingProfiles,
-            confidence: serverResult.confidence,
+            confidence: 'high',
           };
           
           setDuplicateResult(duplicateCheck);
@@ -619,18 +630,8 @@ const Auth = () => {
           setIsLoading(false);
           return;
         }
-        
-        // 2. Fallback: vérification client-side (profiles publics)
-        const duplicateCheck = await checkForDuplicate(fullPhone, data.firstName, data.city);
-        
-        if (duplicateCheck.hasPotentialDuplicate) {
-          console.log('⚠️ [Client Check] Found potential duplicate:', duplicateCheck);
-          setDuplicateResult(duplicateCheck);
-          setPendingSignUpData(data);
-          setShowDuplicateModal(true);
-          setIsLoading(false);
-          return;
-        }
+
+        // Plus de fallback client-side basé sur le prénom : trop de faux positifs.
       }
       
       // Use selected method or default

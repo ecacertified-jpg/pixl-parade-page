@@ -157,7 +157,11 @@ Deno.serve(async (req) => {
     }
 
     // 3. Vérifier par prénom similaire (si fourni et pas déjà trouvé)
-    if (first_name && first_name.length >= 2 && accounts.length === 0) {
+    // Désactivé : la recherche fuzzy par prénom (`ilike '%aissatou%'`) génère
+    // beaucoup trop de faux positifs (Aïssatou, Koffi, Aya... très courants),
+    // ce qui bloque les inscriptions légitimes. On ne déclenche un doublon
+    // que sur correspondance EXACTE téléphone/email.
+    if (false && first_name && first_name.length >= 2 && accounts.length === 0) {
       const normalizedFirstName = first_name.trim().toLowerCase();
       
       let query = supabaseAdmin

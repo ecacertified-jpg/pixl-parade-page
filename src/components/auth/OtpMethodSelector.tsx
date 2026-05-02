@@ -125,13 +125,15 @@ export function useWhatsAppFallback(phonePrefix: string): {
   }
 
   const smsAvailable = country.smsReliability !== 'unavailable';
-  const autoWhatsApp = country.smsReliability === 'unavailable' && country.whatsappFallbackEnabled === true;
-  
-  // showFallback = true only when user has a real choice (SMS available but not fully reliable)
-  const showFallback = !autoWhatsApp && country.whatsappFallbackEnabled === true && smsAvailable;
-  
-  // Default to WhatsApp if SMS is unavailable
-  const defaultMethod: OtpMethod = country.smsReliability === 'unavailable' ? 'whatsapp' : 'sms';
-  
+
+  // WhatsApp-first strategy: dès que WhatsApp est activé pour le pays,
+  // on envoie directement le code via WhatsApp sans afficher de sélecteur SMS/WhatsApp.
+  const autoWhatsApp = country.whatsappFallbackEnabled === true;
+
+  // Plus de sélecteur intermédiaire : l'utilisateur a une expérience uniforme.
+  const showFallback = false;
+
+  const defaultMethod: OtpMethod = autoWhatsApp ? 'whatsapp' : 'sms';
+
   return { showFallback, defaultMethod, smsAvailable, autoWhatsApp };
 }
