@@ -19,6 +19,7 @@ import {
 import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
 import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
+import { BirthdayCountdown } from "@/components/BirthdayCountdown";
 import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 
@@ -349,6 +350,12 @@ const BirthdayPage = () => {
           >
             {page?.title}
           </motion.p>
+          {birthdayPerson.birthday && (
+            <BirthdayCountdown
+              birthday={birthdayPerson.birthday}
+              celebrationYear={page?.celebration_year}
+            />
+          )}
         </div>
       </motion.div>
 
