@@ -685,7 +685,10 @@ export const OnboardingExperience = ({
       case 1: return selectedCategories.length >= 1;
       case 2: return favoriteIds.length >= 3;
       case 3: return pageType !== null;
-      case 4: return associatedFriendsCount >= 1 || invitationsSentCount >= 3;
+      // Étape 4 (Amis) : non-bloquante. L'utilisateur peut continuer dès qu'il a
+      // généré/partagé un lien d'invitation. Le compteur "amis remplis" continuera
+      // à se mettre à jour en arrière-plan, mais ne doit pas bloquer l'onboarding.
+      case 4: return associatedFriendsCount >= 1 || invitationsSentCount >= 1 || !!friendFormLink;
       case 5: return hasFund || fundSkipped;
       case 6: return firstPhotoCount >= 1;
       case 7: return hasBirthdayPage && shareCount >= 3;
@@ -698,7 +701,7 @@ export const OnboardingExperience = ({
       case 1: return "Choisis au moins une catégorie de cadeau 🎁";
       case 2: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
       case 3: return "Choisis le type de page (toi, un proche, ou un événement) 🏷️";
-      case 4: return "Associe au moins 1 ami ou envoie 3 invitations 👥";
+      case 4: return "Génère et partage ton lien d'invitation pour continuer 👥";
       case 5: return "Crée ta cagnotte ou clique sur « Plus tard » 🎁";
       case 6: return "Ajoute une première photo à ton album 📸";
       case 7: return "Publie ta page et partage-la avec 3 amis 🚀";
