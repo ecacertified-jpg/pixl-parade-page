@@ -24,7 +24,7 @@ import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
 import { handleSmartRedirect } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
-import { useDuplicateAccountDetection, type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
+import { type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useAccountLinking } from '@/hooks/useAccountLinking';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
@@ -268,7 +268,8 @@ const Auth = () => {
   const countryContext = useCountrySafe();
   const country = countryContext?.country ?? { code: 'CI', name: 'Côte d\'Ivoire', phonePrefix: '+225', currency: 'XOF', flag: '🇨🇮' };
   const { trackReferralEvent, getActiveReferralCode, setActiveReferralCode } = useReferralTracking();
-  const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
+  // Détection de doublon désormais 100% côté serveur (correspondance exacte uniquement).
+  const isChecking = false;
   const { checkExistingAccount } = useAccountLinking();
   const { trackSignUp, trackLogin } = useGoogleAnalytics();
   const [isServerChecking, setIsServerChecking] = useState(false);
