@@ -1554,7 +1554,7 @@ export const OnboardingExperience = ({
                       "p-4 rounded-xl border transition-all",
                       shareCount >= 3
                         ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
-                        : !hasFund
+                        : !isPagePublished
                           ? "bg-muted/50 border-border opacity-60"
                           : "bg-card border-border"
                     )}>
@@ -1574,7 +1574,7 @@ export const OnboardingExperience = ({
                           </p>
                         </div>
                       </div>
-                      {hasFund && shareCount < 3 && (
+                      {isPagePublished && shareCount < 3 && (
                         <div className="flex gap-2 ml-11">
                           <Button
                             onClick={handleSharePageWhatsApp}
@@ -1610,12 +1610,12 @@ export const OnboardingExperience = ({
                   {/* Progress indicator */}
                   <div className="mb-4">
                     <Progress
-                      value={((hasBirthdayPage ? 1 : 0) + (hasFund ? 1 : 0) + (shareCount >= 3 ? 1 : 0)) / 3 * 100}
+                      value={((hasBirthdayPage ? 1 : 0) + (isPagePublished ? 1 : 0) + (shareCount >= 3 ? 1 : 0)) / 3 * 100}
                       className="h-2"
                       indicatorClassName="bg-gradient-to-r from-primary to-accent"
                     />
                     <p className="text-xs text-muted-foreground font-nunito mt-1">
-                      {(hasBirthdayPage ? 1 : 0) + (hasFund ? 1 : 0) + (shareCount >= 3 ? 1 : 0)}/3 étapes complétées
+                      {(hasBirthdayPage ? 1 : 0) + (isPagePublished ? 1 : 0) + (shareCount >= 3 ? 1 : 0)}/3 étapes complétées
                     </p>
                   </div>
                 </>
