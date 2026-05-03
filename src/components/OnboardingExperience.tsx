@@ -1512,10 +1512,10 @@ export const OnboardingExperience = ({
                       </div>
                     </div>
 
-                    {/* Sub-step 2: Create fund */}
+                    {/* Sub-step 2: Publish page */}
                     <div className={cn(
                       "p-4 rounded-xl border transition-all",
-                      hasFund
+                      isPagePublished
                         ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
                         : !hasBirthdayPage
                           ? "bg-muted/50 border-border opacity-60"
@@ -1524,25 +1524,26 @@ export const OnboardingExperience = ({
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                          hasFund ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
+                          isPagePublished ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
                         )}>
-                          {hasFund ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">2</span>}
+                          {isPagePublished ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">2</span>}
                         </div>
                         <div className="flex-1">
                           <p className="font-poppins font-semibold text-sm text-foreground">
-                            {isOtherEvent ? 'Lancer une cagnotte pour l\'événement' : isFriendPurpose ? 'Lancer une cagnotte pour mon proche' : 'Créer ma cagnotte'}
+                            Publier ma page
                           </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasFund ? "✅ Cagnotte créée !" : isOtherEvent ? "Pour collecter des contributions pour l'événement" : isFriendPurpose ? "Pour collecter des contributions pour ton proche" : "Pour recevoir des contributions de tes proches"}
+                            {isPagePublished ? "✅ Page publiée et visible dans le fil !" : "Rends ta page visible par tes proches"}
                           </p>
                         </div>
-                        {!hasFund && hasBirthdayPage && (
+                        {!isPagePublished && hasBirthdayPage && (
                           <Button
-                            onClick={() => setShowFundPickerModal(true)}
+                            onClick={handlePublishBirthdayPage}
+                            disabled={publishingNow}
                             size="sm"
                             className="shrink-0 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                           >
-                            Créer
+                            {publishingNow ? '...' : 'Publier'}
                           </Button>
                         )}
                       </div>
