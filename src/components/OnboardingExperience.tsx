@@ -225,7 +225,7 @@ export const OnboardingExperience = ({
       const [pageRes, fundRes] = await Promise.all([
         supabase
           .from('birthday_pages')
-          .select('id, slug')
+          .select('id, slug, published_at, published_via_onboarding')
           .eq('user_id', user.id)
           .eq('celebration_year', currentYear)
           .maybeSingle(),
@@ -241,6 +241,7 @@ export const OnboardingExperience = ({
         setHasBirthdayPage(true);
         setBirthdayPageSlug(pageRes.data.slug);
         setBirthdayPageId(pageRes.data.id);
+        setIsPagePublished(!!pageRes.data.published_at && pageRes.data.published_via_onboarding === true);
       }
       if (fundRes.data) {
         setHasFund(true);
