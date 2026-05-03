@@ -330,14 +330,14 @@ export const OnboardingExperience = ({
 
   // Auto-complete onboarding when step 7 (publish + share) is fully done
   useEffect(() => {
-    if (currentStep === 7 && hasBirthdayPage && shareCount >= 3) {
+    if (currentStep === 7 && hasBirthdayPage && isPagePublished && shareCount >= 3) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [hasBirthdayPage, shareCount, currentStep, onComplete]);
+  }, [hasBirthdayPage, isPagePublished, shareCount, currentStep, onComplete]);
 
   // Build category_name list from selected tastes
   const tasteCategoryNames = useMemo(() => {
