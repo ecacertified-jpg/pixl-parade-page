@@ -540,14 +540,6 @@ export const OnboardingExperience = ({
         setHasBirthdayPage(true);
         setBirthdayPageSlug(existing.slug);
         setBirthdayPageId(existing.id);
-        // Publish retroactively if it was a draft + mark as onboarding-published
-        await supabase
-          .from('birthday_pages')
-          .update({
-            published_at: new Date().toISOString(),
-            published_via_onboarding: true,
-          })
-          .eq('id', existing.id);
         // Link fund if present and not yet linked
         if (fundId) {
           await supabase
@@ -569,8 +561,6 @@ export const OnboardingExperience = ({
           title: `Anniversaire de ${firstName || 'mon ami(e)'}`,
           celebration_year: currentYear,
           is_active: true,
-          published_at: new Date().toISOString(),
-          published_via_onboarding: true,
           fund_id: fundId || null,
         })
         .select('id, slug')
@@ -593,6 +583,36 @@ export const OnboardingExperience = ({
       toast.error("Erreur inattendue");
     } finally {
       setCreatingBirthdayPage(false);
+    }
+  };
+
+  // Publish the existing draft birthday page
+  const handlePublishBirthdayPage = async () => {
+    if (!user || !birthdayPageId || publishingNow) return;
+    setPublishingNow(true);
+    try {
+      const { error } = await supabase
+        .from('birthday_pages')
+        .update({
+          published_at: new Date().toISOString(),
+          published_via_onboarding: true,
+          ...(fundId ? { fund_id: fundId } : {}),
+        })
+        .eq('id', birthdayPageId);
+      if (error) {
+        console.error('Publish page error:', error);
+        toast.error('Erreur lors de la publication');
+        return;
+      }
+      setIsPagePublished(true);
+      confetti({ particleCount: 100, spread: 110, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+      toast.success('🎉 Ta page est publiée !');
+      window.dispatchEvent(new Event('feed-refresh'));
+    } catch (err) {
+      console.error('Publish error:', err);
+      toast.error('Erreur inattendue');
+    } finally {
+      setPublishingNow(false);
     }
   };
 
