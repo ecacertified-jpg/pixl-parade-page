@@ -92,6 +92,8 @@ export const OnboardingExperience = ({
   const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
   const [birthdayPageId, setBirthdayPageId] = useState<string | null>(null);
   const [creatingBirthdayPage, setCreatingBirthdayPage] = useState(false);
+  const [isPagePublished, setIsPagePublished] = useState(false);
+  const [publishingNow, setPublishingNow] = useState(false);
 
   // Fund + sharing states for step 6
   const [hasFund, setHasFund] = useState(false);
@@ -223,7 +225,7 @@ export const OnboardingExperience = ({
       const [pageRes, fundRes] = await Promise.all([
         supabase
           .from('birthday_pages')
-          .select('id, slug')
+          .select('id, slug, published_at, published_via_onboarding')
           .eq('user_id', user.id)
           .eq('celebration_year', currentYear)
           .maybeSingle(),
@@ -239,6 +241,7 @@ export const OnboardingExperience = ({
         setHasBirthdayPage(true);
         setBirthdayPageSlug(pageRes.data.slug);
         setBirthdayPageId(pageRes.data.id);
+        setIsPagePublished(!!pageRes.data.published_at && pageRes.data.published_via_onboarding === true);
       }
       if (fundRes.data) {
         setHasFund(true);
@@ -327,14 +330,14 @@ export const OnboardingExperience = ({
 
   // Auto-complete onboarding when step 7 (publish + share) is fully done
   useEffect(() => {
-    if (currentStep === 7 && hasBirthdayPage && shareCount >= 3) {
+    if (currentStep === 7 && hasBirthdayPage && isPagePublished && shareCount >= 3) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [hasBirthdayPage, shareCount, currentStep, onComplete]);
+  }, [hasBirthdayPage, isPagePublished, shareCount, currentStep, onComplete]);
 
   // Build category_name list from selected tastes
   const tasteCategoryNames = useMemo(() => {
@@ -537,14 +540,6 @@ export const OnboardingExperience = ({
         setHasBirthdayPage(true);
         setBirthdayPageSlug(existing.slug);
         setBirthdayPageId(existing.id);
-        // Publish retroactively if it was a draft + mark as onboarding-published
-        await supabase
-          .from('birthday_pages')
-          .update({
-            published_at: new Date().toISOString(),
-            published_via_onboarding: true,
-          })
-          .eq('id', existing.id);
         // Link fund if present and not yet linked
         if (fundId) {
           await supabase
@@ -566,8 +561,6 @@ export const OnboardingExperience = ({
           title: `Anniversaire de ${firstName || 'mon ami(e)'}`,
           celebration_year: currentYear,
           is_active: true,
-          published_at: new Date().toISOString(),
-          published_via_onboarding: true,
           fund_id: fundId || null,
         })
         .select('id, slug')
@@ -590,6 +583,36 @@ export const OnboardingExperience = ({
       toast.error("Erreur inattendue");
     } finally {
       setCreatingBirthdayPage(false);
+    }
+  };
+
+  // Publish the existing draft birthday page
+  const handlePublishBirthdayPage = async () => {
+    if (!user || !birthdayPageId || publishingNow) return;
+    setPublishingNow(true);
+    try {
+      const { error } = await supabase
+        .from('birthday_pages')
+        .update({
+          published_at: new Date().toISOString(),
+          published_via_onboarding: true,
+          ...(fundId ? { fund_id: fundId } : {}),
+        })
+        .eq('id', birthdayPageId);
+      if (error) {
+        console.error('Publish page error:', error);
+        toast.error('Erreur lors de la publication');
+        return;
+      }
+      setIsPagePublished(true);
+      confetti({ particleCount: 100, spread: 110, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+      toast.success('🎉 Ta page est publiée !');
+      window.dispatchEvent(new Event('feed-refresh'));
+    } catch (err) {
+      console.error('Publish error:', err);
+      toast.error('Erreur inattendue');
+    } finally {
+      setPublishingNow(false);
     }
   };
 
@@ -691,7 +714,7 @@ export const OnboardingExperience = ({
       case 4: return associatedFriendsCount >= 1 || invitationsSentCount >= 1 || !!friendFormLink;
       case 5: return hasFund || fundSkipped;
       case 6: return firstPhotoCount >= 1;
-      case 7: return hasBirthdayPage && shareCount >= 3;
+      case 7: return hasBirthdayPage && isPagePublished && shareCount >= 3;
       default: return false;
     }
   };
@@ -1362,7 +1385,7 @@ export const OnboardingExperience = ({
               className="text-center max-w-md mx-auto w-full"
             >
               {/* All 3 sub-steps complete → success */}
-              {hasBirthdayPage && hasFund && shareCount >= 3 ? (
+              {hasBirthdayPage && isPagePublished && shareCount >= 3 ? (
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -1381,7 +1404,7 @@ export const OnboardingExperience = ({
                     Tout est prêt ! 🎉
                   </h2>
                   <p className="text-lg text-muted-foreground font-nunito mb-4">
-                    Ta page, ta cagnotte et tes partages sont en place !
+                    Ta page est créée, publiée et partagée !
                   </p>
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -1489,10 +1512,10 @@ export const OnboardingExperience = ({
                       </div>
                     </div>
 
-                    {/* Sub-step 2: Create fund */}
+                    {/* Sub-step 2: Publish page */}
                     <div className={cn(
                       "p-4 rounded-xl border transition-all",
-                      hasFund
+                      isPagePublished
                         ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
                         : !hasBirthdayPage
                           ? "bg-muted/50 border-border opacity-60"
@@ -1501,25 +1524,26 @@ export const OnboardingExperience = ({
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                          hasFund ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
+                          isPagePublished ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
                         )}>
-                          {hasFund ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">2</span>}
+                          {isPagePublished ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">2</span>}
                         </div>
                         <div className="flex-1">
                           <p className="font-poppins font-semibold text-sm text-foreground">
-                            {isOtherEvent ? 'Lancer une cagnotte pour l\'événement' : isFriendPurpose ? 'Lancer une cagnotte pour mon proche' : 'Créer ma cagnotte'}
+                            Publier ma page
                           </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasFund ? "✅ Cagnotte créée !" : isOtherEvent ? "Pour collecter des contributions pour l'événement" : isFriendPurpose ? "Pour collecter des contributions pour ton proche" : "Pour recevoir des contributions de tes proches"}
+                            {isPagePublished ? "✅ Page publiée et visible dans le fil !" : "Rends ta page visible par tes proches"}
                           </p>
                         </div>
-                        {!hasFund && hasBirthdayPage && (
+                        {!isPagePublished && hasBirthdayPage && (
                           <Button
-                            onClick={() => setShowFundPickerModal(true)}
+                            onClick={handlePublishBirthdayPage}
+                            disabled={publishingNow}
                             size="sm"
                             className="shrink-0 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                           >
-                            Créer
+                            {publishingNow ? '...' : 'Publier'}
                           </Button>
                         )}
                       </div>
@@ -1530,7 +1554,7 @@ export const OnboardingExperience = ({
                       "p-4 rounded-xl border transition-all",
                       shareCount >= 3
                         ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
-                        : !hasFund
+                        : !isPagePublished
                           ? "bg-muted/50 border-border opacity-60"
                           : "bg-card border-border"
                     )}>
@@ -1550,7 +1574,7 @@ export const OnboardingExperience = ({
                           </p>
                         </div>
                       </div>
-                      {hasFund && shareCount < 3 && (
+                      {isPagePublished && shareCount < 3 && (
                         <div className="flex gap-2 ml-11">
                           <Button
                             onClick={handleSharePageWhatsApp}
@@ -1586,12 +1610,12 @@ export const OnboardingExperience = ({
                   {/* Progress indicator */}
                   <div className="mb-4">
                     <Progress
-                      value={((hasBirthdayPage ? 1 : 0) + (hasFund ? 1 : 0) + (shareCount >= 3 ? 1 : 0)) / 3 * 100}
+                      value={((hasBirthdayPage ? 1 : 0) + (isPagePublished ? 1 : 0) + (shareCount >= 3 ? 1 : 0)) / 3 * 100}
                       className="h-2"
                       indicatorClassName="bg-gradient-to-r from-primary to-accent"
                     />
                     <p className="text-xs text-muted-foreground font-nunito mt-1">
-                      {(hasBirthdayPage ? 1 : 0) + (hasFund ? 1 : 0) + (shareCount >= 3 ? 1 : 0)}/3 étapes complétées
+                      {(hasBirthdayPage ? 1 : 0) + (isPagePublished ? 1 : 0) + (shareCount >= 3 ? 1 : 0)}/3 étapes complétées
                     </p>
                   </div>
                 </>
