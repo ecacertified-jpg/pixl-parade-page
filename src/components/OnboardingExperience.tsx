@@ -1385,7 +1385,7 @@ export const OnboardingExperience = ({
               className="text-center max-w-md mx-auto w-full"
             >
               {/* All 3 sub-steps complete → success */}
-              {hasBirthdayPage && hasFund && shareCount >= 3 ? (
+              {hasBirthdayPage && isPagePublished && shareCount >= 3 ? (
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -1404,7 +1404,7 @@ export const OnboardingExperience = ({
                     Tout est prêt ! 🎉
                   </h2>
                   <p className="text-lg text-muted-foreground font-nunito mb-4">
-                    Ta page, ta cagnotte et tes partages sont en place !
+                    Ta page est créée, publiée et partagée !
                   </p>
                   <motion.div
                     initial={{ opacity: 0 }}
