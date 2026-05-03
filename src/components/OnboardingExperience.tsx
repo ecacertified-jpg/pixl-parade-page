@@ -92,6 +92,8 @@ export const OnboardingExperience = ({
   const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
   const [birthdayPageId, setBirthdayPageId] = useState<string | null>(null);
   const [creatingBirthdayPage, setCreatingBirthdayPage] = useState(false);
+  const [isPagePublished, setIsPagePublished] = useState(false);
+  const [publishingNow, setPublishingNow] = useState(false);
 
   // Fund + sharing states for step 6
   const [hasFund, setHasFund] = useState(false);
