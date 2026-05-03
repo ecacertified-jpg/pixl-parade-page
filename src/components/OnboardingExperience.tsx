@@ -714,7 +714,7 @@ export const OnboardingExperience = ({
       case 4: return associatedFriendsCount >= 1 || invitationsSentCount >= 1 || !!friendFormLink;
       case 5: return hasFund || fundSkipped;
       case 6: return firstPhotoCount >= 1;
-      case 7: return hasBirthdayPage && shareCount >= 3;
+      case 7: return hasBirthdayPage && isPagePublished && shareCount >= 3;
       default: return false;
     }
   };
