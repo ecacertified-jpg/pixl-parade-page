@@ -6,6 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import confetti from 'canvas-confetti';
 import { format } from 'date-fns';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
@@ -185,6 +195,7 @@ export function PreAuthDiscovery({ onClose, onSignUp, onSubmitPhoneSignup, onSub
   const [showEncouragement, setShowEncouragement] = useState(false);
   const [submittingPhone, setSubmittingPhone] = useState(false);
   const [submittingGoogle, setSubmittingGoogle] = useState(false);
+  const [showWhatsAppWarning, setShowWhatsAppWarning] = useState(false);
   const { trackEvent } = useGoogleAnalytics();
 
   const [projectedMessages, setProjectedMessages] = useState(0);
@@ -639,7 +650,7 @@ export function PreAuthDiscovery({ onClose, onSignUp, onSubmitPhoneSignup, onSub
 
               <div className="space-y-3 w-full max-w-sm mt-2">
                 <Button
-                  onClick={handlePhoneSignup}
+                  onClick={() => setShowWhatsAppWarning(true)}
                   size="lg"
                   variant="gradient"
                   className="w-full text-base gap-2"
@@ -682,6 +693,35 @@ export function PreAuthDiscovery({ onClose, onSignUp, onSubmitPhoneSignup, onSub
           )}
         </AnimatePresence>
       </div>
+      <AlertDialog open={showWhatsAppWarning} onOpenChange={setShowWhatsAppWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-green-600" />
+              Attention !
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tu vas recevoir un code par WhatsApp au numéro{' '}
+              <span className="font-semibold text-foreground">
+                {answers.countryCode} {answers.phone}
+              </span>
+              . Assure-toi d'avoir accès à ce compte WhatsApp.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowWhatsAppWarning(false);
+                handlePhoneSignup();
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Recevoir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
