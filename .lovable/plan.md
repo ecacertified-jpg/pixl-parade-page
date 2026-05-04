@@ -1,37 +1,25 @@
-1. Stabiliser l’écran d’inscription pré-auth
-- Revoir l’intégration de `PreAuthDiscovery` dans `src/pages/Auth.tsx`.
-- Supprimer le point fragile introduit par le chargement lazy si nécessaire, ou au minimum remplacer le `Suspense fallback={null}` par un rendu explicite pour éviter l’écran vide.
-- Vérifier la cause du rendu blanc observé sur `/auth?tab=signup` et sécuriser le montage du flux pour qu’un chargement incomplet ne laisse jamais une couche vide plein écran.
+## Objectif
 
-2. Corriger la régression de clic sur les 3 boutons finaux
-- Reprendre la partie "action" dans `src/components/PreAuthDiscovery.tsx`.
-- Isoler la confirmation WhatsApp pour qu’elle n’intercepte pas les clics quand elle est fermée.
-- Garder le comportement demandé :
-  - `Recevoir mon code de vérification` ouvre l’avertissement WhatsApp
-  - `S’inscrire avec Google` lance immédiatement le flux Google
-  - `Peut-être plus tard` ferme immédiatement le parcours
-- Vérifier aussi que `submittingPhone` / `submittingGoogle` ne laissent jamais les boutons bloqués après une tentative annulée ou interrompue.
+Réutiliser la modale "Comment veux-tu partager ?" (`BirthdayPageShareButton`) à l'étape 7 "Partager ma page" de l'onboarding, et y ajouter le mode SMS dans la vue "Réseaux sociaux".
 
-3. Simplifier la confirmation WhatsApp pour éviter les conflits de couches
-- Remplacer si besoin l’`AlertDialog` actuel par une implémentation plus sûre dans ce contexte plein écran (par ex. `Dialog` simple ou carte de confirmation inline).
-- Conserver exactement le message produit :
-  - Titre d’avertissement WhatsApp
-  - Bouton `Recevoir`
-- Faire en sorte que seule l’action téléphone passe par cette confirmation, sans impacter Google ni la fermeture.
+## Changements
 
-4. Vérifier le flux OTP côté Auth
-- Contrôler l’enchaînement `PreAuthDiscovery -> onSubmitPhoneSignup -> sendOtpSignUp` dans `src/pages/Auth.tsx`.
-- Vérifier qu’après confirmation, le parcours ferme bien la découverte et déclenche l’envoi WhatsApp sans réactiver la détection de doublons de façon incorrecte.
-- Confirmer que le mode WhatsApp reste l’unique méthode affichée/comportement attendu dans ce flux.
+### 1. `src/components/BirthdayPageShareButton.tsx`
+- Ajouter une option **SMS** dans `shareOptions` (vue "Réseaux sociaux") :
+  - Icône `MessageSquare` (lucide), couleur neutre.
+  - Action : `window.location.href = sms:?body=...` avec `shareText + pageUrl` encodés.
+- Ajouter une prop optionnelle `onShared?: (method: string) => void` appelée après chaque partage réussi (whatsapp, facebook, twitter, linkedin, telegram, email, sms, copy, native), pour que le parent puisse compter les partages.
 
-5. Validation fonctionnelle à faire après correction
-- Tester sur mobile l’étape finale du parcours pré-auth :
-  - clic sur `Recevoir mon code de vérification` -> ouverture de la modale -> clic sur `Recevoir` -> envoi OTP WhatsApp
-  - clic sur `S’inscrire avec Google` -> démarrage du flux Google (ou message preview prévu)
-  - clic sur `Peut-être plus tard` -> fermeture immédiate
-- Revalider qu’aucun écran blanc n’apparaît sur `/auth?tab=signup`.
+### 2. `src/components/OnboardingExperience.tsx` (étape 7, sous-étape 3 "Partager")
+- Remplacer la rangée actuelle de 3 boutons (WhatsApp / SMS / Copier) par un seul bouton large **"Partager ma page"** (gradient primary→accent, icône `Share2`).
+- Au clic : ouvrir `BirthdayPageShareButton` (état local `showShareSheet`).
+- Passer `onShared={(method) => incrementShareCount(method)}` afin de continuer à incrémenter `shareCount` (la sous-étape se valide toujours à 3 partages).
+- Garder firstName / pageUrl / age cohérents avec ceux déjà calculés dans le composant.
 
-Détails techniques
-- Fichiers principaux : `src/components/PreAuthDiscovery.tsx`, `src/pages/Auth.tsx`
-- Indice relevé pendant l’exploration : l’écran `/auth?tab=signup` peut tomber sur un fond vide, et le parcours pré-auth est actuellement lazy-loadé avec un `Suspense fallback={null}`, ce qui augmente le risque d’un écran figé/silencieux en cas de problème de chargement.
-- Je traiterai donc la cause visible (les boutons figés) et la cause structurelle probable (montage fragile de l’écran et superposition de modale).
+### 3. Aucune autre modification
+- Le bouton "Création (+)" du menu bas et la page d'anniversaire publique utilisent déjà `BirthdayPageShareButton` — ils bénéficieront automatiquement de l'option SMS ajoutée.
+- Pas de changement DB, pas de nouvelle dépendance.
+
+## Résultat utilisateur
+
+À l'étape "Partager ma page" de l'onboarding, l'utilisateur clique sur "Partager ma page" → la modale "Comment veux-tu partager ?" s'ouvre (Groupes WhatsApp ou Réseaux sociaux). La grille "Réseaux sociaux" inclut désormais SMS aux côtés de WhatsApp, Facebook, X, LinkedIn, Telegram, Email et Copier le lien. Chaque partage incrémente le compteur 0/3 → 3/3.
