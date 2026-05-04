@@ -1910,7 +1910,13 @@ const Auth = () => {
       {/* Pre-Auth Discovery Experience */}
       <AnimatePresence>
         {showDiscovery && (
-          <Suspense fallback={null}>
+          <Suspense
+            fallback={
+              <div className="fixed inset-0 z-[100] bg-background flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            }
+          >
             <PreAuthDiscovery
               onClose={() => {
                 // Closing the discovery returns the user to the sign-in tab —
