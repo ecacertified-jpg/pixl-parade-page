@@ -1,21 +1,11 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Cake, Users, Gift, Heart, PartyPopper, MessageCircle, Star, Sparkles, TrendingUp, Clock, Crown, MapPin, Phone, User, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Cake, Users, Gift, Heart, PartyPopper, MessageCircle, Star, Sparkles, TrendingUp, Clock, Crown, MapPin, Phone, User, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import confetti from 'canvas-confetti';
 import { format } from 'date-fns';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
