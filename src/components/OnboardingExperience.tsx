@@ -31,6 +31,7 @@ import { TASTE_CATEGORIES } from "@/data/taste-categories";
 import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
 import { OnboardingFirstPhotoStep } from '@/components/OnboardingFirstPhotoStep';
+import { BirthdayPageShareButton } from '@/components/BirthdayPageShareButton';
 import type { PageType } from '@/hooks/useBirthdayPageBuilderStatus';
 
 // Floating particles component
@@ -101,6 +102,7 @@ export const OnboardingExperience = ({
   const [creatingFund, setCreatingFund] = useState(false);
   const [shareCount, setShareCount] = useState(0);
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
   const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
   const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday');
 
@@ -1575,32 +1577,14 @@ export const OnboardingExperience = ({
                         </div>
                       </div>
                       {isPagePublished && shareCount < 3 && (
-                        <div className="flex gap-2 ml-11">
+                        <div className="ml-11">
                           <Button
-                            onClick={handleSharePageWhatsApp}
-                            variant="outline"
+                            onClick={() => setShowShareSheet(true)}
                             size="sm"
-                            className="gap-1 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 text-xs"
+                            className="gap-2 w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground"
                           >
-                            <Share2 className="h-3 w-3" />
-                            WhatsApp
-                          </Button>
-                          <Button
-                            onClick={handleSharePageSMS}
-                            variant="outline"
-                            size="sm"
-                            className="gap-1 flex-1 text-xs"
-                          >
-                            SMS
-                          </Button>
-                          <Button
-                            onClick={handleCopyPageLink}
-                            variant="outline"
-                            size="sm"
-                            className="gap-1 flex-1 text-xs"
-                          >
-                            <Copy className="h-3 w-3" />
-                            Copier
+                            <Share2 className="h-4 w-4" />
+                            Partager ma page
                           </Button>
                         </div>
                       )}
@@ -1652,6 +1636,15 @@ export const OnboardingExperience = ({
         onClose={handleFundPickerClose}
         onFundCreated={handleFundPickerClose}
       />
+      {birthdayPageSlug && (
+        <BirthdayPageShareButton
+          open={showShareSheet}
+          onOpenChange={setShowShareSheet}
+          firstName={firstName || 'moi'}
+          pageUrl={`${getAppBaseUrl()}/birthday/${birthdayPageSlug}`}
+          onShared={(method) => incrementShareCount(method)}
+        />
+      )}
     </motion.div>
   );
 };

@@ -21,6 +21,7 @@ import {
   ArrowLeft,
   Heart,
   Sparkles,
+  MessageSquare,
 } from 'lucide-react';
 
 const WHATSAPP_GROUPS = [
@@ -50,9 +51,10 @@ interface BirthdayPageShareButtonProps {
   firstName: string;
   pageUrl: string;
   age?: number | null;
+  onShared?: (method: string) => void;
 }
 
-export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl, age }: BirthdayPageShareButtonProps) {
+export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl, age, onShared }: BirthdayPageShareButtonProps) {
   const [view, setView] = useState<'choice' | 'whatsapp_groups' | 'social'>('choice');
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       try {
         await navigator.share({ title: `Anniversaire de ${firstName}`, text: shareText, url: pageUrl });
         toast.success('Partage effectué !');
+        onShared?.('native');
         onOpenChange(false);
       } catch (error) {
         if ((error as Error).name !== 'AbortError') toast.error('Erreur lors du partage');
@@ -91,6 +94,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       action: () => {
         window.open(`https://wa.me/?text=${encodeURIComponent(shareText + '\n' + pageUrl)}`, '_blank', 'noopener,noreferrer');
         toast.success('Ouverture de WhatsApp...');
+        onShared?.('whatsapp');
       },
     },
     {
@@ -100,6 +104,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       bgColor: 'hover:bg-blue-50',
       action: () => {
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`, '_blank', 'width=600,height=400,noopener,noreferrer');
+        onShared?.('facebook');
       },
     },
     {
@@ -109,6 +114,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       bgColor: 'hover:bg-sky-50',
       action: () => {
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`, '_blank');
+        onShared?.('twitter');
       },
     },
     {
@@ -118,6 +124,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       bgColor: 'hover:bg-blue-50',
       action: () => {
         window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`, '_blank');
+        onShared?.('linkedin');
       },
     },
     {
@@ -127,6 +134,17 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       bgColor: 'hover:bg-blue-50',
       action: () => {
         window.open(`https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
+        onShared?.('telegram');
+      },
+    },
+    {
+      name: 'SMS',
+      icon: MessageSquare,
+      color: 'text-foreground',
+      bgColor: 'hover:bg-muted',
+      action: () => {
+        window.location.href = `sms:?&body=${encodeURIComponent(shareText + '\n' + pageUrl)}`;
+        onShared?.('sms');
       },
     },
     {
@@ -136,6 +154,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       bgColor: 'hover:bg-gray-50',
       action: () => {
         window.location.href = `mailto:?subject=${encodeURIComponent(`Anniversaire de ${firstName}`)}&body=${encodeURIComponent(shareText + '\n\n' + pageUrl)}`;
+        onShared?.('email');
       },
     },
     {
@@ -147,6 +166,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
         try {
           await navigator.clipboard.writeText(shareText + '\n\n' + pageUrl);
           toast.success('Message + lien copiés ! 📋');
+          onShared?.('copy');
           onOpenChange(false);
         } catch { toast.error('Erreur lors de la copie'); }
       },
