@@ -31,6 +31,7 @@ import { TASTE_CATEGORIES } from "@/data/taste-categories";
 import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
 import { OnboardingFirstPhotoStep } from '@/components/OnboardingFirstPhotoStep';
+import { BirthdayPageShareButton } from '@/components/BirthdayPageShareButton';
 import type { PageType } from '@/hooks/useBirthdayPageBuilderStatus';
 
 // Floating particles component
