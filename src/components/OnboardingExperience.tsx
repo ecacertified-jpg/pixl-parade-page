@@ -102,6 +102,7 @@ export const OnboardingExperience = ({
   const [creatingFund, setCreatingFund] = useState(false);
   const [shareCount, setShareCount] = useState(0);
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
   const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
   const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday');
 
