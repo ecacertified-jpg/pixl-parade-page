@@ -1,74 +1,37 @@
-## Problèmes identifiés
+1. Stabiliser l’écran d’inscription pré-auth
+- Revoir l’intégration de `PreAuthDiscovery` dans `src/pages/Auth.tsx`.
+- Supprimer le point fragile introduit par le chargement lazy si nécessaire, ou au minimum remplacer le `Suspense fallback={null}` par un rendu explicite pour éviter l’écran vide.
+- Vérifier la cause du rendu blanc observé sur `/auth?tab=signup` et sécuriser le montage du flux pour qu’un chargement incomplet ne laisse jamais une couche vide plein écran.
 
-**1. Modale "Un compte similaire existe déjà" s'affiche systématiquement**
+2. Corriger la régression de clic sur les 3 boutons finaux
+- Reprendre la partie "action" dans `src/components/PreAuthDiscovery.tsx`.
+- Isoler la confirmation WhatsApp pour qu’elle n’intercepte pas les clics quand elle est fermée.
+- Garder le comportement demandé :
+  - `Recevoir mon code de vérification` ouvre l’avertissement WhatsApp
+  - `S’inscrire avec Google` lance immédiatement le flux Google
+  - `Peut-être plus tard` ferme immédiatement le parcours
+- Vérifier aussi que `submittingPhone` / `submittingGoogle` ne laissent jamais les boutons bloqués après une tentative annulée ou interrompue.
 
-Dans `supabase/functions/check-existing-account/index.ts` (lignes 160-209), une recherche fuzzy par prénom (`ilike '%aissatou%'`) ramène n'importe quel profil existant qui partage un prénom courant. Côté client (`src/pages/Auth.tsx` ligne 592), dès que `accounts.length > 0`, la modale s'ouvre — **sans tenir compte du `confidence`**. Le fallback `useDuplicateAccountDetection.ts` fait exactement la même chose côté client.
+3. Simplifier la confirmation WhatsApp pour éviter les conflits de couches
+- Remplacer si besoin l’`AlertDialog` actuel par une implémentation plus sûre dans ce contexte plein écran (par ex. `Dialog` simple ou carte de confirmation inline).
+- Conserver exactement le message produit :
+  - Titre d’avertissement WhatsApp
+  - Bouton `Recevoir`
+- Faire en sorte que seule l’action téléphone passe par cette confirmation, sans impacter Google ni la fermeture.
 
-Résultat : tout utilisateur dont le prénom existe déjà en base (très fréquent : Aïssatou, Koffi, Aya…) est bloqué, peu importe son numéro réel.
+4. Vérifier le flux OTP côté Auth
+- Contrôler l’enchaînement `PreAuthDiscovery -> onSubmitPhoneSignup -> sendOtpSignUp` dans `src/pages/Auth.tsx`.
+- Vérifier qu’après confirmation, le parcours ferme bien la découverte et déclenche l’envoi WhatsApp sans réactiver la détection de doublons de façon incorrecte.
+- Confirmer que le mode WhatsApp reste l’unique méthode affichée/comportement attendu dans ce flux.
 
-**2. Le sélecteur SMS / WhatsApp s'affiche au lieu de WhatsApp seul**
+5. Validation fonctionnelle à faire après correction
+- Tester sur mobile l’étape finale du parcours pré-auth :
+  - clic sur `Recevoir mon code de vérification` -> ouverture de la modale -> clic sur `Recevoir` -> envoi OTP WhatsApp
+  - clic sur `S’inscrire avec Google` -> démarrage du flux Google (ou message preview prévu)
+  - clic sur `Peut-être plus tard` -> fermeture immédiate
+- Revalider qu’aucun écran blanc n’apparaît sur `/auth?tab=signup`.
 
-Pour la Côte d'Ivoire, `country.smsReliability = 'unreliable'` + `whatsappFallbackEnabled = true` → `showFallback = true` (choix manuel) au lieu de `autoWhatsApp = true` (envoi WhatsApp direct). C'est pour cela que l'écran « Mode de vérification » apparaît avec deux boutons.
-
-L'utilisateur veut **uniquement WhatsApp** après le clic sur "Recevoir mon code de vérification".
-
----
-
-## Correctifs proposés
-
-### A. Détection de doublon : ne déclencher la modale QUE pour les correspondances exactes
-
-**`src/pages/Auth.tsx`** (et symétriquement pour les chemins email/signin lignes ~1145)
-- Remplacer `if (serverResult.exists && serverResult.accounts.length > 0)` par :
-  ```ts
-  const hasExactMatch = serverResult.accounts.some(
-    (a: any) => a.is_exact_phone_match || a.is_exact_email_match
-  );
-  if (serverResult.exists && hasExactMatch && serverResult.confidence === 'high') { … modal … }
-  ```
-- Supprimer entièrement le fallback client-side `checkForDuplicate(...)` qui ne se base que sur le prénom — il génère des faux positifs et duplique la logique serveur.
-
-**`supabase/functions/check-existing-account/index.ts`**
-- Supprimer (ou désactiver derrière un flag `include_name_matches: true`) le bloc de recherche fuzzy par prénom (lignes 160-209). Cette branche n'apporte rien de fiable et empoisonne les inscriptions.
-- Ne renvoyer `exists: true` que pour les correspondances exactes téléphone/email.
-
-**`src/components/DuplicateAccountModal.tsx`**
-- Plus de changement nécessaire : la modale ne s'affichera désormais qu'en cas de vrai doublon (téléphone ou email exact).
-
-### B. Forcer WhatsApp pour la Côte d'Ivoire (et alignement avec la stratégie WhatsApp-first)
-
-**`src/components/auth/OtpMethodSelector.tsx`** — ajuster la fonction `useWhatsAppFallback` :
-```ts
-// Forcer WhatsApp dès que whatsappFallbackEnabled = true (plus de sélecteur)
-const autoWhatsApp = country.whatsappFallbackEnabled === true;
-const showFallback = false;
-const defaultMethod: OtpMethod = autoWhatsApp ? 'whatsapp' : 'sms';
-```
-
-Conséquences :
-- CI / SN / TG / BJ / ML / BF : envoi WhatsApp direct au clic sur "Recevoir mon code de vérification".
-- L'écran intermédiaire "Mode de vérification" disparaît automatiquement (le bloc conditionné par `showFallback` ne s'affiche plus).
-- Le code de `handleSignUpSubmit` / `handleSignInSubmit` qui appelle `sendOtpSignUp` directement quand `autoWhatsApp` est vrai s'occupe déjà du reste.
-
-> Conforme à la mémoire projet **WhatsApp-first strategy** : SMS reste utilisable uniquement comme fallback CI/SN si `whatsappFallbackEnabled` est désactivé, ce qui n'est plus le cas par défaut.
-
-### C. Nettoyage
-
-- Retirer du `Auth.tsx` les imports/usages de `useDuplicateAccountDetection` devenus inutiles.
-- Garder `DuplicateAccountModal.tsx` pour le seul cas "téléphone/email exact" (haut confiance).
-- Mémoire à mettre à jour : la stratégie de détection de doublon ne se base plus sur le prénom (faux positifs).
-
----
-
-## Fichiers modifiés
-
-- `src/pages/Auth.tsx` — condition de déclenchement de la modale + suppression fallback client
-- `supabase/functions/check-existing-account/index.ts` — retrait de la recherche fuzzy par prénom
-- `src/components/auth/OtpMethodSelector.tsx` — `autoWhatsApp = whatsappFallbackEnabled`
-- (option) `src/hooks/useDuplicateAccountDetection.ts` — supprimer ou simplifier
-
-## Résultat attendu
-
-1. L'utilisateur remplit l'inscription avec un prénom courant + un nouveau numéro → la modale "Un compte similaire existe déjà" **n'apparaît plus**.
-2. Au clic sur "Recevoir mon code de vérification" depuis la pré-auth → **OTP WhatsApp envoyé directement**, plus d'écran intermédiaire SMS/WhatsApp.
-3. La modale reste affichée uniquement si le numéro (ou l'email) est **exactement** déjà associé à un compte — comportement légitime et attendu.
+Détails techniques
+- Fichiers principaux : `src/components/PreAuthDiscovery.tsx`, `src/pages/Auth.tsx`
+- Indice relevé pendant l’exploration : l’écran `/auth?tab=signup` peut tomber sur un fond vide, et le parcours pré-auth est actuellement lazy-loadé avec un `Suspense fallback={null}`, ce qui augmente le risque d’un écran figé/silencieux en cas de problème de chargement.
+- Je traiterai donc la cause visible (les boutons figés) et la cause structurelle probable (montage fragile de l’écran et superposition de modale).

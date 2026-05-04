@@ -1,21 +1,11 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Cake, Users, Gift, Heart, PartyPopper, MessageCircle, Star, Sparkles, TrendingUp, Clock, Crown, MapPin, Phone, User, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Cake, Users, Gift, Heart, PartyPopper, MessageCircle, Star, Sparkles, TrendingUp, Clock, Crown, MapPin, Phone, User, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import confetti from 'canvas-confetti';
 import { format } from 'date-fns';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
@@ -693,35 +683,58 @@ export function PreAuthDiscovery({ onClose, onSignUp, onSubmitPhoneSignup, onSub
           )}
         </AnimatePresence>
       </div>
-      <AlertDialog open={showWhatsAppWarning} onOpenChange={setShowWhatsAppWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-green-600" />
-              Attention !
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Tu vas recevoir un code par WhatsApp au numéro{' '}
-              <span className="font-semibold text-foreground">
-                {answers.countryCode} {answers.phone}
-              </span>
-              . Assure-toi d'avoir accès à ce compte WhatsApp.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowWhatsAppWarning(false);
-                handlePhoneSignup();
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              Recevoir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {showWhatsAppWarning && (
+        <div
+          className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center bg-black/60 p-4"
+          onClick={() => setShowWhatsAppWarning(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.96 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl bg-background p-6 shadow-xl border"
+          >
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-foreground font-poppins">
+                  Attention !
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1 font-nunito">
+                  Tu vas recevoir un code par WhatsApp au numéro{' '}
+                  <span className="font-semibold text-foreground">
+                    {answers.countryCode} {answers.phone}
+                  </span>
+                  . Assure-toi d'avoir accès à ce compte WhatsApp.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowWhatsAppWarning(false)}
+                disabled={submittingPhone}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowWhatsAppWarning(false);
+                  handlePhoneSignup();
+                }}
+                disabled={submittingPhone}
+                className="bg-green-600 hover:bg-green-700 text-white gap-2"
+              >
+                {submittingPhone ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                Recevoir
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }
