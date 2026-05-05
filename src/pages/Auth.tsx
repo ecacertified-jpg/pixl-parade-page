@@ -630,6 +630,8 @@ const Auth = () => {
           setPendingSignUpData(data);
           setShowDuplicateModal(true);
           setIsLoading(false);
+          // Revert optimistic OTP screen if it was opened
+          setOtpSent(false);
           return;
         }
 
@@ -645,10 +647,16 @@ const Auth = () => {
         phone: fullPhone,
       };
       
+      let sent = false;
       if (method === 'whatsapp') {
-        await sendWhatsAppOtp(fullPhone, 'signup', metadata);
+        sent = (await sendWhatsAppOtp(fullPhone, 'signup', metadata)) ?? false;
       } else {
         await sendSmsOtp(fullPhone, 'signup', metadata);
+        sent = true;
+      }
+      if (!sent) {
+        // Revert optimistic OTP screen so user can retry
+        setOtpSent(false);
       }
       
       setAuthMode('signup');
