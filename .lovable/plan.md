@@ -1,25 +1,21 @@
 ## Objectif
+Ajouter un bouton "Ajouter un produit depuis Jumia" dans l'étape 3 ("Qu'est-ce qui te ferait plaisir ?") de l'onboarding, placé juste en-dessous de la bannière "N articles ajoutés à ta liste" et avant la grille des articles, pour permettre à l'utilisateur d'enrichir ses favoris depuis Jumia.
 
-Réutiliser la modale "Comment veux-tu partager ?" (`BirthdayPageShareButton`) à l'étape 7 "Partager ma page" de l'onboarding, et y ajouter le mode SMS dans la vue "Réseaux sociaux".
+## Modifications
 
-## Changements
+**Fichier : `src/components/OnboardingExperience.tsx`**
 
-### 1. `src/components/BirthdayPageShareButton.tsx`
-- Ajouter une option **SMS** dans `shareOptions` (vue "Réseaux sociaux") :
-  - Icône `MessageSquare` (lucide), couleur neutre.
-  - Action : `window.location.href = sms:?body=...` avec `shareText + pageUrl` encodés.
-- Ajouter une prop optionnelle `onShared?: (method: string) => void` appelée après chaque partage réussi (whatsapp, facebook, twitter, linkedin, telegram, email, sms, copy, native), pour que le parent puisse compter les partages.
+1. Importer `JumiaImportModal` depuis `@/components/wishlist/JumiaImportModal` et `ShoppingBag` depuis `lucide-react`.
+2. Ajouter un state local `const [showJumiaModal, setShowJumiaModal] = useState(false);`.
+3. Dans le bloc de l'étape 3 (autour des lignes 995–1018), insérer un bouton orange (style cohérent avec celui présent dans `WishlistCatalog`) :
+   - Placé **après** la bannière "{N} article(s) ajouté(s) à ta liste"
+   - Placé **avant** la bannière d'avertissement "Ajoute au moins 3 articles..."
+   - Apparence : `Button variant="outline"` plein largeur, bordure et texte orange (`border-orange-400 text-orange-600 hover:bg-orange-50`), icône `ShoppingBag`, label "Ajouter un produit depuis Jumia".
+   - `onClick` : ouvre le modal (`setShowJumiaModal(true)`).
+4. Monter `<JumiaImportModal isOpen={showJumiaModal} onClose={() => setShowJumiaModal(false)} countryCode={...} />` à la fin du composant (utiliser le countryCode déjà disponible si présent, sinon laisser undefined — le hook gère le cas).
+5. Après ajout réussi via le modal, les favoris externes sont stockés dans `external_favorites` (séparé de `user_favorites`). Pour que l'étape ne soit pas bloquée artificiellement si l'utilisateur ajoute uniquement depuis Jumia, on garde le comportement actuel (3 favoris internes requis pour avancer) — le bouton Jumia est complémentaire et permet à l'utilisateur d'enrichir sa wishlist immédiatement.
 
-### 2. `src/components/OnboardingExperience.tsx` (étape 7, sous-étape 3 "Partager")
-- Remplacer la rangée actuelle de 3 boutons (WhatsApp / SMS / Copier) par un seul bouton large **"Partager ma page"** (gradient primary→accent, icône `Share2`).
-- Au clic : ouvrir `BirthdayPageShareButton` (état local `showShareSheet`).
-- Passer `onShared={(method) => incrementShareCount(method)}` afin de continuer à incrémenter `shareCount` (la sous-étape se valide toujours à 3 partages).
-- Garder firstName / pageUrl / age cohérents avec ceux déjà calculés dans le composant.
-
-### 3. Aucune autre modification
-- Le bouton "Création (+)" du menu bas et la page d'anniversaire publique utilisent déjà `BirthdayPageShareButton` — ils bénéficieront automatiquement de l'option SMS ajoutée.
-- Pas de changement DB, pas de nouvelle dépendance.
-
-## Résultat utilisateur
-
-À l'étape "Partager ma page" de l'onboarding, l'utilisateur clique sur "Partager ma page" → la modale "Comment veux-tu partager ?" s'ouvre (Groupes WhatsApp ou Réseaux sociaux). La grille "Réseaux sociaux" inclut désormais SMS aux côtés de WhatsApp, Facebook, X, LinkedIn, Telegram, Email et Copier le lien. Chaque partage incrémente le compteur 0/3 → 3/3.
+## Notes techniques
+- `JumiaImportModal` existe déjà et gère URL → fetch meta → insertion en DB via `useAddExternalFavorite` (toast de succès inclus).
+- Aucun changement de schema DB ni de RLS nécessaire.
+- Aucune autre étape de l'onboarding n'est impactée.
