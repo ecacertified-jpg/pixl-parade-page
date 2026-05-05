@@ -1941,9 +1941,16 @@ const Auth = () => {
                 signUpForm.setValue('city', data.city);
                 signUpForm.setValue('phone', data.phone);
                 signUpForm.setValue('countryCode', data.countryCode);
+                // Optimistic transition: show OTP screen instantly, then send the code in background.
+                const fullPhone = `${data.countryCode}${data.phone}`;
+                setCurrentPhone(fullPhone);
+                setOtpMethod('whatsapp');
+                sessionStorage.setItem('jdv_otp_method', 'whatsapp');
+                setOtpSent(true);
                 setAuthMode('signup');
                 setShowDiscovery(false);
-                await sendOtpSignUp(
+                // Fire-and-forget — sendOtpSignUp handles its own errors and reverts otpSent on failure.
+                void sendOtpSignUp(
                   {
                     firstName: data.firstName,
                     birthday: data.birthday,
