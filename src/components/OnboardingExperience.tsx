@@ -32,6 +32,7 @@ import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
 import { OnboardingFirstPhotoStep } from '@/components/OnboardingFirstPhotoStep';
 import { BirthdayPageShareButton } from '@/components/BirthdayPageShareButton';
+import { JumiaImportModal } from '@/components/wishlist/JumiaImportModal';
 import type { PageType } from '@/hooks/useBirthdayPageBuilderStatus';
 
 // Floating particles component
@@ -102,6 +103,7 @@ export const OnboardingExperience = ({
   const [creatingFund, setCreatingFund] = useState(false);
   const [shareCount, setShareCount] = useState(0);
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
+  const [showJumiaModal, setShowJumiaModal] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
   const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday');
@@ -1004,6 +1006,15 @@ export const OnboardingExperience = ({
                 </motion.div>
               )}
 
+              <Button
+                onClick={() => setShowJumiaModal(true)}
+                variant="outline"
+                className="gap-2 w-full mb-4 border-orange-400 text-orange-600 hover:bg-orange-50 hover:text-orange-700 dark:hover:bg-orange-950/30"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                Ajouter un produit depuis Jumia
+              </Button>
+
               <AnimatePresence>
                 {favoriteIds.length < 3 && (
                   <motion.div
@@ -1635,6 +1646,10 @@ export const OnboardingExperience = ({
         isOpen={showFundPickerModal}
         onClose={handleFundPickerClose}
         onFundCreated={handleFundPickerClose}
+      />
+      <JumiaImportModal
+        isOpen={showJumiaModal}
+        onClose={() => setShowJumiaModal(false)}
       />
       {birthdayPageSlug && (
         <BirthdayPageShareButton
