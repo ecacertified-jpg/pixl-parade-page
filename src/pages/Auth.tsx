@@ -508,6 +508,7 @@ const Auth = () => {
         title: 'Code envoyé via WhatsApp',
         description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
       });
+      return true;
     } catch (error: any) {
       console.error('💥 [WhatsApp OTP] Unexpected error:', error);
       toast({
@@ -515,6 +516,7 @@ const Auth = () => {
         description: 'Une erreur inattendue s\'est produite',
         variant: 'destructive',
       });
+      return false;
     } finally {
       setIsLoading(false);
     }
