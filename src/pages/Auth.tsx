@@ -450,7 +450,7 @@ const Auth = () => {
     }
   };
 
-  const sendWhatsAppOtp = async (fullPhone: string, purpose: 'signin' | 'signup', metadata?: any) => {
+  const sendWhatsAppOtp = async (fullPhone: string, purpose: 'signin' | 'signup', metadata?: any): Promise<boolean> => {
     try {
       setIsLoading(true);
       
@@ -483,7 +483,7 @@ const Auth = () => {
             title: 'Code déjà envoyé',
             description: `Un code a déjà été envoyé. Vérifiez votre WhatsApp ou réessayez dans ${result.retry_after}s.`,
           });
-          return;
+          return true;
         }
         
         toast({
@@ -491,7 +491,7 @@ const Auth = () => {
           description: result?.message || 'Impossible d\'envoyer le code WhatsApp',
           variant: 'destructive',
         });
-        return;
+        return false;
       }
 
       console.log('✅ [WhatsApp OTP] OTP sent successfully to:', fullPhone);
