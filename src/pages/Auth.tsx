@@ -450,7 +450,7 @@ const Auth = () => {
     }
   };
 
-  const sendWhatsAppOtp = async (fullPhone: string, purpose: 'signin' | 'signup', metadata?: any) => {
+  const sendWhatsAppOtp = async (fullPhone: string, purpose: 'signin' | 'signup', metadata?: any): Promise<boolean> => {
     try {
       setIsLoading(true);
       
@@ -483,7 +483,7 @@ const Auth = () => {
             title: 'Code déjà envoyé',
             description: `Un code a déjà été envoyé. Vérifiez votre WhatsApp ou réessayez dans ${result.retry_after}s.`,
           });
-          return;
+          return true;
         }
         
         toast({
@@ -491,7 +491,7 @@ const Auth = () => {
           description: result?.message || 'Impossible d\'envoyer le code WhatsApp',
           variant: 'destructive',
         });
-        return;
+        return false;
       }
 
       console.log('✅ [WhatsApp OTP] OTP sent successfully to:', fullPhone);
@@ -508,6 +508,7 @@ const Auth = () => {
         title: 'Code envoyé via WhatsApp',
         description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
       });
+      return true;
     } catch (error: any) {
       console.error('💥 [WhatsApp OTP] Unexpected error:', error);
       toast({
@@ -515,6 +516,7 @@ const Auth = () => {
         description: 'Une erreur inattendue s\'est produite',
         variant: 'destructive',
       });
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -628,6 +630,8 @@ const Auth = () => {
           setPendingSignUpData(data);
           setShowDuplicateModal(true);
           setIsLoading(false);
+          // Revert optimistic OTP screen if it was opened
+          setOtpSent(false);
           return;
         }
 
@@ -643,10 +647,16 @@ const Auth = () => {
         phone: fullPhone,
       };
       
+      let sent = false;
       if (method === 'whatsapp') {
-        await sendWhatsAppOtp(fullPhone, 'signup', metadata);
+        sent = (await sendWhatsAppOtp(fullPhone, 'signup', metadata)) ?? false;
       } else {
         await sendSmsOtp(fullPhone, 'signup', metadata);
+        sent = true;
+      }
+      if (!sent) {
+        // Revert optimistic OTP screen so user can retry
+        setOtpSent(false);
       }
       
       setAuthMode('signup');
@@ -1931,9 +1941,16 @@ const Auth = () => {
                 signUpForm.setValue('city', data.city);
                 signUpForm.setValue('phone', data.phone);
                 signUpForm.setValue('countryCode', data.countryCode);
+                // Optimistic transition: show OTP screen instantly, then send the code in background.
+                const fullPhone = `${data.countryCode}${data.phone}`;
+                setCurrentPhone(fullPhone);
+                setOtpMethod('whatsapp');
+                sessionStorage.setItem('jdv_otp_method', 'whatsapp');
+                setOtpSent(true);
                 setAuthMode('signup');
                 setShowDiscovery(false);
-                await sendOtpSignUp(
+                // Fire-and-forget — sendOtpSignUp handles its own errors and reverts otpSent on failure.
+                void sendOtpSignUp(
                   {
                     firstName: data.firstName,
                     birthday: data.birthday,

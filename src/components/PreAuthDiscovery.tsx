@@ -271,23 +271,20 @@ export function PreAuthDiscovery({ onClose, onSignUp, onSubmitPhoneSignup, onSub
     setStep((s) => Math.max(0, s - 1));
   }, []);
 
-  const handlePhoneSignup = useCallback(async () => {
+  const handlePhoneSignup = useCallback(() => {
     if (!isFieldValid('firstName', answers) || !isFieldValid('birthday', answers) || !isFieldValid('city', answers) || !isFieldValid('phone', answers)) {
       return;
     }
     trackEvent('discovery_completed', { method: 'phone' });
-    try {
-      setSubmittingPhone(true);
-      await onSubmitPhoneSignup?.({
-        firstName: answers.firstName!.trim(),
-        birthday: answers.birthday!,
-        city: answers.city!.trim(),
-        phone: answers.phone!,
-        countryCode: answers.countryCode || '+225',
-      });
-    } finally {
-      setSubmittingPhone(false);
-    }
+    setSubmittingPhone(true);
+    // Fire-and-forget: the parent transitions to the OTP screen instantly.
+    void onSubmitPhoneSignup?.({
+      firstName: answers.firstName!.trim(),
+      birthday: answers.birthday!,
+      city: answers.city!.trim(),
+      phone: answers.phone!,
+      countryCode: answers.countryCode || '+225',
+    });
   }, [answers, onSubmitPhoneSignup, trackEvent]);
 
   const handleGoogleSignup = useCallback(async () => {
