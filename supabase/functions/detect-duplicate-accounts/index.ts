@@ -381,7 +381,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Detect duplicates error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ error: 'Une erreur interne est survenue' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

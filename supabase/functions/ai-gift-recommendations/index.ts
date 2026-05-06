@@ -430,7 +430,7 @@ Pour chaque suggestion, explique pourquoi ce cadeau est adapté en tenant compte
   } catch (error) {
     console.error("[AI Recommendations] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
+      JSON.stringify({ error: "Une erreur interne est survenue" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
