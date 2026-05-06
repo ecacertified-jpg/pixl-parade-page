@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useExternalFavorites, type ExternalFavorite } from '@/hooks/useExternalFavorites';
+import { ExternalProductFundModal } from '@/components/ExternalProductFundModal';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,6 +52,7 @@ export function WishlistFundPickerModal({
 }: WishlistFundPickerModalProps) {
   const navigate = useNavigate();
   const { favorites: ownFavorites, loading: ownLoading } = useFavorites();
+  const { data: ownExternalFavorites = [], isLoading: ownExternalLoading } = useExternalFavorites();
   const { addItem } = useCart();
   const { user } = useAuth();
 
@@ -58,6 +61,7 @@ export function WishlistFundPickerModal({
   const [externalFavorites, setExternalFavorites] = useState<FavoriteItem[]>([]);
   const [externalLoading, setExternalLoading] = useState(false);
   const [creatingFundFor, setCreatingFundFor] = useState<string | null>(null);
+  const [externalFundPreset, setExternalFundPreset] = useState<ExternalFavorite | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
@@ -95,8 +99,9 @@ export function WishlistFundPickerModal({
   }, [isOpen, isExternalBeneficiary, beneficiaryUserId]);
 
   const favorites = isExternalBeneficiary ? externalFavorites : ownFavorites;
-  const loading = isExternalBeneficiary ? externalLoading : ownLoading;
-  const itemCount = favorites.filter((f) => f.product).length;
+  const externalItems = isExternalBeneficiary ? [] : ownExternalFavorites;
+  const loading = isExternalBeneficiary ? externalLoading : (ownLoading || ownExternalLoading);
+  const itemCount = favorites.filter((f) => f.product).length + externalItems.length;
 
   // Detect if scroll hint should appear (more than ~3 items visible)
   useEffect(() => {
@@ -117,7 +122,7 @@ export function WishlistFundPickerModal({
       el.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
     };
-  }, [favorites, loading, isOpen]);
+  }, [favorites, externalItems, loading, isOpen]);
 
   const beneficiaryDisplayName = (() => {
     const f = beneficiaryFirstName?.trim() || '';
@@ -275,7 +280,7 @@ export function WishlistFundPickerModal({
             </div>
           )}
 
-          {!loading && favorites.length === 0 && (
+          {!loading && favorites.length === 0 && externalItems.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <div className="p-4 rounded-full bg-primary/10 mb-4">
                 <ShoppingBag className="h-8 w-8 text-primary" />
@@ -300,7 +305,7 @@ export function WishlistFundPickerModal({
             </div>
           )}
 
-          {!loading && favorites.length > 0 && (
+          {!loading && (favorites.length > 0 || externalItems.length > 0) && (
             <div className="space-y-2 py-2 pb-6">
               {favorites.map((fav) => {
                 const product = fav.product;
@@ -347,6 +352,46 @@ export function WishlistFundPickerModal({
                   </div>
                 );
               })}
+              {externalItems.map((fav) => (
+                <div
+                  key={`ext-${fav.id}`}
+                  className="border border-orange-300/60 rounded-xl p-2.5 hover:border-orange-400 transition-colors"
+                >
+                  <div className="flex gap-3 items-center">
+                    {fav.image_url ? (
+                      <img
+                        src={fav.image_url}
+                        alt={fav.product_name}
+                        className="w-14 h-14 rounded-lg object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                        <ShoppingBag className="h-6 w-6 text-orange-600" />
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-medium text-sm truncate">{fav.product_name}</h4>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-600 bg-orange-100 rounded px-1.5 py-0.5 shrink-0">
+                          {fav.platform}
+                        </span>
+                      </div>
+                      <p className="text-xs text-primary font-semibold mt-0.5">
+                        {formatPrice(fav.estimated_price)} {fav.currency || 'XOF'}
+                      </p>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs shrink-0"
+                      onClick={() => setExternalFundPreset(fav)}
+                    >
+                      Créer
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
           </div>
@@ -373,6 +418,26 @@ export function WishlistFundPickerModal({
           </Button>
         </div>
       </DialogContent>
+      <ExternalProductFundModal
+        isOpen={!!externalFundPreset}
+        onClose={() => setExternalFundPreset(null)}
+        preset={
+          externalFundPreset
+            ? {
+                productUrl: externalFundPreset.external_url,
+                productName: externalFundPreset.product_name,
+                productImageUrl: externalFundPreset.image_url,
+                estimatedPrice: externalFundPreset.estimated_price,
+                platform: externalFundPreset.platform,
+              }
+            : null
+        }
+        onSuccess={() => {
+          setExternalFundPreset(null);
+          onClose();
+          onFundCreated?.();
+        }}
+      />
     </Dialog>
   );
 }
