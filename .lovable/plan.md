@@ -1,47 +1,29 @@
 ## Problème
 
-Quand l'utilisateur clique sur **"Recevoir"** dans la modale d'avertissement WhatsApp, l'écran OTP (les 6 cases pour saisir le code) ne s'affiche qu'après :
-1. La fermeture de la modale d'avertissement
-2. La fermeture du flow de discovery (`PreAuthDiscovery`)
-3. L'appel serveur de vérification de doublons (`checkExistingAccount`)
-4. L'appel à l'edge function `send-whatsapp-otp`
+Dans la modale "Ma liste de souhaits" (`WishlistFundPickerModal`), seuls les favoris internes (table `user_favorites` → `products`) sont affichés. Les articles ajoutés depuis Jumia (table `external_favorites` via `JumiaImportModal`) n'apparaissent pas, alors qu'ils sont bien enregistrés comme favoris de l'utilisateur.
 
-Soit ~2-5 secondes d'attente sur un écran qui semble figé. L'utilisateur peut cliquer ailleurs par confusion.
+## Solution
 
-## Solution : transition optimiste vers l'écran OTP
+Fusionner les favoris externes (`useExternalFavorites`) avec les favoris internes dans la modale, et rediriger leur bouton "Créer" vers `ExternalProductFundModal` (avec `preset`) au lieu du panier.
 
-Afficher l'écran OTP **immédiatement** au clic sur "Recevoir", puis exécuter en arrière-plan la vérification de doublons et l'envoi du code WhatsApp. En cas d'erreur (doublon détecté ou échec d'envoi), revenir en arrière proprement.
+## Changements
 
-### Changements
+### `src/components/WishlistFundPickerModal.tsx`
+- Importer `useExternalFavorites` et `ExternalProductFundModal`.
+- Charger les favoris externes uniquement pour le cas "moi-même" (pas pour un bénéficiaire externe — sa liste externe n'est pas accessible).
+- Construire une liste unifiée combinant :
+  - favoris internes (rendu actuel + bouton "Créer" → flux panier existant)
+  - favoris externes, avec :
+    - badge orange "Jumia" (ou nom de plateforme)
+    - prix estimé affiché normalement
+    - bouton "Créer" qui ouvre `ExternalProductFundModal` avec `preset` pré-rempli (`productUrl`, `productName`, `productImageUrl`, `estimatedPrice`, `platform`)
+- Mettre à jour `itemCount` pour inclure les deux sources.
+- Ajuster l'état vide pour proposer aussi "Ajouter depuis Jumia" via le catalogue (`/wishlist-catalog`).
 
-**`src/pages/Auth.tsx`** — handler `onSubmitPhoneSignup` du composant `<PreAuthDiscovery>` (lignes 1927-1946) :
-- Avant `await sendOtpSignUp(...)`, faire immédiatement :
-  - `setCurrentPhone(\`${data.countryCode}${data.phone}\`)`
-  - `setOtpMethod('whatsapp')` (méthode par défaut du flow discovery)
-  - `setOtpSent(true)` → bascule sur l'UI OTP (lignes 1820+)
-  - `setShowDiscovery(false)` (déjà fait)
-  - `setAuthMode('signup')` (déjà fait)
-- Lancer `sendOtpSignUp(...)` sans `await` (fire-and-forget) pour ne pas bloquer.
+### Comportement
+- Self-fund interne → flux inchangé (cart).
+- Self-fund externe (Jumia) → ouverture de `ExternalProductFundModal` pré-rempli ; à 100 % la cagnotte suit le flux `awaiting_beneficiary_purchase` + Wave déjà en place.
+- Bénéficiaire externe (ami) → on n'affiche pas ses favoris externes (privé / non lisible côté donateur) ; logique actuelle préservée.
 
-**`src/pages/Auth.tsx`** — fonction `sendOtpSignUp` (lignes 579-663) :
-- Si un doublon exact est détecté, faire un `setOtpSent(false)` avant d'ouvrir la modale de doublon, pour ramener l'utilisateur en arrière sans piéger l'écran OTP.
-- Si l'envoi WhatsApp échoue (`sendWhatsAppOtp` retourne sans succès), faire un `setOtpSent(false)` afin que l'utilisateur retourne au formulaire (le toast d'erreur est déjà affiché).
-
-**`src/pages/Auth.tsx`** — fonction `sendWhatsAppOtp` (lignes 453-510) :
-- Retourner un booléen `success` pour permettre à `sendOtpSignUp` (ou au handler discovery) de savoir si l'OTP a vraiment été envoyé. Aujourd'hui la fonction ne retourne rien.
-- Idem pour `sendSmsOtp` afin de garder la cohérence.
-
-**`src/components/PreAuthDiscovery.tsx`** — bouton "Recevoir" (lignes 723-733) :
-- Ne plus attendre `handlePhoneSignup()` (retirer le `await` interne) : la modale doit se fermer instantanément. Le state `submittingPhone` n'est plus nécessaire pour bloquer l'UI puisque l'écran OTP prend le relais.
-
-### UX résultante
-
-1. Clic sur "Recevoir" → modale fermée + écran OTP visible **en < 100 ms**.
-2. Le toast "Code envoyé via WhatsApp" apparaît dès que l'edge function répond.
-3. En cas d'erreur (doublon, échec envoi), retour automatique au formulaire avec toast explicite.
-
-### Détails techniques
-
-- Pas de modification du composant OTP lui-même — il sait déjà gérer `countdown=0` (l'utilisateur peut commencer à voir les cases pendant que le code arrive).
-- `currentPhone` est défini avant `setOtpSent(true)` pour éviter un flash "Code envoyé au " vide dans le header (ligne 1825).
-- Aucun changement de schéma DB ni d'edge function.
+## Fichiers modifiés
+- `src/components/WishlistFundPickerModal.tsx`
