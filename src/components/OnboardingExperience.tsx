@@ -32,6 +32,7 @@ import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
 import { OnboardingFirstPhotoStep } from '@/components/OnboardingFirstPhotoStep';
 import { BirthdayPageShareButton } from '@/components/BirthdayPageShareButton';
+import { SharingTipsBubbles } from '@/components/onboarding/SharingTipsBubbles';
 import { JumiaImportModal } from '@/components/wishlist/JumiaImportModal';
 import type { PageType } from '@/hooks/useBirthdayPageBuilderStatus';
 
