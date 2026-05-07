@@ -32,6 +32,7 @@ import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
 import { OnboardingFirstPhotoStep } from '@/components/OnboardingFirstPhotoStep';
 import { BirthdayPageShareButton } from '@/components/BirthdayPageShareButton';
+import { SharingTipsBubbles } from '@/components/onboarding/SharingTipsBubbles';
 import { JumiaImportModal } from '@/components/wishlist/JumiaImportModal';
 import type { PageType } from '@/hooks/useBirthdayPageBuilderStatus';
 
@@ -1588,7 +1589,8 @@ export const OnboardingExperience = ({
                         </div>
                       </div>
                       {isPagePublished && shareCount < 3 && (
-                        <div className="ml-11">
+                        <div className="ml-11 space-y-3">
+                          <SharingTipsBubbles />
                           <Button
                             onClick={() => setShowShareSheet(true)}
                             size="sm"
