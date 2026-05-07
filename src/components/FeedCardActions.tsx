@@ -124,7 +124,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
           birthday_page_id: page.id,
           image_url: "",
           uploader_id: user!.id,
-          media_type: "text",
+          media_type: "memory",
           memory_text: memoryText.trim(),
         });
         if (error) throw error;
@@ -133,7 +133,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
           event_page_id: page.id,
           image_url: "",
           uploader_id: user!.id,
-          media_type: "text",
+          media_type: "memory",
           memory_text: memoryText.trim(),
         });
         if (error) throw error;
