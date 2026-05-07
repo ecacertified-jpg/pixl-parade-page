@@ -1589,7 +1589,8 @@ export const OnboardingExperience = ({
                         </div>
                       </div>
                       {isPagePublished && shareCount < 3 && (
-                        <div className="ml-11">
+                        <div className="ml-11 space-y-3">
+                          <SharingTipsBubbles />
                           <Button
                             onClick={() => setShowShareSheet(true)}
                             size="sm"
