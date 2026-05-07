@@ -89,38 +89,6 @@ export function BirthdayPicker({
     return null;
   };
 
-  // Handler pour l'input natif mobile
-  const handleNativeDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateString = e.target.value;
-    
-    if (!dateString) {
-      onChange(undefined);
-      setValidationError(null);
-      setIsValidDate(false);
-      return;
-    }
-
-    const [y, m, d] = dateString.split('-').map(Number);
-    const parsedDate = new Date(y, m - 1, d);
-    
-    if (!isValid(parsedDate)) {
-      setValidationError("Date invalide");
-      setIsValidDate(false);
-      return;
-    }
-
-    const validationResult = validateDate(parsedDate);
-    if (validationResult) {
-      setValidationError(validationResult);
-      setIsValidDate(false);
-      return;
-    }
-
-    setValidationError(null);
-    setIsValidDate(true);
-    onChange(parsedDate);
-  };
-
   // Validation en temps réel pour desktop
   const validateInput = (formatted: string): boolean => {
     if (formatted.length === 0) {
@@ -217,15 +185,6 @@ export function BirthdayPicker({
   const hasError = error || validationError;
   const showSuccess = !hasError && isValidDate;
 
-  // Format pour l'input natif (yyyy-MM-dd)
-  const nativeInputValue = value && isValid(value) ? format(value, "yyyy-MM-dd") : "";
-
-  // Calcul des limites pour l'input natif
-  const minDate = `${minYear}-01-01`;
-  const maxDate = disableFuture 
-    ? format(new Date(), "yyyy-MM-dd")
-    : `${maxYear}-12-31`;
-
   return (
     <div className={cn("space-y-2", className)}>
       {label && (
@@ -255,8 +214,8 @@ export function BirthdayPicker({
             hasError && "border-destructive focus-visible:ring-destructive"
           )}
         />
-        {isMobile ? (
-          <div className="relative shrink-0">
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+          <PopoverTrigger asChild>
             <Button
               variant="outline"
               size="icon"
@@ -270,49 +229,22 @@ export function BirthdayPicker({
             >
               <CalendarIcon className="h-4 w-4" />
             </Button>
-            <input
-              type="date"
-              value={nativeInputValue}
-              onChange={handleNativeDateChange}
-              min={minDate}
-              max={maxDate}
-              disabled={disabled}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align={isMobile ? "center" : "end"}>
+            <Calendar
+              mode="single"
+              selected={value}
+              onSelect={handleCalendarSelect}
+              locale={fr}
+              captionLayout="dropdown-buttons"
+              fromYear={minYear}
+              toYear={maxYear}
+              disabled={isDateDisabled}
+              initialFocus
+              className="pointer-events-auto"
             />
-          </div>
-        ) : (
-          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className={cn(
-                  "shrink-0 transition-all duration-300 ease-in-out",
-                  showSuccess && "border-green-500 text-green-600 hover:border-green-500",
-                  hasError && "border-destructive text-destructive hover:border-destructive"
-                )}
-                type="button"
-                disabled={disabled}
-              >
-                <CalendarIcon className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={value}
-                onSelect={handleCalendarSelect}
-                locale={fr}
-                captionLayout="dropdown-buttons"
-                fromYear={minYear}
-                toYear={maxYear}
-                disabled={isDateDisabled}
-                initialFocus
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        )}
+          </PopoverContent>
+        </Popover>
       </div>
       
       {hasError ? (
