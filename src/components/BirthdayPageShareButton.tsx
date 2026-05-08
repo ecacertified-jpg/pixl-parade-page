@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import confetti from 'canvas-confetti';
 import {
   Sheet,
   SheetContent,
@@ -45,6 +46,29 @@ const WHATSAPP_GROUPS = [
   },
 ];
 
+const FESTIVE_MESSAGES = [
+  "🎉 Génial ! Chaque partage rapproche un cadeau !",
+  "✨ Wow ! Tes proches vont adorer participer !",
+  "🚀 Super ! Plus tu partages, plus tu reçois de surprises !",
+  "🎁 Génial ! Un ami de plus qui pourrait te gâter !",
+  "🔥 Excellent ! Ta fête prend de l'ampleur !",
+  "💜 Parfait ! L'amour se partage et revient au centuple !",
+  "🌟 Trop bien ! Ton anniversaire va être inoubliable !",
+  "🎊 Youpi ! Le bonheur se multiplie quand on le partage !",
+];
+
+const showFestiveToast = () => {
+  const msg = FESTIVE_MESSAGES[Math.floor(Math.random() * FESTIVE_MESSAGES.length)];
+  toast.success(msg, { duration: 4000 });
+  confetti({
+    particleCount: 25,
+    spread: 60,
+    origin: { y: 0.7 },
+    colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e', '#fbbf24'],
+    disableForReducedMotion: true,
+  });
+};
+
 interface BirthdayPageShareButtonProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -69,7 +93,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
     if (navigator.share) {
       try {
         await navigator.share({ title: `Anniversaire de ${firstName}`, text: shareText, url: pageUrl });
-        toast.success('Partage effectué !');
+        showFestiveToast();
         onShared?.('native');
         onOpenChange(false);
       } catch (error) {
@@ -93,7 +117,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       bgColor: 'hover:bg-green-50',
       action: () => {
         window.open(`https://wa.me/?text=${encodeURIComponent(shareText + '\n' + pageUrl)}`, '_blank', 'noopener,noreferrer');
-        toast.success('Ouverture de WhatsApp...');
+        showFestiveToast();
         onShared?.('whatsapp');
       },
     },
@@ -105,6 +129,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       action: () => {
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`, '_blank', 'width=600,height=400,noopener,noreferrer');
         onShared?.('facebook');
+        showFestiveToast();
       },
     },
     {
@@ -115,6 +140,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       action: () => {
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`, '_blank');
         onShared?.('twitter');
+        showFestiveToast();
       },
     },
     {
@@ -125,6 +151,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       action: () => {
         window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`, '_blank');
         onShared?.('linkedin');
+        showFestiveToast();
       },
     },
     {
@@ -135,6 +162,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       action: () => {
         window.open(`https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
         onShared?.('telegram');
+        showFestiveToast();
       },
     },
     {
@@ -145,6 +173,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       action: () => {
         window.location.href = `sms:?&body=${encodeURIComponent(shareText + '\n' + pageUrl)}`;
         onShared?.('sms');
+        showFestiveToast();
       },
     },
     {
@@ -155,6 +184,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       action: () => {
         window.location.href = `mailto:?subject=${encodeURIComponent(`Anniversaire de ${firstName}`)}&body=${encodeURIComponent(shareText + '\n\n' + pageUrl)}`;
         onShared?.('email');
+        showFestiveToast();
       },
     },
     {
@@ -165,7 +195,7 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       action: async () => {
         try {
           await navigator.clipboard.writeText(shareText + '\n\n' + pageUrl);
-          toast.success('Message + lien copiés ! 📋');
+          showFestiveToast();
           onShared?.('copy');
           onOpenChange(false);
         } catch { toast.error('Erreur lors de la copie'); }
