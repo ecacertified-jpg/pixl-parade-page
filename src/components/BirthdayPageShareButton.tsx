@@ -46,6 +46,29 @@ const WHATSAPP_GROUPS = [
   },
 ];
 
+const FESTIVE_MESSAGES = [
+  "🎉 Génial ! Chaque partage rapproche un cadeau !",
+  "✨ Wow ! Tes proches vont adorer participer !",
+  "🚀 Super ! Plus tu partages, plus tu reçois de surprises !",
+  "🎁 Génial ! Un ami de plus qui pourrait te gâter !",
+  "🔥 Excellent ! Ta fête prend de l'ampleur !",
+  "💜 Parfait ! L'amour se partage et revient au centuple !",
+  "🌟 Trop bien ! Ton anniversaire va être inoubliable !",
+  "🎊 Youpi ! Le bonheur se multiplie quand on le partage !",
+];
+
+const showFestiveToast = () => {
+  const msg = FESTIVE_MESSAGES[Math.floor(Math.random() * FESTIVE_MESSAGES.length)];
+  toast.success(msg, { duration: 4000 });
+  confetti({
+    particleCount: 25,
+    spread: 60,
+    origin: { y: 0.7 },
+    colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e', '#fbbf24'],
+    disableForReducedMotion: true,
+  });
+};
+
 interface BirthdayPageShareButtonProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
