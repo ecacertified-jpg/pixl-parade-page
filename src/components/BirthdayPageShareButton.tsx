@@ -59,6 +59,10 @@ const FESTIVE_MESSAGES = [
 
 const showFestiveToast = () => {
   const msg = FESTIVE_MESSAGES[Math.floor(Math.random() * FESTIVE_MESSAGES.length)];
+  // Notifie les autres composants (ex: bulles d'onboarding) pour éviter le chevauchement d'animations
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('jdv:festive-toast', { detail: { duration: 4000 } }));
+  }
   toast.success(msg, { duration: 4000 });
   confetti({
     particleCount: 25,
