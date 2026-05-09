@@ -17,18 +17,40 @@ interface SharingTipsBubblesProps {
 
 export const SharingTipsBubbles = ({ className }: SharingTipsBubblesProps) => {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
+    if (paused) return;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % TIPS.length);
     }, 3500);
     return () => clearInterval(id);
+  }, [paused]);
+
+  // Met en pause la rotation et masque la bulle pendant le toast festif
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { duration?: number } | undefined;
+      const duration = detail?.duration ?? 4000;
+      setPaused(true);
+      const t = setTimeout(() => setPaused(false), duration);
+      return () => clearTimeout(t);
+    };
+    window.addEventListener('jdv:festive-toast', handler);
+    return () => window.removeEventListener('jdv:festive-toast', handler);
   }, []);
 
   const tip = TIPS[index];
 
   return (
-    <div className={cn('w-full max-w-sm mx-auto', className)}>
+    <div
+      className={cn(
+        'w-full max-w-sm mx-auto transition-opacity duration-300',
+        paused ? 'opacity-0 pointer-events-none' : 'opacity-100',
+        className,
+      )}
+      aria-hidden={paused}
+    >
       <div className="flex items-end gap-2">
         {/* Avatar animé */}
         <motion.div
