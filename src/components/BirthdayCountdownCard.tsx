@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { getAppBaseUrl } from '@/utils/appUrl';
+import { useMyBirthdayPageSlug } from '@/hooks/useMyBirthdayPageSlug';
 
 interface BirthdayCountdownCardProps {
   birthday: string | null;
@@ -18,6 +19,7 @@ interface BirthdayCountdownCardProps {
 export function BirthdayCountdownCard({ birthday, userName, onCompleteProfile }: BirthdayCountdownCardProps) {
   const navigate = useNavigate();
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
+  const { slug: myPageSlug } = useMyBirthdayPageSlug();
 
   const countdownData = useMemo(() => {
     if (!birthday) return null;
@@ -274,7 +276,9 @@ export function BirthdayCountdownCard({ birthday, userName, onCompleteProfile }:
                 className="h-7 text-xs px-2 gap-1"
                 onClick={() => {
                   const viralText = `🎂 C'est bientôt mon anniversaire ! 🎉\n\nPlus que ${daysUntil} jours !\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️`;
-                  const shareUrl = getAppBaseUrl();
+                  const shareUrl = myPageSlug
+                    ? `${getAppBaseUrl()}/birthday/${myPageSlug}`
+                    : getAppBaseUrl();
                   if (navigator.share) {
                     navigator.share({
                       title: 'Mon anniversaire approche ! 🎂',
