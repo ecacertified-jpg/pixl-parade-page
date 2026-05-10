@@ -63,7 +63,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           .from('birthday_pages')
           .select(`
             id, slug, title, cover_image_url, celebration_year, fund_id, created_at, user_id, published_via_onboarding,
-            birthday_page_photos ( id, image_url ),
+            birthday_page_photos ( id, image_url, media_type, video_url, video_thumbnail_url ),
             collective_funds!birthday_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
           .eq('is_active', true)
@@ -74,7 +74,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           .from('event_pages')
           .select(`
             id, slug, title, occasion, cover_image_url, event_date, fund_id, created_at, creator_id,
-            event_page_photos ( id, image_url ),
+            event_page_photos ( id, image_url, media_type, video_url, video_thumbnail_url ),
             collective_funds!event_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
           .eq('is_active', true)
@@ -126,7 +126,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
 
           const photoCount = photos.filter((p: any) => (p.media_type || 'image') === 'image' && p.image_url).length;
           const videoCount = photos.filter((p: any) => p.media_type === 'video').length;
-          const memoryCount = photos.filter((p: any) => p.media_type === 'text').length;
+          const memoryCount = photos.filter((p: any) => p.media_type === 'memory').length;
 
           feedPages.push({
             id: bp.id,
@@ -178,7 +178,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
 
           const photoCount = photos.filter((p: any) => (p.media_type || 'image') === 'image' && p.image_url).length;
           const videoCount = photos.filter((p: any) => p.media_type === 'video').length;
-          const memoryCount = photos.filter((p: any) => p.media_type === 'text').length;
+          const memoryCount = photos.filter((p: any) => p.media_type === 'memory').length;
 
           feedPages.push({
             id: ep.id,
