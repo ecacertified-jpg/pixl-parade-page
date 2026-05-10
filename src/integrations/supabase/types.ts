@@ -8510,6 +8510,21 @@ export type Database = {
           },
         ]
       }
+      admin_share_codes_public: {
+        Row: {
+          code: string | null
+          is_active: boolean | null
+        }
+        Insert: {
+          code?: string | null
+          is_active?: boolean | null
+        }
+        Update: {
+          code?: string | null
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
       business_public_info: {
         Row: {
           address: string | null
