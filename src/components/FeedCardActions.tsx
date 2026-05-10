@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { FeedPage } from "@/hooks/usePagesFeed";
 import { GiftPromiseModal } from "@/components/GiftPromiseModal";
+import { extractSingleThumbnail } from "@/utils/videoThumbnails";
 
 interface FeedCardActionsProps {
   page: FeedPage;
@@ -81,13 +82,35 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
       const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl;
 
+      // For videos, generate a JPEG thumbnail so tiles can render an <img>
+      // (avoids blank video tiles on the birthday/event page).
+      let videoThumbnailUrl: string | null = null;
+      if (mediaType === "video") {
+        try {
+          const objectUrl = URL.createObjectURL(file);
+          const dataUrl = await extractSingleThumbnail(objectUrl, 0.5, 480);
+          URL.revokeObjectURL(objectUrl);
+          const thumbBlob = await (await fetch(dataUrl)).blob();
+          const thumbPath = `${page.id}/${crypto.randomUUID()}-thumb.jpg`;
+          const { error: thumbErr } = await supabase.storage
+            .from(bucket)
+            .upload(thumbPath, thumbBlob, { contentType: "image/jpeg" });
+          if (!thumbErr) {
+            const { data: thumbData } = supabase.storage.from(bucket).getPublicUrl(thumbPath);
+            videoThumbnailUrl = thumbData.publicUrl;
+          }
+        } catch {
+          // best-effort; tile will fall back to <video>
+        }
+      }
+
       if (page.type === "birthday") {
         const row: any = {
           birthday_page_id: page.id,
           image_url: publicUrl,
           uploader_id: user!.id,
           media_type: mediaType === "video" ? "video" : "image",
-          ...(mediaType === "video" ? { video_url: publicUrl } : {}),
+          ...(mediaType === "video" ? { video_url: publicUrl, video_thumbnail_url: videoThumbnailUrl } : {}),
         };
         const { error: insertError } = await supabase.from("birthday_page_photos").insert(row);
         if (insertError) throw insertError;
@@ -97,7 +120,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
           image_url: publicUrl,
           uploader_id: user!.id,
           media_type: mediaType === "video" ? "video" : "image",
-          ...(mediaType === "video" ? { video_url: publicUrl } : {}),
+          ...(mediaType === "video" ? { video_url: publicUrl, video_thumbnail_url: videoThumbnailUrl } : {}),
         };
         const { error: insertError } = await supabase.from("event_page_photos").insert(row);
         if (insertError) throw insertError;
