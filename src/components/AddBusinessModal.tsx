@@ -506,7 +506,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                 <Label htmlFor="mobile_money">Mobile Money</Label>
                 <Input
                   id="mobile_money"
-                  value={formData.payment_info.mobile_money}
+                  value={formData.payment_info?.mobile_money || ""}
                   onChange={(e) => handlePaymentInfoChange('mobile_money', e.target.value)}
                   placeholder="07 XX XX XX XX"
                   className="mt-1"
@@ -516,7 +516,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                 <Label htmlFor="account_holder">Nom du titulaire</Label>
                 <Input
                   id="account_holder"
-                  value={formData.payment_info.account_holder}
+                  value={formData.payment_info?.account_holder || ""}
                   onChange={(e) => handlePaymentInfoChange('account_holder', e.target.value)}
                   placeholder="Nom complet"
                   className="mt-1"
