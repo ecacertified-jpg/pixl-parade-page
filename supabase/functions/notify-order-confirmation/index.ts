@@ -310,7 +310,8 @@ serve(async (req) => {
             .single();
 
           const platformMobileMoneyPhone = (platformSetting?.setting_value as { value?: string })?.value || '';
-          const vendorPhone = order.business_accounts?.mobile_money_merchant_phone || null;
+          const pi = (order.business_accounts as any)?.business_payment_info;
+          const vendorPhone = (Array.isArray(pi) ? pi[0]?.mobile_money_merchant_phone : pi?.mobile_money_merchant_phone) || null;
 
           const { data: split, error: splitErr } = await supabase
             .from("payment_splits")
