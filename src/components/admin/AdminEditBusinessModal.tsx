@@ -28,8 +28,6 @@ interface Business {
   latitude: number | null;
   longitude: number | null;
   country_code: string | null;
-  wave_merchant_phone: string | null;
-  mobile_money_merchant_phone: string | null;
 }
 
 interface UserProfile {
@@ -107,11 +105,27 @@ export function AdminEditBusinessModal({
         latitude: business.latitude,
         longitude: business.longitude,
         country_code: business.country_code || 'CI',
-        wave_merchant_phone: business.wave_merchant_phone || '',
-        mobile_money_merchant_phone: business.mobile_money_merchant_phone || '',
-        wave_payment_link: (business as any).wave_payment_link || '',
+        wave_merchant_phone: '',
+        mobile_money_merchant_phone: '',
+        wave_payment_link: '',
       });
       loadUsers();
+      // Load payment info separately from the protected table
+      supabase
+        .from('business_payment_info')
+        .select('wave_merchant_phone, mobile_money_merchant_phone, wave_payment_link')
+        .eq('business_account_id', business.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setFormData((prev) => ({
+              ...prev,
+              wave_merchant_phone: data.wave_merchant_phone || '',
+              mobile_money_merchant_phone: data.mobile_money_merchant_phone || '',
+              wave_payment_link: data.wave_payment_link || '',
+            }));
+          }
+        });
     }
   }, [open, business]);
 
@@ -151,9 +165,6 @@ export function AdminEditBusinessModal({
         status: formData.status,
         latitude: formData.latitude,
         longitude: formData.longitude,
-        wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
-        mobile_money_merchant_phone: formData.mobile_money_merchant_phone.trim() || null,
-        wave_payment_link: formData.wave_payment_link.trim() || null,
       };
 
       // Only update user_id if it changed (ownership transfer)
@@ -167,6 +178,17 @@ export function AdminEditBusinessModal({
         .eq('id', business.id);
 
       if (updateError) throw updateError;
+
+      // Save payment info via owner/admin RPC
+      const { error: paymentError } = await supabase.rpc('upsert_business_payment_info', {
+        p_business_account_id: business.id,
+        p_wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
+        p_mobile_money_merchant_phone: formData.mobile_money_merchant_phone.trim() || null,
+        p_wave_payment_link: formData.wave_payment_link.trim() || null,
+      });
+      if (paymentError) {
+        console.error('Error saving payment info:', paymentError);
+      }
 
       // If ownership was transferred, also update products
       if (formData.user_id !== business.user_id) {
