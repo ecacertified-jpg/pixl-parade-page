@@ -299,7 +299,7 @@ interface RecentOrderItem {
           cost: number;
           active?: boolean;
         }>,
-        payment_info: business.payment_info as {
+        payment_info: { mobile_money: "", account_holder: "" } as {
           mobile_money?: string;
           account_holder?: string;
         },
