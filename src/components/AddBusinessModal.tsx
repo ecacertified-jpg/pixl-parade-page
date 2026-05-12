@@ -154,11 +154,11 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
     setFormData(prev => ({ ...prev, delivery_zones: zones }));
   };
 
-  const handlePaymentInfoChange = (field: keyof Business['payment_info'], value: string) => {
+  const handlePaymentInfoChange = (field: 'mobile_money' | 'account_holder', value: string) => {
     setFormData(prev => ({
       ...prev,
       payment_info: {
-        ...prev.payment_info,
+        ...(prev.payment_info || {}),
         [field]: value
       }
     }));
