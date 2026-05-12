@@ -79,10 +79,10 @@ Deno.serve(async (req) => {
 
     // 3. Get vendor Wave phone
     const { data: businessAccount } = await supabaseAdmin
-      .from('business_accounts')
+      .from('business_payment_info')
       .select('wave_merchant_phone')
-      .eq('id', order.business_account_id)
-      .single()
+      .eq('business_account_id', order.business_account_id)
+      .maybeSingle()
 
     // 4. Get platform Wave phone
     const { data: platformSetting } = await supabaseAdmin
