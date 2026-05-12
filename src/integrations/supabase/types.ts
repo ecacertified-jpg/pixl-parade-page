@@ -1228,9 +1228,7 @@ export type Database = {
           latitude: number | null
           logo_url: string | null
           longitude: number | null
-          mobile_money_merchant_phone: string | null
           opening_hours: Json | null
-          payment_info: Json | null
           phone: string | null
           rejection_date: string | null
           rejection_reason: string | null
@@ -1243,8 +1241,6 @@ export type Database = {
           status: string | null
           updated_at: string
           user_id: string
-          wave_merchant_phone: string | null
-          wave_payment_link: string | null
           website_url: string | null
         }
         Insert: {
@@ -1266,9 +1262,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
-          mobile_money_merchant_phone?: string | null
           opening_hours?: Json | null
-          payment_info?: Json | null
           phone?: string | null
           rejection_date?: string | null
           rejection_reason?: string | null
@@ -1281,8 +1275,6 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id: string
-          wave_merchant_phone?: string | null
-          wave_payment_link?: string | null
           website_url?: string | null
         }
         Update: {
@@ -1304,9 +1296,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
-          mobile_money_merchant_phone?: string | null
           opening_hours?: Json | null
-          payment_info?: Json | null
           phone?: string | null
           rejection_date?: string | null
           rejection_reason?: string | null
@@ -1319,8 +1309,6 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id?: string
-          wave_merchant_phone?: string | null
-          wave_payment_link?: string | null
           website_url?: string | null
         }
         Relationships: []
@@ -1878,6 +1866,61 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_payment_info: {
+        Row: {
+          business_account_id: string
+          created_at: string
+          id: string
+          mobile_money_merchant_phone: string | null
+          payment_info: Json | null
+          updated_at: string
+          wave_merchant_phone: string | null
+          wave_payment_link: string | null
+        }
+        Insert: {
+          business_account_id: string
+          created_at?: string
+          id?: string
+          mobile_money_merchant_phone?: string | null
+          payment_info?: Json | null
+          updated_at?: string
+          wave_merchant_phone?: string | null
+          wave_payment_link?: string | null
+        }
+        Update: {
+          business_account_id?: string
+          created_at?: string
+          id?: string
+          mobile_money_merchant_phone?: string | null
+          payment_info?: Json | null
+          updated_at?: string
+          wave_merchant_phone?: string | null
+          wave_payment_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_payment_info_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: true
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_payment_info_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: true
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_payment_info_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: true
+            referencedRelation: "deleted_businesses_with_admin"
             referencedColumns: ["id"]
           },
         ]
@@ -8711,7 +8754,6 @@ export type Database = {
           is_verified: boolean | null
           logo_url: string | null
           opening_hours: Json | null
-          payment_info: Json | null
           phone: string | null
           rejection_date: string | null
           rejection_reason: string | null
@@ -9255,7 +9297,6 @@ export type Database = {
           is_verified: boolean
           logo_url: string
           opening_hours: Json
-          payment_info: Json
           phone: string
           updated_at: string
           user_id: string
@@ -9619,10 +9660,19 @@ export type Database = {
           p_email?: string
           p_logo_url?: string
           p_opening_hours?: Json
-          p_payment_info?: Json
           p_phone?: string
           p_user_id: string
           p_website_url?: string
+        }
+        Returns: string
+      }
+      upsert_business_payment_info: {
+        Args: {
+          p_business_account_id: string
+          p_mobile_money_merchant_phone?: string
+          p_payment_info?: Json
+          p_wave_merchant_phone?: string
+          p_wave_payment_link?: string
         }
         Returns: string
       }
