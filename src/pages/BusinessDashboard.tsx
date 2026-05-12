@@ -291,13 +291,7 @@ export default function BusinessDashboard() {
             radius: 15,
             cost: 2000
           }],
-          payment_info: businessData.payment_info && typeof businessData.payment_info === 'object' ? businessData.payment_info as {
-            mobile_money?: string;
-            account_holder?: string;
-          } : {
-            mobile_money: "",
-            account_holder: ""
-          },
+          payment_info: { mobile_money: "", account_holder: "" },
           delivery_settings: businessData.delivery_settings && typeof businessData.delivery_settings === 'object' ? businessData.delivery_settings as {
             free_delivery_threshold: number;
             standard_cost: number;
@@ -401,10 +395,16 @@ export default function BusinessDashboard() {
         p_email: businessAccount.email,
         p_opening_hours: businessAccount.opening_hours,
         p_delivery_zones: businessAccount.delivery_zones,
-        p_payment_info: businessAccount.payment_info,
         p_delivery_settings: businessAccount.delivery_settings
       });
       if (error) throw error;
+      // Persist payment info via dedicated RPC (owner-only)
+      if (businessAccount.id && businessAccount.payment_info) {
+        await supabase.rpc('upsert_business_payment_info', {
+          p_business_account_id: businessAccount.id,
+          p_payment_info: businessAccount.payment_info as any,
+        });
+      }
       toast({
         title: "Succès",
         description: `${section ? `Paramètres ${section}` : 'Paramètres business'} sauvegardés avec succès`
@@ -513,13 +513,7 @@ export default function BusinessDashboard() {
           cost: 2000,
           active: true
         }],
-        payment_info: business.payment_info && typeof business.payment_info === 'object' ? business.payment_info as {
-          mobile_money?: string;
-          account_holder?: string;
-        } : {
-          mobile_money: "",
-          account_holder: ""
-        },
+        payment_info: { mobile_money: "", account_holder: "" },
         delivery_settings: business.delivery_settings && typeof business.delivery_settings === 'object' ? business.delivery_settings as {
           free_delivery_threshold: number;
           standard_cost: number;

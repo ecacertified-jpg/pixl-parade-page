@@ -148,11 +148,17 @@ Deno.serve(async (req) => {
     // 5. Get business account
     const { data: business, error: bizErr } = await supabaseAdmin
       .from('business_accounts')
-      .select('id, business_name, wave_merchant_phone, mobile_money_merchant_phone')
+      .select('id, business_name')
       .eq('id', bf.business_id)
       .single()
 
     if (bizErr || !business) throw new Error('Business not found: ' + bizErr?.message)
+
+    const { data: businessPayment } = await supabaseAdmin
+      .from('business_payment_info')
+      .select('wave_merchant_phone, mobile_money_merchant_phone')
+      .eq('business_account_id', bf.business_id)
+      .maybeSingle()
 
     // 6. Determine payment method from contributions
     const { data: contributions } = await supabaseAdmin
@@ -243,7 +249,7 @@ Deno.serve(async (req) => {
         platform_amount: platformAmount,
         currency: 'XOF',
         markup_rate: Math.round(markupRate * 100) / 100,
-        vendor_wave_phone: business.wave_merchant_phone || null,
+        vendor_wave_phone: businessPayment?.wave_merchant_phone || null,
         platform_wave_phone: platformWavePhone || null,
         vendor_transfer_status: 'pending',
         platform_transfer_status: 'received',

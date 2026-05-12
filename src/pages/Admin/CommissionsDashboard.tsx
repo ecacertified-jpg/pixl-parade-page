@@ -45,10 +45,11 @@ interface SplitRow {
     id: string;
     order_summary: any;
     business_accounts: {
+      id?: string;
       business_name: string;
       phone: string | null;
       address: string | null;
-      wave_payment_link: string | null;
+      business_payment_info: { wave_payment_link: string | null } | null;
     } | null;
   } | null;
 }
@@ -92,7 +93,7 @@ export default function CommissionsDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('payment_splits')
-        .select('*, business_orders(id, order_summary, business_accounts(business_name, phone, address, wave_payment_link))')
+        .select('*, business_orders(id, order_summary, business_accounts(id, business_name, phone, address, business_payment_info(wave_payment_link)))')
         .gte('created_at', startDate)
         .order('created_at', { ascending: false });
 
@@ -147,7 +148,10 @@ export default function CommissionsDashboard() {
   }, [splits]);
 
   const handleWavePayment = (split: SplitRow) => {
-    const waveLink = split.business_orders?.business_accounts?.wave_payment_link;
+    const paymentInfo = split.business_orders?.business_accounts?.business_payment_info;
+    const waveLink = Array.isArray(paymentInfo)
+      ? paymentInfo[0]?.wave_payment_link
+      : paymentInfo?.wave_payment_link;
     if (!waveLink) {
       toast.error('Lien Wave non configuré pour ce prestataire');
       return;
@@ -281,7 +285,8 @@ export default function CommissionsDashboard() {
                   </TableHeader>
                   <TableBody>
                     {splits.map((s) => {
-                      const waveLink = s.business_orders?.business_accounts?.wave_payment_link;
+                      const pi = s.business_orders?.business_accounts?.business_payment_info;
+                      const waveLink = Array.isArray(pi) ? pi[0]?.wave_payment_link : pi?.wave_payment_link;
                       const canPay = (s.vendor_transfer_status === 'pending' || s.vendor_transfer_status === 'simulated');
 
                       return (

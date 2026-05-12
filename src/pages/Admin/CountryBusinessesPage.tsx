@@ -55,8 +55,6 @@ interface Business {
   country_code: string | null;
   latitude: number | null;
   longitude: number | null;
-  wave_merchant_phone: string | null;
-  mobile_money_merchant_phone: string | null;
 }
 
 export default function CountryBusinessesPage() {
@@ -100,7 +98,7 @@ export default function CountryBusinessesPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('business_accounts')
-        .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at, country_code, latitude, longitude, wave_merchant_phone, mobile_money_merchant_phone')
+        .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at, country_code, latitude, longitude')
         .eq('country_code', countryCode)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });

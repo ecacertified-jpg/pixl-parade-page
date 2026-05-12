@@ -62,8 +62,14 @@ export const useBusinessQualityScore = (businessId?: string | null): BusinessQua
     try {
       const { data: biz } = await supabase
         .from('business_accounts')
-        .select('business_name, business_type, description, logo_url, phone, address, delivery_zones, payment_info, setup_tier, city, country_code')
+        .select('business_name, business_type, description, logo_url, phone, address, delivery_zones, setup_tier, city, country_code')
         .eq('id', businessId)
+        .maybeSingle();
+
+      const { data: paymentRow } = await supabase
+        .from('business_payment_info')
+        .select('payment_info')
+        .eq('business_account_id', businessId)
         .maybeSingle();
 
       const { data: products } = await supabase
@@ -73,7 +79,7 @@ export const useBusinessQualityScore = (businessId?: string | null): BusinessQua
 
       const productList = products ?? [];
       const zones = Array.isArray((biz as any)?.delivery_zones) ? (biz as any).delivery_zones : [];
-      const payment = (biz as any)?.payment_info ?? {};
+      const payment = (paymentRow as any)?.payment_info ?? {};
       const hasPayment = !!(payment?.mobile_money || payment?.account_holder);
 
       setSnapshot({

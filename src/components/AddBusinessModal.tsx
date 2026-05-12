@@ -76,7 +76,32 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
   // Load business data when editing
   useEffect(() => {
     if (editingBusiness && isOpen) {
-      setFormData(editingBusiness);
+      setFormData({
+        ...editingBusiness,
+        payment_info: editingBusiness.payment_info || { mobile_money: "", account_holder: "" },
+        wave_merchant_phone: editingBusiness.wave_merchant_phone || "",
+        mobile_money_merchant_phone: editingBusiness.mobile_money_merchant_phone || "",
+        wave_payment_link: editingBusiness.wave_payment_link || "",
+      });
+      // Load payment info from protected table
+      if (editingBusiness.id) {
+        supabase
+          .from('business_payment_info')
+          .select('wave_merchant_phone, mobile_money_merchant_phone, wave_payment_link, payment_info')
+          .eq('business_account_id', editingBusiness.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) {
+              setFormData((prev) => ({
+                ...prev,
+                wave_merchant_phone: data.wave_merchant_phone || "",
+                mobile_money_merchant_phone: data.mobile_money_merchant_phone || "",
+                wave_payment_link: data.wave_payment_link || "",
+                payment_info: (data.payment_info as any) || { mobile_money: "", account_holder: "" },
+              }));
+            }
+          });
+      }
     } else if (!editingBusiness && isOpen) {
       // Reset form when adding new business
       setFormData({
@@ -129,11 +154,11 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
     setFormData(prev => ({ ...prev, delivery_zones: zones }));
   };
 
-  const handlePaymentInfoChange = (field: keyof Business['payment_info'], value: string) => {
+  const handlePaymentInfoChange = (field: 'mobile_money' | 'account_holder', value: string) => {
     setFormData(prev => ({
       ...prev,
       payment_info: {
-        ...prev.payment_info,
+        ...(prev.payment_info || {}),
         [field]: value
       }
     }));
@@ -191,13 +216,9 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             email: formData.email,
             opening_hours: formData.opening_hours,
             delivery_zones: formData.delivery_zones,
-            payment_info: formData.payment_info,
             delivery_settings: formData.delivery_settings,
             latitude: formData.latitude,
             longitude: formData.longitude,
-            wave_merchant_phone: formData.wave_merchant_phone || null,
-            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
-            wave_payment_link: formData.wave_payment_link || null
           })
           .eq('id', editingBusiness.id)
           .select()
@@ -221,13 +242,9 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             email: formData.email,
             opening_hours: formData.opening_hours,
             delivery_zones: formData.delivery_zones,
-            payment_info: formData.payment_info,
             delivery_settings: formData.delivery_settings,
             latitude: formData.latitude,
             longitude: formData.longitude,
-            wave_merchant_phone: formData.wave_merchant_phone || null,
-            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
-            wave_payment_link: formData.wave_payment_link || null,
             is_active: true,
             is_verified: false,
             status: 'active',
@@ -244,6 +261,21 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         console.error('Error saving business:', error);
         toast.error(`Erreur lors de la ${editingBusiness ? 'modification' : 'création'} du business`);
         return;
+      }
+
+      // Persist payment info via dedicated owner-only RPC
+      const targetBusinessId = editingBusiness?.id || (data?.id as string | undefined);
+      if (targetBusinessId) {
+        const { error: paymentError } = await supabase.rpc('upsert_business_payment_info', {
+          p_business_account_id: targetBusinessId,
+          p_wave_merchant_phone: formData.wave_merchant_phone || null,
+          p_mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
+          p_wave_payment_link: formData.wave_payment_link || null,
+          p_payment_info: (formData.payment_info as any) || {},
+        });
+        if (paymentError) {
+          console.error('Error saving payment info:', paymentError);
+        }
       }
 
       toast.success(`Business ${editingBusiness ? 'modifié' : 'créé'} avec succès!`);
@@ -474,7 +506,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                 <Label htmlFor="mobile_money">Mobile Money</Label>
                 <Input
                   id="mobile_money"
-                  value={formData.payment_info.mobile_money}
+                  value={formData.payment_info?.mobile_money || ""}
                   onChange={(e) => handlePaymentInfoChange('mobile_money', e.target.value)}
                   placeholder="07 XX XX XX XX"
                   className="mt-1"
@@ -484,7 +516,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                 <Label htmlFor="account_holder">Nom du titulaire</Label>
                 <Input
                   id="account_holder"
-                  value={formData.payment_info.account_holder}
+                  value={formData.payment_info?.account_holder || ""}
                   onChange={(e) => handlePaymentInfoChange('account_holder', e.target.value)}
                   placeholder="Nom complet"
                   className="mt-1"

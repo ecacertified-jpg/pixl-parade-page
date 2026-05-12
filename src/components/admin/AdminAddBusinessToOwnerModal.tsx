@@ -127,7 +127,7 @@ export function AdminAddBusinessToOwnerModal({
     try {
       const selectedUser = users.find(u => u.user_id === formData.user_id);
 
-      const { error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('business_accounts')
         .insert({
           user_id: formData.user_id,
@@ -138,16 +138,24 @@ export function AdminAddBusinessToOwnerModal({
           address: formData.address.trim() || null,
           description: formData.description.trim() || null,
           website_url: formData.website_url.trim() || null,
-          wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
-          mobile_money_merchant_phone: formData.mobile_money_merchant_phone.trim() || null,
-          wave_payment_link: formData.wave_payment_link.trim() || null,
           is_active: true,
           is_verified: false,
           status: 'active',
           country_code: selectedUser?.country_code || null,
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      if (inserted?.id) {
+        await supabase.rpc('upsert_business_payment_info', {
+          p_business_account_id: inserted.id,
+          p_wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
+          p_mobile_money_merchant_phone: formData.mobile_money_merchant_phone.trim() || null,
+          p_wave_payment_link: formData.wave_payment_link.trim() || null,
+        });
+      }
 
       // Find user name for log
       const userName = selectedUser 

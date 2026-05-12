@@ -28,7 +28,7 @@ serve(async (req) => {
     // Get order details with business info
     const { data: order, error: orderError } = await supabase
       .from("business_orders")
-      .select("*, business_accounts(user_id, business_name, phone, mobile_money_merchant_phone)")
+      .select("*, business_accounts(user_id, business_name, phone, business_payment_info(mobile_money_merchant_phone))")
       .eq("id", orderId)
       .single();
 
@@ -310,7 +310,8 @@ serve(async (req) => {
             .single();
 
           const platformMobileMoneyPhone = (platformSetting?.setting_value as { value?: string })?.value || '';
-          const vendorPhone = order.business_accounts?.mobile_money_merchant_phone || null;
+          const pi = (order.business_accounts as any)?.business_payment_info;
+          const vendorPhone = (Array.isArray(pi) ? pi[0]?.mobile_money_merchant_phone : pi?.mobile_money_merchant_phone) || null;
 
           const { data: split, error: splitErr } = await supabase
             .from("payment_splits")
