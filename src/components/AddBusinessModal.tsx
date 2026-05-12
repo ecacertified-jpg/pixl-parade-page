@@ -191,13 +191,9 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             email: formData.email,
             opening_hours: formData.opening_hours,
             delivery_zones: formData.delivery_zones,
-            payment_info: formData.payment_info,
             delivery_settings: formData.delivery_settings,
             latitude: formData.latitude,
             longitude: formData.longitude,
-            wave_merchant_phone: formData.wave_merchant_phone || null,
-            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
-            wave_payment_link: formData.wave_payment_link || null
           })
           .eq('id', editingBusiness.id)
           .select()
@@ -221,13 +217,9 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             email: formData.email,
             opening_hours: formData.opening_hours,
             delivery_zones: formData.delivery_zones,
-            payment_info: formData.payment_info,
             delivery_settings: formData.delivery_settings,
             latitude: formData.latitude,
             longitude: formData.longitude,
-            wave_merchant_phone: formData.wave_merchant_phone || null,
-            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
-            wave_payment_link: formData.wave_payment_link || null,
             is_active: true,
             is_verified: false,
             status: 'active',
@@ -244,6 +236,21 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         console.error('Error saving business:', error);
         toast.error(`Erreur lors de la ${editingBusiness ? 'modification' : 'création'} du business`);
         return;
+      }
+
+      // Persist payment info via dedicated owner-only RPC
+      const targetBusinessId = editingBusiness?.id || (data?.id as string | undefined);
+      if (targetBusinessId) {
+        const { error: paymentError } = await supabase.rpc('upsert_business_payment_info', {
+          p_business_account_id: targetBusinessId,
+          p_wave_merchant_phone: formData.wave_merchant_phone || null,
+          p_mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
+          p_wave_payment_link: formData.wave_payment_link || null,
+          p_payment_info: (formData.payment_info as any) || {},
+        });
+        if (paymentError) {
+          console.error('Error saving payment info:', paymentError);
+        }
       }
 
       toast.success(`Business ${editingBusiness ? 'modifié' : 'créé'} avec succès!`);
