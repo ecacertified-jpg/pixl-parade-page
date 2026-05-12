@@ -28,7 +28,7 @@ serve(async (req) => {
     // Get order details with business info
     const { data: order, error: orderError } = await supabase
       .from("business_orders")
-      .select("*, business_accounts(user_id, business_name, phone, mobile_money_merchant_phone)")
+      .select("*, business_accounts(user_id, business_name, phone, business_payment_info(mobile_money_merchant_phone))")
       .eq("id", orderId)
       .single();
 
