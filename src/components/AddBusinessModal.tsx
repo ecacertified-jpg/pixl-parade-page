@@ -76,7 +76,32 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
   // Load business data when editing
   useEffect(() => {
     if (editingBusiness && isOpen) {
-      setFormData(editingBusiness);
+      setFormData({
+        ...editingBusiness,
+        payment_info: editingBusiness.payment_info || { mobile_money: "", account_holder: "" },
+        wave_merchant_phone: editingBusiness.wave_merchant_phone || "",
+        mobile_money_merchant_phone: editingBusiness.mobile_money_merchant_phone || "",
+        wave_payment_link: editingBusiness.wave_payment_link || "",
+      });
+      // Load payment info from protected table
+      if (editingBusiness.id) {
+        supabase
+          .from('business_payment_info')
+          .select('wave_merchant_phone, mobile_money_merchant_phone, wave_payment_link, payment_info')
+          .eq('business_account_id', editingBusiness.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) {
+              setFormData((prev) => ({
+                ...prev,
+                wave_merchant_phone: data.wave_merchant_phone || "",
+                mobile_money_merchant_phone: data.mobile_money_merchant_phone || "",
+                wave_payment_link: data.wave_payment_link || "",
+                payment_info: (data.payment_info as any) || { mobile_money: "", account_holder: "" },
+              }));
+            }
+          });
+      }
     } else if (!editingBusiness && isOpen) {
       // Reset form when adding new business
       setFormData({
