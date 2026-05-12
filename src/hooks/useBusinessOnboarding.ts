@@ -77,7 +77,7 @@ export const useBusinessOnboarding = (businessId?: string) => {
     try {
       const { data: business } = await supabase
         .from('business_accounts')
-        .select('description, logo_url, delivery_zones, payment_info, created_at')
+        .select('description, logo_url, delivery_zones, created_at')
         .eq('id', businessId)
         .single();
 
@@ -87,9 +87,15 @@ export const useBusinessOnboarding = (businessId?: string) => {
         .eq('business_id', businessId)
         .limit(1);
 
+      const { data: paymentRow } = await supabase
+        .from('business_payment_info')
+        .select('payment_info')
+        .eq('business_account_id', businessId)
+        .maybeSingle();
+
       if (business) {
         const deliveryZones = business.delivery_zones as { name: string }[] | null;
-        const paymentInfo = business.payment_info as { mobile_money?: string } | null;
+        const paymentInfo = (paymentRow?.payment_info as { mobile_money?: string } | null) || null;
 
         // Check if push notifications are enabled
         const hasPush = await checkPushSubscription();
