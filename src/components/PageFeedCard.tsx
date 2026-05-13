@@ -1,4 +1,4 @@
-import { Calendar, UserCheck, UserPlus, Star } from "lucide-react";
+import { Calendar, UserCheck, UserPlus, Star, Play } from "lucide-react";
 import { FeedCardActions } from "@/components/FeedCardActions";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { FeedPage } from "@/hooks/usePagesFeed";
+import { FeedPage, FeedMedia } from "@/hooks/usePagesFeed";
 import { useAuth } from "@/contexts/AuthContext";
 
 const OCCASION_ICONS: Record<string, string> = {
@@ -68,6 +68,27 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
       navigate(`/event/${page.slug}`);
     }
   };
+
+  const renderThumb = (m: FeedMedia, className: string, key: number | string, extraCount?: number) => (
+    <div key={key} className={`relative overflow-hidden ${className}`}>
+      <img src={m.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+      {m.type === 'video' && (
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/40 rounded-full p-2">
+            <Play className="h-5 w-5 text-white" fill="white" />
+          </div>
+        </div>
+      )}
+      {extraCount && extraCount > 0 && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+          <span className="text-white text-xl font-semibold">+{extraCount}</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const media = page.album_preview;
+  const extra = Math.max(0, page.album_count - 4);
 
   return (
     <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-shadow">
@@ -144,11 +165,25 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
 
       {/* Cover image, album grid, or placeholder */}
       <div className="px-4 pb-3">
-        {page.album_preview.length >= 4 ? (
+        {media.length >= 4 ? (
           <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden aspect-square cursor-pointer" onClick={handleNavigate}>
-            {page.album_preview.slice(0, 4).map((url, i) => (
-              <img key={i} src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-            ))}
+            {media.slice(0, 4).map((m, i) =>
+              renderThumb(m, 'w-full h-full', i, i === 3 ? extra : 0)
+            )}
+          </div>
+        ) : media.length === 3 ? (
+          <div className="grid grid-cols-2 grid-rows-2 gap-1 rounded-xl overflow-hidden aspect-square cursor-pointer" onClick={handleNavigate}>
+            {renderThumb(media[0], 'row-span-2 w-full h-full', 0)}
+            {renderThumb(media[1], 'w-full h-full', 1)}
+            {renderThumb(media[2], 'w-full h-full', 2)}
+          </div>
+        ) : media.length === 2 ? (
+          <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden aspect-square cursor-pointer" onClick={handleNavigate}>
+            {media.map((m, i) => renderThumb(m, 'w-full h-full', i))}
+          </div>
+        ) : media.length === 1 ? (
+          <div className="rounded-xl overflow-hidden aspect-video cursor-pointer" onClick={handleNavigate}>
+            {renderThumb(media[0], 'w-full h-full', 0)}
           </div>
         ) : page.cover_image_url ? (
           <img
@@ -158,12 +193,6 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
             loading="lazy"
             onClick={handleNavigate}
           />
-        ) : page.album_preview.length > 0 ? (
-          <div className={`grid ${page.album_preview.length >= 2 ? 'grid-cols-2' : 'grid-cols-1'} gap-1 rounded-xl overflow-hidden cursor-pointer`} onClick={handleNavigate}>
-            {page.album_preview.map((url, i) => (
-              <img key={i} src={url} alt="" className="w-full aspect-square object-cover" loading="lazy" />
-            ))}
-          </div>
         ) : (
           /* Placeholder gradient for pages without images */
           <div

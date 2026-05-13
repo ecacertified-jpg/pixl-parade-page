@@ -1,53 +1,55 @@
-## Plan : Protéger les colonnes de paiement (Option A)
+# Fix carte page d'anniversaire dans le fil d'actualité
 
-Migrer les 4 colonnes sensibles de `business_accounts` (`wave_merchant_phone`, `mobile_money_merchant_phone`, `wave_payment_link`, `payment_info`) vers une nouvelle table `business_payment_info` avec RLS stricte (propriétaire + admin uniquement).
+## Problèmes constatés
 
-### 1. Migration SQL
+1. **Espaces vides** dans `PageFeedCard.tsx` : la grille `grid-cols-2` avec 3 photos laisse une 4e cellule vide (visible sur la capture). Idem 1 photo en `grid-cols-1` aspect-square = très haut, pas harmonieux.
+2. **Vidéos invisibles** : `usePagesFeed.ts` filtre les médias par `image_url` et exclut explicitement `.mp4/.webm/.mov/.avi`. Les vidéos (`media_type='video'`, `video_thumbnail_url`, `video_url`) ne sont jamais ajoutées à `album_preview`.
 
-**Créer `business_payment_info`** :
-- `id uuid PK`, `business_account_id uuid UNIQUE FK → business_accounts(id) ON DELETE CASCADE`
-- `wave_merchant_phone text`, `mobile_money_merchant_phone text`, `wave_payment_link text`, `payment_info jsonb`
-- `created_at`, `updated_at` + trigger `update_updated_at_column`
+## Changements
 
-**RLS** :
-- SELECT/INSERT/UPDATE/DELETE : propriétaire (`business_accounts.user_id = auth.uid()`)
-- SELECT/ALL admin via `is_active_admin(auth.uid())`
+### 1. `src/hooks/usePagesFeed.ts`
+- Étendre `FeedPage.album_preview` de `string[]` à `Array<{ url: string; type: 'image' | 'video'; videoUrl?: string }>`.
+- Construire `album_preview` à partir des photos ET vidéos :
+  - Image : `{ url: image_url, type: 'image' }`
+  - Vidéo : `{ url: video_thumbnail_url || cover/fallback, type: 'video', videoUrl: video_url }`
+- Appliquer aux `birthday_page_photos` et `event_page_photos`.
 
-**Migration des données** existantes : `INSERT INTO business_payment_info SELECT … FROM business_accounts WHERE l'une des 4 colonnes est non nulle`.
+### 2. `src/components/PageFeedCard.tsx`
+- Adapter au nouveau type `album_preview`.
+- Sur chaque vignette de type `video` : overlay sombre + icône Play (lucide `Play`) centrée pour signaler la vidéo.
+- Réécrire le bloc grille pour combler les vides selon le nombre N d'éléments :
+  - **N = 1** : aspect-video pleine largeur (au lieu de aspect-square étiré).
+  - **N = 2** : 2 colonnes égales aspect-square.
+  - **N = 3** : layout asymétrique — 1 grand à gauche (col-span 1, row-span 2) + 2 petits empilés à droite, conteneur aspect-square. Plus aucun vide.
+  - **N ≥ 4** : grille 2×2 actuelle (4 vignettes).
+- Le compteur `+N` (déjà via badges photo/vidéo dans `FeedCardActions`) reste inchangé ; éventuellement ajouter un overlay `+X` sur la dernière vignette si `album_count > 4`.
 
-**Supprimer** les 4 colonnes de `business_accounts` (et les retirer de la vue `business_public_info` si présentes).
+### 3. Lecture vidéo (hors scope minimal)
+- Le clic sur la vignette continue d'ouvrir la page (`/birthday/:slug` ou `/event/:slug`) où la lecture vidéo est déjà gérée. Pas de lecteur inline ajouté ici pour rester focalisé sur l'affichage harmonieux + visibilité des vidéos.
 
-**Fonction helper** `get_business_payment_info(p_business_id uuid)` SECURITY DEFINER pour usage côté checkout (renvoie uniquement `wave_payment_link` + `wave_merchant_phone` masqué — utile si checkout doit afficher le lien Wave du vendeur côté client). À cadrer si besoin réel ; sinon checkout passe par edge function.
+## Détails techniques
 
-### 2. Fichiers code à adapter
+- Type :
+  ```ts
+  type FeedMedia = { url: string; type: 'image' | 'video'; videoUrl?: string };
+  album_preview: FeedMedia[];
+  ```
+- Layout N=3 (Tailwind) :
+  ```text
+  grid grid-cols-2 grid-rows-2 gap-1 aspect-square
+  [item 0] col-span-1 row-span-2
+  [item 1] col-span-1 row-span-1
+  [item 2] col-span-1 row-span-1
+  ```
+- Overlay vidéo :
+  ```tsx
+  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+    <Play className="h-10 w-10 text-white drop-shadow" fill="white" />
+  </div>
+  ```
+  vignette wrapper en `relative`.
 
-| Fichier | Changement |
-|---|---|
-| `src/types/business.ts` | Retirer les 4 champs de `Business`, créer `BusinessPaymentInfo` |
-| `src/components/AddBusinessModal.tsx` | Lire/écrire les 4 champs via `business_payment_info` (upsert après création du business) |
-| `src/components/BusinessProfileSettings.tsx` | Idem : charger/sauver depuis nouvelle table |
-| `src/components/AdminEditBusinessModal.tsx` | Idem côté admin |
-| `src/pages/BusinessDashboard.tsx` | Adapter requêtes affichant ces champs |
-| `src/pages/Checkout.tsx` | Charger `wave_payment_link`/Mobile Money via la nouvelle table (le buyer doit pouvoir lire) → **edge function `get-business-checkout-info`** qui renvoie les infos minimales nécessaires (montant, lien Wave) |
-| `src/hooks/useBusinessQualityScore.ts` | Joindre la nouvelle table pour le score |
-| `src/integrations/supabase/types.ts` | Régénéré automatiquement |
-
-### 3. Point clé : accès buyer au lien Wave
-
-Le buyer (non-propriétaire) doit obtenir `wave_payment_link` au checkout. Solution : **edge function `get-business-payment-link`** (JWT vérifié) qui :
-- accepte `business_account_id`
-- vérifie que l'appelant a une commande/contribution en cours liée à ce business
-- renvoie uniquement `wave_payment_link` + `wave_merchant_phone` (rien d'autre)
-
-Cela évite d'exposer la table en SELECT public.
-
-### 4. Marquer le finding comme résolu
-
-Après migration + adaptation code, marquer le finding `business_accounts` payment columns comme `mark_as_fixed`.
-
-### Détails techniques
-
-- Nouvelle table privée → la vue `business_public_info` reste inchangée (elle n'expose déjà pas ces colonnes).
-- Pas de breaking change pour les pages publiques vendeur (ces 4 champs n'y figurent pas).
-- Migration de données idempotente avec `ON CONFLICT (business_account_id) DO NOTHING`.
-- Index sur `business_account_id` (unique déjà = index).
+## Hors scope
+- Pas de changement DB ni RLS.
+- Pas de modification de `FeedCardActions` ni des compteurs.
+- Pas de lecteur vidéo inline.
