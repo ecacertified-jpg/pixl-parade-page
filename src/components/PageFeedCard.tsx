@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Calendar, UserCheck, UserPlus, Star, Play } from "lucide-react";
 import { FeedCardActions } from "@/components/FeedCardActions";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { FeedPage, FeedMedia } from "@/hooks/usePagesFeed";
 import { useAuth } from "@/contexts/AuthContext";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 const OCCASION_ICONS: Record<string, string> = {
   Anniversaire: '🎂',
@@ -49,6 +51,8 @@ interface PageFeedCardProps {
 export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCardProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [brokenThumbs, setBrokenThumbs] = useState<Set<string>>(new Set());
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
   const isOwnPage = user?.id === page.creator.user_id;
   const icon = OCCASION_ICONS[page.occasion] || OCCASION_ICONS['Événement'];
   const gradient = OCCASION_GRADIENTS[page.occasion] || OCCASION_GRADIENTS['Événement'];
@@ -69,23 +73,58 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
     }
   };
 
-  const renderThumb = (m: FeedMedia, className: string, key: number | string, extraCount?: number) => (
-    <div key={key} className={`relative overflow-hidden ${className}`}>
-      <img src={m.url} alt="" className="w-full h-full object-cover" loading="lazy" />
-      {m.type === 'video' && (
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/40 rounded-full p-2">
-            <Play className="h-5 w-5 text-white" fill="white" />
+  const renderThumb = (m: FeedMedia, className: string, key: number | string, extraCount?: number) => {
+    const thumbKey = `${page.id}-${key}`;
+    const isBroken = !m.url || brokenThumbs.has(thumbKey);
+    const canPlay = m.type === 'video' && !!m.videoUrl;
+
+    const handleClick = (e: React.MouseEvent) => {
+      if (canPlay) {
+        e.stopPropagation();
+        setSelectedVideo({ url: m.videoUrl!, title: page.title });
+      } else {
+        handleNavigate();
+      }
+    };
+
+    return (
+      <div
+        key={key}
+        className={`relative overflow-hidden ${className} cursor-pointer`}
+        onClick={handleClick}
+      >
+        {isBroken ? (
+          <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+            <span className="text-4xl drop-shadow-lg">{icon}</span>
           </div>
-        </div>
-      )}
-      {extraCount && extraCount > 0 && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
-          <span className="text-white text-xl font-semibold">+{extraCount}</span>
-        </div>
-      )}
-    </div>
-  );
+        ) : (
+          <img
+            src={m.url}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setBrokenThumbs(prev => {
+              const next = new Set(prev);
+              next.add(thumbKey);
+              return next;
+            })}
+          />
+        )}
+        {m.type === 'video' && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+            <div className="bg-black/40 rounded-full p-2">
+              <Play className="h-5 w-5 text-white" fill="white" />
+            </div>
+          </div>
+        )}
+        {extraCount && extraCount > 0 && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+            <span className="text-white text-xl font-semibold">+{extraCount}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const media = page.album_preview;
   const extra = Math.max(0, page.album_count - 4);
@@ -206,6 +245,13 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
 
       {/* Action buttons */}
       <FeedCardActions page={page} />
+
+      <VideoPlayer
+        videoUrl={selectedVideo?.url || ''}
+        isOpen={!!selectedVideo}
+        onClose={() => setSelectedVideo(null)}
+        title={selectedVideo?.title}
+      />
     </Card>
   );
 }
