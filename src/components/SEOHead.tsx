@@ -283,8 +283,8 @@ export function SEOHead({
  */
 export const SEO_CONFIGS = {
   landing: {
-    title: "Cadeaux Collectifs Côte d'Ivoire & Bénin | Cagnottes Anniversaire Abidjan",
-    description: "Plateforme #1 de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes pour anniversaires, mariages, promotions. Boutiques artisanales locales à Abidjan.",
+    title: "Cadeaux Collectifs Côte d'Ivoire - Cagnottes Anniversaire",
+    description: "Plateforme #1 de cadeaux collaboratifs en Afrique francophone. Cagnottes anniversaires, mariages, promotions. Boutiques artisanales à Abidjan.",
     keywords: "cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau groupe Afrique, pot commun en ligne, cotisation cadeau collectif, financement participatif cadeau, crowdfunding anniversaire Afrique, collecte argent mariage, offrir ensemble cadeau, cagnotte sans frais, Orange Money cadeaux, artisanat ivoirien",
     aiContentType: 'landing' as AIContentType,
     aiSummary: "Plateforme collaborative de cadeaux en Afrique francophone. Cagnottes anniversaires, boutiques artisanales, paiements Mobile Money (Orange, MTN, Wave).",
