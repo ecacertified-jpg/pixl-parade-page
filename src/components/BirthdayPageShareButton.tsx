@@ -23,7 +23,6 @@ import {
   Heart,
   Sparkles,
   MessageSquare,
-  Calendar,
   ChevronRight,
 } from 'lucide-react';
 
