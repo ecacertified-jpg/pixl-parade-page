@@ -124,8 +124,9 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           const mediaItems: FeedMedia[] = photos
             .map((p: any): FeedMedia | null => {
               if (p.media_type === 'video' || p.video_url) {
-                const thumb = p.video_thumbnail_url || p.image_url;
-                if (!thumb) return null;
+                const thumb = p.video_thumbnail_url || p.image_url || '';
+                // Conserver l'item même sans miniature : la carte affichera un placeholder.
+                if (!thumb && !p.video_url) return null;
                 return { url: thumb, type: 'video', videoUrl: p.video_url || undefined };
               }
               if (p.image_url && !p.image_url.match(/\.(mp4|webm|mov|avi)$/i)) {
@@ -186,8 +187,8 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           const mediaItems: FeedMedia[] = photos
             .map((p: any): FeedMedia | null => {
               if (p.media_type === 'video' || p.video_url) {
-                const thumb = p.video_thumbnail_url || p.image_url;
-                if (!thumb) return null;
+                const thumb = p.video_thumbnail_url || p.image_url || '';
+                if (!thumb && !p.video_url) return null;
                 return { url: thumb, type: 'video', videoUrl: p.video_url || undefined };
               }
               if (p.image_url && !p.image_url.match(/\.(mp4|webm|mov|avi)$/i)) {
