@@ -23,28 +23,27 @@ import {
   Heart,
   Sparkles,
   MessageSquare,
+  ChevronRight,
 } from 'lucide-react';
 
-const WHATSAPP_GROUPS = [
-  {
-    name: "JOIE DE VIVRE — Femmes d'Afrique",
-    description: 'Une sororité bienveillante pour célébrer, échanger et se soutenir entre femmes.',
-    url: 'https://chat.whatsapp.com/GhcUIjooYP8ILBXwpdv3QJ?mode=gi_t',
-    emoji: '👩🏽‍🤝‍👩🏿',
-  },
-  {
-    name: 'JOIE DE VIVRE — Rencontres (H/F)',
-    description: 'Fais de belles rencontres, élargis ton cercle et trouve des proches qui célébreront ton anniversaire.',
-    url: 'https://chat.whatsapp.com/EiybuqFFqyT9uB7fe1m3sm?mode=gi_t',
-    emoji: '💞',
-  },
-  {
-    name: 'JOIE DE VIVRE — Couples',
-    description: 'Un espace pour les couples qui veulent partager, s’inspirer et fêter chaque moment précieux.',
-    url: 'https://chat.whatsapp.com/IJSDnuADB9f6Le9iebhdoo?mode=gi_t',
-    emoji: '💑',
-  },
+const FEMMES_COMMUNITY_URL = 'https://chat.whatsapp.com/GhcUIjooYP8ILBXwpdv3QJ?mode=gi_t';
+
+const FEMMES_MONTH_GROUPS: Array<{ month: string; emoji: string; url: string }> = [
+  { month: 'Janvier', emoji: '❄️', url: 'https://chat.whatsapp.com/GZRR4T5OYmBJZ3bhRvcOP3' },
+  { month: 'Février', emoji: '💝', url: 'https://chat.whatsapp.com/DDLLe6BhJlBK8ytWXZRCzr' },
+  { month: 'Mars', emoji: '🌸', url: 'https://chat.whatsapp.com/Cql7xPvtkfJ63X6CUshOY0' },
+  { month: 'Avril', emoji: '🌷', url: 'https://chat.whatsapp.com/FWSvEIqUfkm0xPWiZ7QAXs' },
+  { month: 'Mai', emoji: '🌺', url: 'https://chat.whatsapp.com/BRhMGwM4szRAmjEd8JmNI0' },
+  { month: 'Juin', emoji: '☀️', url: 'https://chat.whatsapp.com/KyyOsJlAq5G4Kcz54vzqi2' },
+  { month: 'Juillet', emoji: '🏖️', url: 'https://chat.whatsapp.com/HDF9h9A9ujl8JfOFlztgoL' },
+  { month: 'Août', emoji: '🌻', url: 'https://chat.whatsapp.com/FPlNTzqB6DBGTGttnMF6oe' },
+  { month: 'Septembre', emoji: '🍂', url: 'https://chat.whatsapp.com/J38MynWrsV570uEuqyznnH' },
+  { month: 'Octobre', emoji: '🎃', url: 'https://chat.whatsapp.com/DKbpEjvBYbMJ2YWTvQJKBK' },
+  { month: 'Novembre', emoji: '🍁', url: 'https://chat.whatsapp.com/LPlYFFIA3WK9CTkYHA00zM' },
+  { month: 'Décembre', emoji: '🎄', url: 'https://chat.whatsapp.com/Cro3iYje5h38XSL48Ym3aU' },
 ];
+
+const RENCONTRES_URL = 'https://chat.whatsapp.com/EiybuqFFqyT9uB7fe1m3sm?mode=gi_t';
 
 const FESTIVE_MESSAGES = [
   "🎉 Génial ! Chaque partage rapproche un cadeau !",
@@ -83,7 +82,9 @@ interface BirthdayPageShareButtonProps {
 }
 
 export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl, age, onShared }: BirthdayPageShareButtonProps) {
-  const [view, setView] = useState<'choice' | 'whatsapp_groups' | 'social'>('choice');
+  const [view, setView] = useState<
+    'choice' | 'whatsapp_groups' | 'femmes' | 'femmes_months' | 'social'
+  >('choice');
 
   useEffect(() => {
     if (open) setView('choice');
@@ -272,20 +273,115 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
               </div>
             </SheetHeader>
             <div className="grid gap-3">
-              {WHATSAPP_GROUPS.map((g) => (
+              <button
+                onClick={() => setView('femmes')}
+                className="text-left rounded-xl border border-pink-200 bg-pink-50/60 hover:bg-pink-50 transition-colors p-4 flex items-start gap-3"
+              >
+                <div className="text-3xl shrink-0">👩🏽‍🤝‍👩🏿</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">JOIE DE VIVRE — Femmes d'Afrique</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Une sororité bienveillante : communauté générale + groupe de ton mois de naissance.
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-pink-600 shrink-0 mt-1" />
+              </button>
+
+              <a
+                href={RENCONTRES_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-xl border border-green-200 bg-green-50/50 hover:bg-green-50 transition-colors p-4 flex items-start gap-3"
+              >
+                <div className="text-3xl shrink-0">💞</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">JOIE DE VIVRE — Rencontres (H/F)</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Fais de belles rencontres, élargis ton cercle et trouve des proches qui célébreront ton anniversaire.
+                  </p>
+                </div>
+                <MessageCircle className="h-5 w-5 text-green-600 shrink-0 mt-1" />
+              </a>
+            </div>
+          </>
+        )}
+
+        {view === 'femmes' && (
+          <>
+            <SheetHeader className="mb-4">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => setView('whatsapp_groups')} aria-label="Retour">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className="text-left">
+                  <SheetTitle>👩🏽‍🤝‍👩🏿 JOIE DE VIVRE — Femmes d'Afrique</SheetTitle>
+                  <SheetDescription>
+                    Choisis le groupe que tu veux rejoindre.
+                  </SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
+            <div className="grid gap-3">
+              <a
+                href={FEMMES_COMMUNITY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-xl border border-green-200 bg-green-50/50 hover:bg-green-50 transition-colors p-4 flex items-start gap-3"
+              >
+                <div className="text-3xl shrink-0">🌍</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">Communauté</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Tous les anniversaires — le grand groupe pour échanger toute l'année.
+                  </p>
+                </div>
+                <MessageCircle className="h-5 w-5 text-green-600 shrink-0 mt-1" />
+              </a>
+
+              <button
+                onClick={() => setView('femmes_months')}
+                className="text-left rounded-xl border border-pink-200 bg-pink-50/60 hover:bg-pink-50 transition-colors p-4 flex items-start gap-3"
+              >
+                <div className="text-3xl shrink-0">🎂</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">Ton mois de célébration</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Rejoins le groupe des femmes nées dans ton mois d'anniversaire.
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-pink-600 shrink-0 mt-1" />
+              </button>
+            </div>
+          </>
+        )}
+
+        {view === 'femmes_months' && (
+          <>
+            <SheetHeader className="mb-4">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => setView('femmes')} aria-label="Retour">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className="text-left">
+                  <SheetTitle>🎂 Ton mois de célébration</SheetTitle>
+                  <SheetDescription>
+                    Choisis le mois de ton anniversaire pour rejoindre le bon groupe.
+                  </SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[55vh] overflow-y-auto pr-1">
+              {FEMMES_MONTH_GROUPS.map((g) => (
                 <a
                   key={g.url}
                   href={g.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl border border-green-200 bg-green-50/50 hover:bg-green-50 transition-colors p-4 flex items-start gap-3"
+                  className="rounded-xl border border-pink-200 bg-pink-50/50 hover:bg-pink-50 transition-colors p-3 flex flex-col items-center gap-1 text-center"
                 >
-                  <div className="text-3xl shrink-0">{g.emoji}</div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-foreground">{g.name}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">{g.description}</p>
-                  </div>
-                  <MessageCircle className="h-5 w-5 text-green-600 shrink-0 mt-1" />
+                  <div className="text-2xl">{g.emoji}</div>
+                  <p className="text-sm font-semibold text-foreground">{g.month}</p>
+                  <MessageCircle className="h-4 w-4 text-green-600" />
                 </a>
               ))}
             </div>
