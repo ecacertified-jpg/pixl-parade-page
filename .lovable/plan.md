@@ -1,40 +1,74 @@
+
 ## Objectif
 
-Dans `PageFeedCard`, gérer proprement toutes les vignettes médias (images **et** vidéos) cassées ou absentes :
-- afficher un placeholder visuel cohérent (gradient occasion + icône) si l'URL est vide ou si l'image échoue à charger ;
-- pour les vidéos, conserver l'overlay Play et permettre la lecture quand `videoUrl` existe ;
-- supprimer définitivement l'icône "image cassée" du navigateur dans le fil.
+Quand on partage le lien d'une page d'anniversaire (ex: `https://joiedevivre-africa.com/birthday/audrey-amour-eliorah`) sur WhatsApp, Facebook, Instagram, LinkedIn, etc., l'aperçu doit afficher :
 
-## Changements
+- la **photo de couverture** de la page d'anniversaire (comme dans l'image fournie),
+- le **titre** « Anniversaire de [Prénom] » (et l'âge si dispo),
+- une **description** personnalisée (date, message d'invitation à participer),
+- le bon lien canonique.
 
-### 1. `src/hooks/usePagesFeed.ts`
-- Ne plus exclure les médias sans miniature :
-  - **Vidéos sans thumbnail** : retourner `{ url: '', type: 'video', videoUrl }` si `video_url` existe.
-  - **Images sans `image_url`** : déjà filtrées, on garde ce comportement.
-  - Appliquer dans les deux boucles (`birthday_page_photos` et `event_page_photos`).
+Aujourd'hui, ça ne marche pas : les crawlers (WhatsApp, Facebook…) n'exécutent pas le JavaScript. Ils ne voient donc que les meta OG génériques du `index.html` (logo JDV + texte landing). Le hook `useBirthdayPageSEO` met bien à jour les meta côté client, mais ils arrivent trop tard pour les bots.
 
-### 2. `src/components/PageFeedCard.tsx`
-- Ajouter `useState` + état local `brokenThumbs: Set<string>` (clé = `${page.id}-${index}`).
-- Refactor de `renderThumb(m, className, key, extraCount?)` :
-  - Si `m.url` est vide OU si la clé est dans `brokenThumbs` → rendre un placeholder :
-    - fond `bg-gradient-to-br ${gradient}` ;
-    - icône occasion centrée (`<span className="text-4xl drop-shadow">{icon}</span>`).
-  - Sinon, rendre `<img>` avec `onError={() => setBrokenThumbs(prev => new Set(prev).add(key))}`.
-  - Dans les deux cas, conserver l'overlay Play pour `m.type === 'video'` et le badge `+N`.
-- Click sur une vignette :
-  - Si `m.type === 'video' && m.videoUrl` → ouvrir un `VideoPlayer` (état `selectedVideo`).
-  - Sinon → `handleNavigate()` (comportement actuel).
-- Imports : ajouter `useState` et `VideoPlayer` depuis `@/components/VideoPlayer`.
+## Solution
 
-## Hors périmètre
+Servir une version HTML pré-rendue (juste les meta) aux crawlers via une edge function, sur le même modèle que `join-preview` qui existe déjà dans le projet.
 
-- Pas de modification des composants album internes des pages (`BirthdayPagePhotos`, `EventPagePhotos`).
-- Pas de regénération côté backend des miniatures vidéo.
-- Pas de changement RLS / requêtes SQL.
+### 1. Edge function `birthday-preview`
 
-## Vérification
+Nouvelle fonction Supabase `supabase/functions/birthday-preview/index.ts` qui :
 
-- `/home` : une page avec vidéo sans thumbnail affiche le placeholder coloré + icône, le bouton Play ouvre la vidéo.
-- Une vignette image cassée (URL 404) bascule vers le placeholder au lieu de l'icône navigateur.
-- Une vignette image valide reste intacte.
-- Les grilles 2/3/4 médias conservent leurs proportions et le badge `+N`.
+- prend `:slug` en paramètre d'URL,
+- lit la page d'anniversaire dans la base (firstName, age, coverImage, celebrationYear, slug, isActive),
+- détecte le `User-Agent` :
+  - **Crawler social** (`facebookexternalhit`, `WhatsApp`, `Twitterbot`, `LinkedInBot`, `Slackbot`, `Discordbot`, `TelegramBot`, `Pinterest`, `Googlebot`, etc.) → renvoie une page HTML minimale contenant uniquement les balises `<title>`, `og:*`, `twitter:*`, `description` et un `<meta http-equiv="refresh">` vers la vraie URL (au cas où).
+  - **Navigateur humain** → `302` vers `/birthday/:slug` côté SPA (URL inchangée pour l'utilisateur).
+- garantit `og:image` = URL absolue de la photo de couverture (ou OG image généré, voir §2),
+- pose `og:image:width=1200`, `og:image:height=630`, `og:type=profile`, locale `fr_FR`.
+
+### 2. Image OG par défaut si pas de cover
+
+Si la page n'a pas de photo : appeler/réutiliser `generate-og-image` (déjà présent) pour produire une carte 1200×630 avec :
+
+- prénom + âge,
+- date d'anniversaire,
+- petit visuel JDV (logo, gradient rose/violet de la charte),
+- mention « Souhaite-lui un joyeux anniversaire ».
+
+L'URL renvoyée est mise dans `og:image`. Cache 24 h.
+
+### 3. Routage `public/_redirects`
+
+Ajouter avant la règle SPA :
+
+```text
+/birthday/*       https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/:splat   200
+/anniversaire/*   https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/:splat   200
+```
+
+L'edge function se charge ensuite de différencier bot vs humain. C'est exactement le pattern utilisé pour `/join/ADM-*` → `join-preview`.
+
+### 4. Vérification
+
+- Test avec **Meta Sharing Debugger** (`https://developers.facebook.com/tools/debug/`) sur un lien `/birthday/:slug`.
+- Test avec **WhatsApp** : envoyer le lien dans un chat → l'aperçu doit montrer la photo + le titre.
+- Test avec **Twitter Card Validator**.
+- Vérifier qu'un humain qui clique arrive bien sur la SPA sans flash de page intermédiaire.
+
+## Détails techniques
+
+- Aucune modification du frontend nécessaire — `useBirthdayPageSEO` continue de fonctionner pour l'expérience in-app.
+- La fonction doit être **publique** (pas de JWT requis) → ajouter dans `supabase/config.toml` :
+  ```toml
+  [functions.birthday-preview]
+  verify_jwt = false
+  ```
+- Cache HTTP: `Cache-Control: public, max-age=300, s-maxage=3600` pour soulager la base.
+- Échapper proprement le contenu dans les meta (pas d'injection HTML via le prénom).
+- Si la page est `is_active = false` ou inexistante : renvoyer une OG « générique JDV » + lien vers la home, pas une 404 (les crawlers de WhatsApp réessayent rarement).
+
+## Hors scope
+
+- Pages business, cagnottes seules, événements (peuvent suivre le même pattern dans un second temps si besoin).
+- SSR complet de l'app — on rend juste le `<head>` aux bots, pas le `<body>`.
+- Re-validation automatique côté Facebook (peut être ajoutée via un appel à l'API « scrape » après publication d'une page).
