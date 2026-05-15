@@ -1,2 +1,4 @@
 /join/ADM-*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/join-preview/ADM-:splat  200
+/birthday/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/:splat  200
+/anniversaire/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/:splat  200
 /*    /index.html   200
