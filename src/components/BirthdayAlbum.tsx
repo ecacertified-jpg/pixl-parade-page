@@ -209,7 +209,17 @@ export function BirthdayAlbum({
     isPageOwner && item.media_type === "image" && !!item.image_url;
 
   const handleSetSocialCover = async (item: AlbumItem) => {
-    if (!canSetAsSocialCover(item)) return;
+    if (!isPageOwner) return;
+    if (item.media_type !== "image") {
+      toast.error(
+        "Seules les photos peuvent servir d'image de partage (vidéos et souvenirs texte non supportés)."
+      );
+      return;
+    }
+    if (!item.image_url) {
+      toast.error("Cette photo n'a pas d'image disponible et ne peut pas être utilisée comme image de partage.");
+      return;
+    }
     const isAlreadySelected = socialSharePhotoId === item.id;
     const newValue = isAlreadySelected ? null : item.id;
     const { error } = await supabase
