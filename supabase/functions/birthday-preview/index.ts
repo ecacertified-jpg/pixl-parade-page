@@ -227,7 +227,14 @@ Deno.serve(async (req) => {
         new Date(profile?.updated_at ?? 0).getTime(),
       ),
     );
-    const version = Math.floor(versionDate.getTime() / 1000).toString();
+    // Include the chosen share-photo id in the version so that swapping the
+    // selected album photo immediately changes the og:image URL even if a
+    // trigger somehow misses bumping updated_at.
+    const versionBase = Math.floor(versionDate.getTime() / 1000).toString();
+    const sharePhotoTag = page.social_share_photo_id
+      ? page.social_share_photo_id.slice(0, 8)
+      : "default";
+    const version = `${versionBase}-${sharePhotoTag}`;
     const sep = (u: string) => (u.includes("?") ? "&" : "?");
 
     // Resolve OG image with cascade:
