@@ -69,7 +69,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           .from('birthday_pages')
           .select(`
             id, slug, title, cover_image_url, celebration_year, fund_id, created_at, user_id, published_via_onboarding,
-            birthday_page_photos ( id, image_url, media_type, video_url, video_thumbnail_url ),
+            birthday_page_photos!birthday_page_photos_birthday_page_id_fkey ( id, image_url, media_type, video_url, video_thumbnail_url ),
             collective_funds!birthday_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
           .eq('is_active', true)
