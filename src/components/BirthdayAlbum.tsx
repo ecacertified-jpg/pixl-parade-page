@@ -608,6 +608,7 @@ export function BirthdayAlbum({
             const isMine = !!user && !!item.uploader_id && item.uploader_id === user.id;
             const authorInitial = (item.uploader_name || "?").trim().charAt(0).toUpperCase();
             const isAboveTheFold = index < 3;
+            const isSocialCover = socialSharePhotoId === item.id;
             return (
               <motion.div
                 key={item.id}
@@ -666,6 +667,17 @@ export function BirthdayAlbum({
                   )}
                 </div>
 
+                {/* Social-cover badge (owner-visible) */}
+                {isSocialCover && (
+                  <div
+                    className="absolute top-1 left-1 z-10 flex items-center gap-1 bg-primary/90 text-primary-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full shadow"
+                    title="Cette photo est utilisée comme aperçu de partage sur les réseaux sociaux"
+                  >
+                    <Share2 className="h-3 w-3" />
+                    <span>Image de partage</span>
+                  </div>
+                )}
+
                 {/* Reactions overlay */}
                 <div className="absolute bottom-6 left-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
                   <AlbumItemReactions
@@ -720,6 +732,12 @@ export function BirthdayAlbum({
                         {canEdit(item) && (
                           <DropdownMenuItem onClick={() => handleStartEdit(item)}>
                             <Pencil className="h-4 w-4 mr-2" /> Modifier
+                          </DropdownMenuItem>
+                        )}
+                        {canSetAsSocialCover(item) && (
+                          <DropdownMenuItem onClick={() => handleSetSocialCover(item)}>
+                            <Share2 className="h-4 w-4 mr-2" />
+                            {isSocialCover ? "Retirer du partage" : "Utiliser comme image de partage"}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
