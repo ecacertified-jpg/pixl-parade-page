@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, ImageIcon, Loader2, ShoppingBag, Sparkles } from "lucide-react";
+import { ClipboardPaste, ExternalLink, ImageIcon, Loader2, ShoppingBag, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -107,6 +107,60 @@ export function JumiaImportModal({
     }
   };
 
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        toast.error("Votre navigateur ne permet pas la lecture du presse-papiers.");
+        return;
+      }
+      const text = (await navigator.clipboard.readText()).trim();
+      if (!text) {
+        toast.error("Presse-papiers vide.");
+        return;
+      }
+      let parsed: URL;
+      try {
+        parsed = new URL(text);
+      } catch {
+        toast.error("Le presse-papiers ne contient pas un lien valide.");
+        return;
+      }
+      if (!/^https?:$/.test(parsed.protocol)) {
+        toast.error("Lien non supporté (http/https uniquement).");
+        return;
+      }
+      setUrl(text);
+      toast.success("Lien collé — analyse en cours…");
+      // Auto-preview right after pasting
+      setPreviewing(true);
+      try {
+        const meta = await fetchExternalProductMeta(text);
+        setPlatform(meta.platform);
+        if (meta.name) setName(meta.name);
+        if (meta.image_url) setImageUrl(meta.image_url);
+        if (meta.price) setPrice(String(meta.price));
+        setPreviewed(true);
+        if (!meta.name && !meta.price) {
+          toast.warning("Aperçu partiel — complétez manuellement nom et prix.");
+        } else {
+          toast.success(`Produit ${meta.platform} détecté.`);
+        }
+      } catch (err: any) {
+        toast.error(err?.message ?? "Impossible d'analyser ce lien.");
+        try {
+          const host = parsed.hostname.replace(/^www\./, "");
+          if (host.includes("jumia")) setPlatform("Jumia");
+          else setPlatform(host);
+        } catch { /* ignore */ }
+        setPreviewed(true);
+      } finally {
+        setPreviewing(false);
+      }
+    } catch {
+      toast.error("Accès au presse-papiers refusé.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim() || !name.trim() || !price) {
@@ -183,7 +237,20 @@ export function JumiaImportModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="jumia-url">Lien du produit *</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="jumia-url">Lien du produit *</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handlePasteFromClipboard}
+                disabled={previewing}
+                className="h-7 gap-1.5 text-xs text-primary hover:text-primary"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5" />
+                Coller le lien
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Input
                 id="jumia-url"
