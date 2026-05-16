@@ -12,8 +12,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SITE_URL = "https://joiedevivre-africa.com";
-const OG_IMAGE = `${SITE_URL}/og-image.jpg?v=2026051602`;
+import {
+  DEFAULT_OG_IMAGE_URL,
+  OG_IMAGE_SITE_URL,
+} from "../_shared/og-image-version.ts";
+
+const SITE_URL = OG_IMAGE_SITE_URL;
+const OG_IMAGE = DEFAULT_OG_IMAGE_URL;
 
 const CRAWLER_PATTERNS = [
   "facebookexternalhit",
