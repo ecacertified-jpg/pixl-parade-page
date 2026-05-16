@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
     const businessName = business.business_name || "Boutique";
     const businessType = business.business_type || "";
     const description = business.description || `Découvrez ${businessName} sur JOIE DE VIVRE`;
-    const logoUrl = business.logo_url || `${appUrl}/og-image.jpg`;
+    const logoUrl = business.logo_url || `${appUrl}/og-image.jpg?v=2026051602`;
     const address = business.address || "";
     const productCountText = productsCount ? `${productsCount} produit${productsCount > 1 ? 's' : ''}` : "";
     
