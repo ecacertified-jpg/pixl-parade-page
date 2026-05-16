@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, Video, BookOpen, ImagePlus, Play, X, Loader2,
   Sparkles, Send, Quote, MoreVertical, Pencil, Trash2, Lock,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Share2
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
@@ -62,6 +62,8 @@ interface BirthdayAlbumProps {
   pageOwnerUserId?: string | null;
   onItemRemoved?: (id: string) => void;
   onItemUpdated?: (item: AlbumItem) => void;
+  socialSharePhotoId?: string | null;
+  onSocialSharePhotoChanged?: (photoId: string | null) => void;
 }
 
 type TabType = "all" | "image" | "video" | "memory";
@@ -81,6 +83,8 @@ export function BirthdayAlbum({
   pageOwnerUserId = null,
   onItemRemoved,
   onItemUpdated,
+  socialSharePhotoId = null,
+  onSocialSharePhotoChanged,
 }: BirthdayAlbumProps) {
   const navigate = useNavigate();
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +203,30 @@ export function BirthdayAlbum({
   };
   const canEdit = (item: AlbumItem) =>
     !!user && !!item.uploader_id && item.uploader_id === user.id;
+
+  const isPageOwner = !!user && !!pageOwnerUserId && pageOwnerUserId === user.id;
+  const canSetAsSocialCover = (item: AlbumItem) =>
+    isPageOwner && item.media_type === "image" && !!item.image_url;
+
+  const handleSetSocialCover = async (item: AlbumItem) => {
+    if (!canSetAsSocialCover(item)) return;
+    const isAlreadySelected = socialSharePhotoId === item.id;
+    const newValue = isAlreadySelected ? null : item.id;
+    const { error } = await supabase
+      .from("birthday_pages")
+      .update({ social_share_photo_id: newValue })
+      .eq("id", pageId);
+    if (error) {
+      toast.error("Impossible de mettre à jour l'image de partage");
+      return;
+    }
+    onSocialSharePhotoChanged?.(newValue);
+    toast.success(
+      isAlreadySelected
+        ? "Image de partage retirée"
+        : "Image de partage mise à jour ✨ — Facebook & WhatsApp l'utiliseront au prochain partage"
+    );
+  };
 
   const handleStartEdit = (item: AlbumItem) => {
     setEditingItem(item);
