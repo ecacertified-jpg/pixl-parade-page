@@ -295,6 +295,7 @@ const App = () => (
             <Route path="/admin/analytics" element={<AdminRoute><L><Analytics /></L></AdminRoute>} />
             <Route path="/admin/share-analytics" element={<AdminRoute><L><ShareAnalytics /></L></AdminRoute>} />
             <Route path="/admin/indexnow" element={<AdminRoute><L><IndexNowAnalytics /></L></AdminRoute>} />
+            <Route path="/admin/social-preview" element={<AdminRoute><L><SocialPreviewDebug /></L></AdminRoute>} />
             <Route path="/admin/whatsapp-otp" element={<AdminRoute><L><WhatsAppOtpAnalytics /></L></AdminRoute>} />
             <Route path="/admin/messaging-delivery" element={<AdminRoute><L><MessagingDeliveryDashboard /></L></AdminRoute>} />
             <Route path="/admin/whatsapp-templates" element={<AdminRoute><L><WhatsAppTemplateDashboard /></L></AdminRoute>} />
