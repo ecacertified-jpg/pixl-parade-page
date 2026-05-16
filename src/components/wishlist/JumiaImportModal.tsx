@@ -61,13 +61,25 @@ export function JumiaImportModal({
     if (isOpen) {
       // Sync the restored/selected platform into the modal as soon as it opens,
       // so the user immediately sees which marketplace is pre-filled (label + URL).
-      setUrl(defaultPlatformUrl ?? "");
+      const prefilled = defaultPlatformUrl ?? "";
+      setUrl(prefilled);
       setName("");
       setImageUrl("");
       setPrice("");
       setPlatform(defaultPlatformLabel ?? null);
       setPreviewing(false);
       setPreviewed(false);
+      // Immediately validate the prefilled URL so the user is warned if it's malformed.
+      if (prefilled.trim()) {
+        try {
+          const parsed = new URL(prefilled);
+          if (!/^https?:$/.test(parsed.protocol)) {
+            toast.error("Lien plateforme invalide (http/https uniquement).");
+          }
+        } catch {
+          toast.error("Lien plateforme prérempli invalide.");
+        }
+      }
     } else {
       setUrl("");
       setName("");
