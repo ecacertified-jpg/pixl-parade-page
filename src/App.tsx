@@ -136,6 +136,7 @@ const OrdersManagement = lazy(() => import("./pages/Admin/OrdersManagement"));
 const AdminNotificationsPage = lazy(() => import("./pages/Admin/AdminNotificationsPage"));
 const ShareAnalytics = lazy(() => import("./pages/Admin/ShareAnalytics"));
 const IndexNowAnalytics = lazy(() => import("./pages/Admin/IndexNowAnalytics"));
+const SocialPreviewDebug = lazy(() => import("./pages/Admin/SocialPreviewDebug"));
 const WhatsAppOtpAnalytics = lazy(() => import("./pages/Admin/WhatsAppOtpAnalytics"));
 const MessagingDeliveryDashboard = lazy(() => import("./pages/Admin/MessagingDeliveryDashboard"));
 const WhatsAppTemplateDashboard = lazy(() => import("./pages/Admin/WhatsAppTemplateDashboard"));
@@ -294,6 +295,7 @@ const App = () => (
             <Route path="/admin/analytics" element={<AdminRoute><L><Analytics /></L></AdminRoute>} />
             <Route path="/admin/share-analytics" element={<AdminRoute><L><ShareAnalytics /></L></AdminRoute>} />
             <Route path="/admin/indexnow" element={<AdminRoute><L><IndexNowAnalytics /></L></AdminRoute>} />
+            <Route path="/admin/social-preview" element={<AdminRoute><L><SocialPreviewDebug /></L></AdminRoute>} />
             <Route path="/admin/whatsapp-otp" element={<AdminRoute><L><WhatsAppOtpAnalytics /></L></AdminRoute>} />
             <Route path="/admin/messaging-delivery" element={<AdminRoute><L><MessagingDeliveryDashboard /></L></AdminRoute>} />
             <Route path="/admin/whatsapp-templates" element={<AdminRoute><L><WhatsAppTemplateDashboard /></L></AdminRoute>} />
