@@ -1,61 +1,47 @@
-# Correction de l'aperçu image WhatsApp pour les liens JDV
+## Étape 1 — Publier les changements (obligatoire avant tout re-scrape)
 
-## Diagnostic
+Le HTML servi sur `https://joiedevivre-africa.com/` contient encore `?v=20260516`. Le bump `?v=2026051602` est en local mais pas déployé. Tant que la prod ne renvoie pas la nouvelle valeur, aucun re-scrape ne produira d'effet.
 
-L'image `og-image.png` est bien référencée dans `index.html` et accessible publiquement (HTTP 200). Mais :
+Action : cliquer **Publish** dans Lovable, puis attendre la propagation Cloudflare (~30 s).
 
-- **Poids : 897 KB** → WhatsApp n'affiche fiablement les aperçus que pour des images **< 300 KB** (limite officieuse mais constante). Au-dessus, WhatsApp affiche le lien sans image (exactement ce qu'on voit dans la capture).
-- Format PNG 1376×768 — inutilement lourd pour un aperçu social.
-
-Facebook/LinkedIn tolèrent l'image actuelle, mais WhatsApp non — d'où l'incohérence.
-
-## Plan d'action
-
-### 1. Générer une version optimisée de l'image OG
-- Créer `public/og-image.jpg` à partir de l'actuelle :
-  - Dimensions **1200×630** (ratio 1.91:1, standard OG)
-  - Format **JPEG qualité 82**
-  - Cible : **< 250 KB** (idéalement 150–200 KB)
-- Garder l'ancien PNG en fallback pour compatibilité.
-
-### 2. Mettre à jour `index.html`
-- Pointer `og:image`, `og:image:secure_url` et `twitter:image` vers le nouveau `.jpg`
-- Mettre à jour `og:image:type` → `image/jpeg`
-- Mettre à jour `og:image:width` → `1200` et `og:image:height` → `630`
-- Bumper le paramètre `?v=` (ex: `v=20260516`) pour forcer le re-scrape
-
-### 3. Appliquer la même logique aux Edge Functions de preview
-Vérifier et corriger si nécessaire les fonctions qui injectent leurs propres `og:image` :
-- `birthday-preview`
-- `fund-preview`
-- `business-preview`
-- `product-preview`
-- `event-preview`
-- `join-preview`
-
-S'assurer qu'elles ne servent jamais une image > 300 KB en fallback (sinon basculer sur la nouvelle `og-image.jpg`).
-
-### 4. Purger les caches sociaux
-Après déploiement, dans la page **Admin → Social Preview Debug** (déjà créée précédemment) :
-- Re-scraper `https://joiedevivre-africa.com` via l'outil OG Inspector
-- Lien direct vers le [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) pour cliquer "Scrape Again"
-- Pour WhatsApp : tester le lien dans une nouvelle conversation (WhatsApp re-scrape automatiquement quand l'URL n'a jamais été partagée, ou après ~7 jours, ou si les meta tags changent significativement — le bump `?v=` aide)
-
-## Détails techniques
-
-Commande de génération de l'image optimisée :
-```bash
-nix run nixpkgs#imagemagick -- public/og-image.png \
-  -resize 1200x630^ -gravity center -extent 1200x630 \
-  -quality 82 -strip public/og-image.jpg
+Vérification post-publish (je la ferai automatiquement) :
 ```
-
-Vérification taille cible :
-```bash
-ls -lh public/og-image.jpg  # doit être < 300 KB
+curl -s -A "facebookexternalhit/1.1" https://joiedevivre-africa.com/ | grep og:image
 ```
+Doit retourner `?v=2026051602`.
 
-## Hors scope
+## Étape 2 — Re-scraper chaque plateforme (manuel, côté utilisateur)
 
-- Pas de modification du design ou du contenu visuel de l'image.
-- Pas de changement des autres meta tags (titre/description sont OK comme le montre la capture).
+Ces actions requièrent une session connectée et ne peuvent pas être automatisées depuis Lovable.
+
+| Plateforme | URL outil | Action |
+|---|---|---|
+| Facebook | https://developers.facebook.com/tools/debug/?q=https://joiedevivre-africa.com/ | Cliquer **Scrape Again** (2 fois si nécessaire) |
+| LinkedIn | https://www.linkedin.com/post-inspector/inspect/https://joiedevivre-africa.com/ | Cliquer **Inspect** |
+| WhatsApp | Envoyer le lien à soi-même dans WhatsApp | L'aperçu doit montrer la nouvelle image |
+| Twitter/X | https://cards-dev.twitter.com/validator | Coller l'URL (déprécié mais utile) |
+
+Tester aussi la variante `www` : `https://www.joiedevivre-africa.com/` (même procédure).
+
+## Étape 3 — Vérification post-scrape
+
+Une fois Scrape Again exécuté côté Facebook, je vérifierai via :
+```
+curl -sI "https://joiedevivre-africa.com/og-image.jpg?v=2026051602"
+```
+La réponse doit être `HTTP/2 200` avec `content-type: image/jpeg` et `content-length` ≈ 21 KB (< limite WhatsApp 300 KB).
+
+## Étape 4 — Si l'image ne s'affiche toujours pas
+
+Diagnostics à enchaîner :
+1. Vérifier dans Facebook Debugger les **warnings** (taille, ratio, redirect chain apex→www)
+2. Confirmer que l'image est bien servie en `200` directement (pas de redirect)
+3. Bumper à nouveau `OG_IMAGE_VERSION` dans `supabase/functions/_shared/og-image-version.ts` + les 3 lignes d'`index.html`, puis re-publier
+
+## Ce que je ferai automatiquement après ton "Implement plan"
+
+- `curl` sur l'apex et `www` pour confirmer que `?v=2026051602` est servi
+- `curl` sur l'asset image pour confirmer taille, MIME, status 200
+- Rapport synthétique avec les liens cliquables vers Facebook Debugger / LinkedIn Inspector pour que tu n'aies qu'à cliquer "Scrape Again"
+
+Aucun fichier ne sera modifié à cette étape — c'est purement une vérification + guidage.
