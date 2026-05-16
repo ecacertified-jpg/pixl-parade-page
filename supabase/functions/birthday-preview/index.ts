@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
 
     const { data: page } = await supabase
       .from("birthday_pages")
-      .select("user_id, slug, celebration_year, cover_image_url, is_active")
+      .select("user_id, slug, celebration_year, cover_image_url, is_active, updated_at")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -206,15 +206,28 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("first_name, last_name, birthday, avatar_url")
+      .select("first_name, last_name, birthday, avatar_url, updated_at")
       .eq("user_id", page.user_id)
       .maybeSingle();
 
     const firstName = profile?.first_name?.trim() || "notre ami(e)";
     const age = computeAge(profile?.birthday ?? null, page.celebration_year);
-    const coverImage =
-      page.cover_image_url ||
-      `${BIRTHDAY_OG_FN}?slug=${encodeURIComponent(page.slug)}`;
+
+    // Compute a version stamp from the latest mutation timestamp.
+    // Bumping this value invalidates social-network image caches because
+    // the og:image URL changes, while still benefiting from CDN caching
+    // for unchanged content.
+    const versionDate = new Date(
+      Math.max(
+        new Date(page.updated_at ?? 0).getTime(),
+        new Date(profile?.updated_at ?? 0).getTime(),
+      ),
+    );
+    const version = Math.floor(versionDate.getTime() / 1000).toString();
+    const sep = (u: string) => (u.includes("?") ? "&" : "?");
+    const coverImage = page.cover_image_url
+      ? `${page.cover_image_url}${sep(page.cover_image_url)}v=${version}`
+      : `${BIRTHDAY_OG_FN}?slug=${encodeURIComponent(page.slug)}&v=${version}`;
 
     const html = buildHtml({
       firstName,
@@ -224,12 +237,32 @@ Deno.serve(async (req) => {
       celebrationYear: page.celebration_year,
     });
 
+    const etag = `W/"birthday-${page.slug}-${version}"`;
+    const ifNoneMatch = req.headers.get("if-none-match");
+    if (ifNoneMatch && ifNoneMatch === etag) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          ...corsHeaders,
+          ETag: etag,
+          "Last-Modified": versionDate.toUTCString(),
+          "Cache-Control":
+            "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
+        },
+      });
+    }
+
     return new Response(html, {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=300, s-maxage=3600",
+        // Short fresh window so updated pages propagate to crawlers quickly,
+        // long stale-while-revalidate so traffic stays cheap and fast.
+        "Cache-Control":
+          "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
+        ETag: etag,
+        "Last-Modified": versionDate.toUTCString(),
       },
     });
   } catch (err) {
