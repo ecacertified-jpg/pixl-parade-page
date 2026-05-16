@@ -177,7 +177,35 @@ const BirthdayPage = () => {
         return;
       }
 
-      setPage(pageData as BirthdayPageData);
+      let resolvedPage = pageData as BirthdayPageData;
+
+      // Validate social_share_photo_id: if it points to a missing photo or one
+      // without a usable image_url, auto-heal by setting it back to null so
+      // the OG cascade falls back to the first album photo / cover / JDV image.
+      if (resolvedPage.social_share_photo_id) {
+        const { data: sharePhoto } = await supabase
+          .from('birthday_page_photos')
+          .select('id, image_url, media_type')
+          .eq('id', resolvedPage.social_share_photo_id)
+          .maybeSingle();
+        const isValid =
+          !!sharePhoto &&
+          (sharePhoto.media_type === 'image' || !sharePhoto.media_type) &&
+          !!sharePhoto.image_url;
+        if (!isValid) {
+          await supabase
+            .from('birthday_pages')
+            .update({ social_share_photo_id: null })
+            .eq('id', resolvedPage.id);
+          resolvedPage = { ...resolvedPage, social_share_photo_id: null };
+          // Best-effort cache purge so crawlers refetch the corrected OG image
+          supabase.functions
+            .invoke('purge-birthday-og-cache', { body: { slug: resolvedPage.slug } })
+            .catch(() => {});
+        }
+      }
+
+      setPage(resolvedPage);
 
       // Load profile
       const { data: profile } = await supabase
