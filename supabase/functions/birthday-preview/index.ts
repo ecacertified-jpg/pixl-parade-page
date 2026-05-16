@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
 
     const { data: page } = await supabase
       .from("birthday_pages")
-      .select("user_id, slug, celebration_year, cover_image_url, is_active, updated_at")
+      .select("id, user_id, slug, celebration_year, cover_image_url, social_share_photo_id, is_active, updated_at")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -229,8 +229,38 @@ Deno.serve(async (req) => {
     );
     const version = Math.floor(versionDate.getTime() / 1000).toString();
     const sep = (u: string) => (u.includes("?") ? "&" : "?");
-    const coverImage = page.cover_image_url
-      ? `${page.cover_image_url}${sep(page.cover_image_url)}v=${version}`
+
+    // Resolve OG image with cascade:
+    // 1. owner-selected album photo (social_share_photo_id)
+    // 2. first image in album (oldest)
+    // 3. legacy cover_image_url (hero banner)
+    // 4. generated JDV birthday OG image (final fallback)
+    let albumImageUrl: string | null = null;
+    if (page.social_share_photo_id) {
+      const { data: selected } = await supabase
+        .from("birthday_page_photos")
+        .select("image_url, media_type")
+        .eq("id", page.social_share_photo_id)
+        .maybeSingle();
+      if (selected && (selected.media_type === "image" || !selected.media_type) && selected.image_url) {
+        albumImageUrl = selected.image_url;
+      }
+    }
+    if (!albumImageUrl) {
+      const { data: firstPhoto } = await supabase
+        .from("birthday_page_photos")
+        .select("image_url")
+        .eq("birthday_page_id", page.id)
+        .eq("media_type", "image")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (firstPhoto?.image_url) albumImageUrl = firstPhoto.image_url;
+    }
+
+    const baseImage = albumImageUrl ?? page.cover_image_url ?? null;
+    const coverImage = baseImage
+      ? `${baseImage}${sep(baseImage)}v=${version}`
       : `${BIRTHDAY_OG_FN}?slug=${encodeURIComponent(page.slug)}&v=${version}`;
 
     const html = buildHtml({

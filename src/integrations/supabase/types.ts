@@ -1098,6 +1098,7 @@ export type Database = {
           published_at: string | null
           published_via_onboarding: boolean
           slug: string
+          social_share_photo_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -1112,6 +1113,7 @@ export type Database = {
           published_at?: string | null
           published_via_onboarding?: boolean
           slug: string
+          social_share_photo_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -1126,6 +1128,7 @@ export type Database = {
           published_at?: string | null
           published_via_onboarding?: boolean
           slug?: string
+          social_share_photo_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -1143,6 +1146,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_pages_social_share_photo_id_fkey"
+            columns: ["social_share_photo_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_page_photos"
             referencedColumns: ["id"]
           },
         ]
