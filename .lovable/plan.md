@@ -1,37 +1,63 @@
-## Objectif
+# Afficher l'image OG sur les liens JDV partagés (WhatsApp, Facebook, etc.)
 
-Ajouter un bouton "Ajouter depuis Jumia.ci" dans la boutique principale (`/shop`), sous la barre de recherche produits, qui permet à l'utilisateur de coller un lien produit Jumia et de lancer immédiatement une cagnotte JDV pour ce produit (sans passer par la wishlist).
+## Diagnostic
 
-## Comportement
+WhatsApp, Facebook, LinkedIn, Telegram, etc. ne lancent pas JavaScript : ils lisent **uniquement** le HTML renvoyé par le serveur. Aujourd'hui le site sert `index.html` (avec un `og:image` générique correct) pour la plupart des routes, mais quand on partage un lien dynamique (cagnotte, produit, boutique, événement) ces crawlers reçoivent toujours le même HTML générique — donc soit l'image par défaut, soit rien si elle est en cache négatif.
 
-1. Sur l'onglet "Produits" de `/shop`, juste sous l'input de recherche, afficher un bouton orange pleine largeur identique au design de `/wishlist-catalog` (même style, même icône `ShoppingBag`).
-2. Au clic → ouverture d'une variante du modal Jumia (mode "cagnotte").
-3. L'utilisateur colle l'URL → bouton "Aperçu" appelle `fetch-external-product-meta` (déjà existant, allowlist Jumia incluse) → pré-remplit nom, prix, image, plateforme.
-4. Le CTA principal du modal devient "Lancer une cagnotte" (au lieu de "Ajouter à mes souhaits"). À la soumission, le modal se ferme et ouvre `ExternalProductFundModal` avec un `preset` (productUrl, productName, productImageUrl, estimatedPrice, platform).
-5. La cagnotte créée suit le flow existant `SELF_PURCHASE_PLATFORMS = {'Jumia'}` : à 100%, le bénéficiaire reçoit ses fonds via Wave et achète lui-même sur Jumia (voir mémo [Jumia external wishlist]).
+Des **fonctions edge "preview"** existent déjà côté Supabase et fabriquent un HTML riche (titre, description, image dédiée) en détectant le User-Agent du crawler :
+- `birthday-preview` (déjà routé)
+- `join-preview` (déjà routé)
+- `fund-preview`, `business-preview`, `product-preview`, `home-preview` — **présentes mais non branchées** dans `public/_redirects`.
 
-## Changements de code
+Aucune fonction n'existe pour les pages d'événements (`/event/:slug`).
 
-### 1. `src/components/wishlist/JumiaImportModal.tsx`
-- Ajouter une prop optionnelle `mode?: "favorite" | "fund"` (défaut `"favorite"` pour ne rien casser sur `/wishlist-catalog`).
-- Ajouter une prop optionnelle `onLaunchFund?: (preset: { productUrl, productName, productImageUrl, estimatedPrice, platform }) => void`.
-- En mode `"fund"` : ne pas appeler `useAddExternalFavorite`. Le bouton de soumission devient "Lancer une cagnotte" et appelle `onLaunchFund(preset)` puis `onClose()`. Texte du modal légèrement adapté ("Une cagnotte JDV sera lancée pour ce produit").
+C'est la cause principale : les liens de cagnottes, boutiques, produits et page d'accueil n'ont jamais d'aperçu enrichi parce que le serveur n'envoie pas les bonnes balises au crawler.
 
-### 2. `src/pages/Shop.tsx`
-- Importer `JumiaImportModal`, `ExternalProductFundModal`, `ShoppingBag` (lucide), `useCountry` (déjà importé via `effectiveCountryFilter`).
-- États locaux : `jumiaModalOpen`, `fundPreset`.
-- Insérer le bouton orange juste après l'input de recherche produits (~ligne 488), uniquement quand `activeTab === "products"`, mêmes classes Tailwind que `/wishlist-catalog` (`border-orange-300 text-orange-700 hover:bg-orange-50 …`).
-- Monter `<JumiaImportModal mode="fund" isOpen={jumiaModalOpen} onClose={…} countryCode={profileCountryCode} onLaunchFund={setFundPreset} />` et `<ExternalProductFundModal isOpen={!!fundPreset} onClose={() => setFundPreset(null)} preset={fundPreset} />` en bas du JSX.
+## Plan
 
-## Hors scope
+### 1. Brancher les preview functions existantes dans `public/_redirects`
 
-- Pas de changement DB, RLS, edge functions — la table `collective_funds` supporte déjà `is_external_product` / `external_platform`, l'edge `fetch-external-product-meta` couvre déjà Jumia, et `process-fund-completion` gère déjà le statut `awaiting_beneficiary_purchase`.
-- Pas d'ajout au panier ni de checkout direct sur Jumia.
-- L'onglet "Expériences" ne reçoit pas le bouton.
-- Pas de changement sur `/wishlist-catalog` (mode par défaut préservé).
+Ajouter, avant la règle catch-all `/*  /index.html  200`, les redirections suivantes vers les edge functions Supabase (chacune détecte déjà le User-Agent et sert soit le HTML enrichi pour les bots, soit une redirection vers le SPA pour les humains) :
+
+```
+/f/*            https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/fund-preview/:splat       200
+/b/*            https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/business-preview/:splat   200
+/p/*            https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/product-preview/:splat    200
+```
+
+Pour la home, ne pas intercepter `/` côté `_redirects` (cela casserait le SPA pour les utilisateurs). À la place, vérifier que `index.html` contient déjà un `og:image` valide — c'est le cas (`/og-image.png`).
+
+### 2. Vérifier que chaque preview function renvoie bien :
+- `og:title`, `og:description`, `og:url`, `og:type`
+- `og:image` **absolue + https**, `og:image:secure_url`, `og:image:type`, `og:image:width`, `og:image:height`
+- Variantes `twitter:*`
+- Pour les humains (non-crawlers) : redirection 302 vers la même URL côté SPA
+
+Les 4 fonctions existantes respectent déjà ce schéma (vérifié dans le code), donc aucun changement requis.
+
+### 3. (Optionnel) Ajouter un preview pour les pages événement
+
+Routes concernées : `/event/:slug` et `/evenement/:slug`. Aujourd'hui ces liens n'ont aucune image personnalisée. Créer une edge function `event-preview` calquée sur `birthday-preview` (mêmes balises, image générée ou photo de couverture de l'événement), puis ajouter :
+
+```
+/event/*        https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/event-preview/:splat  200
+/evenement/*    https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/event-preview/:splat  200
+```
+
+### 4. Invalider le cache WhatsApp / Facebook
+
+WhatsApp et Facebook gardent en cache l'aperçu d'une URL pendant plusieurs semaines. Après déploiement :
+- Pour Facebook/WhatsApp : passer l'URL dans le [Sharing Debugger Facebook](https://developers.facebook.com/tools/debug/) → "Scrape Again".
+- Pour LinkedIn : [Post Inspector](https://www.linkedin.com/post-inspector/).
+- Pour les liens déjà partagés, ajouter un paramètre `?v=2` force WhatsApp à re-télécharger l'aperçu.
 
 ## Détails techniques
 
-- `JumiaImportModal` exporte déjà `defaultPlatformUrl` / `defaultPlatformLabel` — on peut réutiliser les valeurs Jumia par défaut.
-- `ExternalProductFundModal` accepte déjà la prop `preset` au format `{ productUrl, productName, productImageUrl, estimatedPrice, platform }` (cf. usage dans `WishlistCatalog.tsx` lignes 429-443).
-- Aucun nouveau secret, aucune migration.
+- **Fichier modifié** : `public/_redirects` (3 lignes ajoutées, ou 5 si l'événement est inclus).
+- **Fichier créé (optionnel)** : `supabase/functions/event-preview/index.ts` (copie adaptée de `birthday-preview`).
+- **Aucun changement front** : tous les composants de partage continuent d'envoyer les mêmes URLs (`/f/...`, `/b/...`, `/p/...`).
+- **Aucune migration DB**.
+
+## Question rapide avant d'implémenter
+
+L'option 3 (créer `event-preview` pour les pages événement) est-elle souhaitée maintenant, ou je me limite à brancher uniquement les previews déjà existantes (cagnotte / boutique / produit) ?
