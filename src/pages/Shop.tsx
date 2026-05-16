@@ -39,6 +39,9 @@ import { CountryBadge } from "@/components/CountryBadge";
 import { haversineDistance, formatDistance, requestUserLocation, isLocationInCountryBounds, type GeoLocation } from "@/utils/geoUtils";
 import { getCountryConfig } from "@/config/countries";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
+import { JumiaImportModal } from "@/components/wishlist/JumiaImportModal";
+import { ExternalProductFundModal } from "@/components/ExternalProductFundModal";
+import { ShoppingBag } from "lucide-react";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -60,6 +63,16 @@ export default function Shop() {
   // Geolocation state
   const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+
+  // Jumia external import → fund flow
+  const [jumiaModalOpen, setJumiaModalOpen] = useState(false);
+  const [fundPreset, setFundPreset] = useState<{
+    productUrl: string;
+    productName: string;
+    productImageUrl: string | null;
+    estimatedPrice: number;
+    platform: string;
+  } | null>(null);
   
 
   // Derive distance-sorted products from cached data
@@ -491,6 +504,17 @@ export default function Shop() {
                 className="pl-10" 
               />
             </div>
+
+            {/* Import depuis une plateforme externe (Jumia) → lance directement une cagnotte */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setJumiaModalOpen(true)}
+              className="w-full gap-2 mb-4 border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-800 dark:border-orange-500/40 dark:text-orange-300 dark:hover:bg-orange-500/10"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              Ajouter depuis Jumia.ci
+            </Button>
             
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {tasteFilters.map((taste) => {
