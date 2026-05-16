@@ -221,6 +221,11 @@ export function BirthdayAlbum({
       return;
     }
     onSocialSharePhotoChanged?.(newValue);
+    // Fire-and-forget cache purge so Facebook, WhatsApp & co. fetch the
+    // new og:image immediately instead of waiting for the next organic scrape.
+    supabase.functions
+      .invoke("purge-birthday-og-cache", { body: { slug } })
+      .catch((e) => console.warn("og cache purge failed", e));
     toast.success(
       isAlreadySelected
         ? "Image de partage retirée"
