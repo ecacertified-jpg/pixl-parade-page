@@ -105,13 +105,12 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
 
       // Fetch gift promise counts grouped by page
       const giftPromiseMap = new Map<string, number>();
-      const { data: giftPromises } = await supabase
-        .from('page_gift_promises' as any)
-        .select('page_id, page_type');
-      if (giftPromises) {
-        for (const gp of giftPromises as any[]) {
-          const key = `${gp.page_type}-${gp.page_id}`;
-          giftPromiseMap.set(key, (giftPromiseMap.get(key) || 0) + 1);
+      const { data: giftPromiseCounts } = await supabase
+        .rpc('get_page_gift_promise_counts' as any);
+      if (giftPromiseCounts) {
+        for (const row of giftPromiseCounts as any[]) {
+          const key = `${row.page_type}-${row.page_id}`;
+          giftPromiseMap.set(key, Number(row.promise_count) || 0);
         }
       }
 

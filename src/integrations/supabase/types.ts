@@ -9365,6 +9365,14 @@ export type Database = {
         Args: { days_back?: number }
         Returns: Json
       }
+      get_page_gift_promise_counts: {
+        Args: never
+        Returns: {
+          page_id: string
+          page_type: string
+          promise_count: number
+        }[]
+      }
       get_platform_seo_stats: { Args: never; Returns: Json }
       get_product_category_name: {
         Args: { p_product_id: string }
