@@ -749,11 +749,21 @@ export function BirthdayAlbum({
                             <Pencil className="h-4 w-4 mr-2" /> Modifier
                           </DropdownMenuItem>
                         )}
-                        {canSetAsSocialCover(item) && (
-                          <DropdownMenuItem onClick={() => handleSetSocialCover(item)}>
-                            <Share2 className="h-4 w-4 mr-2" />
-                            {isSocialCover ? "Retirer du partage" : "Utiliser comme image de partage"}
-                          </DropdownMenuItem>
+                        {isPageOwner && (
+                          canSetAsSocialCover(item) ? (
+                            <DropdownMenuItem onClick={() => handleSetSocialCover(item)}>
+                              <Share2 className="h-4 w-4 mr-2" />
+                              {isSocialCover ? "Retirer du partage" : "Utiliser comme image de partage"}
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              disabled
+                              title="Seules les photos peuvent servir d'image de partage"
+                            >
+                              <Share2 className="h-4 w-4 mr-2" />
+                              Image de partage indisponible
+                            </DropdownMenuItem>
+                          )
                         )}
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
