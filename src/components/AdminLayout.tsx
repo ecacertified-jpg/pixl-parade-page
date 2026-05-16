@@ -32,7 +32,8 @@ import {
   MessageSquare,
   Cake,
   Bot,
-  ListChecks
+  ListChecks,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -79,6 +80,7 @@ const navItems: NavItem[] = [
   { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { title: 'Stats Partages', href: '/admin/share-analytics', icon: Share2 },
   { title: 'IndexNow SEO', href: '/admin/indexnow', icon: Rocket },
+  { title: 'Aperçu social (WA/FB)', href: '/admin/social-preview', icon: Eye },
   { title: 'Stats WhatsApp OTP', href: '/admin/whatsapp-otp', icon: MessageSquare },
   { title: 'Délivrabilité SMS/WA', href: '/admin/messaging-delivery', icon: Radio },
   { title: 'Templates WA', href: '/admin/whatsapp-templates', icon: MessageSquare },
