@@ -1,75 +1,44 @@
-## Problème
+## Diagnostic
 
-WhatsApp met en cache l'aperçu OG **par URL publique exacte**, indéfiniment. Quand un utilisateur partage `…/birthday/<slug>` une première fois (avant qu'une photo d'album existe), WhatsApp mémorise l'image JDV par défaut. Même après ajout/sélection d'une photo et purge de cache via Graph API, WhatsApp ne re-scrape pas — il continue d'afficher l'image initialement mise en cache.
+J’ai testé exactement ce que WhatsApp reçoit en grattant chaque URL avec un User-Agent WhatsApp :
 
-La fonction `birthday-preview` répond pourtant déjà correctement (vérifié : pour `ange-felicia--2026`, elle retourne bien l'URL de la photo d'album dans `og:image`).
+- `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/ange-felicia--2026` → ✅ rend le bon HTML (`og:image` = photo de l’album d’Ange Felicia, version `1747...-6f8dfe74`).
+- `https://joiedevivre-africa.com/birthday/ange-felicia--2026` → ❌ rend `index.html` (titre générique JDV, `og:image = og-image.jpg?v=2026051602`).
+- Idem pour `www.joiedevivre-africa.com` et `pixl-parade-page.lovable.app`.
 
-## Solution
+La cause : sur le hosting Lovable, le fichier `public/_redirects` est ignoré (c’est une convention Netlify). Le routage `\/birthday\/* → birthday-preview` n’a donc jamais été appliqué sur le domaine public — toutes les routes tombent dans le fallback SPA qui sert `index.html` aux crawlers. Côté DB la photo est bien sélectionnée (`social_share_photo_id = 6f8dfe74…`), donc le problème n’est pas dans les données, c’est l’URL partagée qui n’atteint pas la bonne edge function.
 
-Versionner l'URL partagée avec un cache-buster qui change quand l'image de partage change. WhatsApp considérera alors qu'il s'agit d'une URL différente et re-scrapera.
+## Correctif retenu (immédiat)
 
-### 1. Edge function `birthday-share-version` (nouvelle)
+Faire pointer les URLs de partage anniversaire directement vers l’edge function `birthday-preview`. Les crawlers (WhatsApp, Facebook, LinkedIn) liront alors le bon `og:image`. Les humains seront redirigés 302 vers le SPA (`/birthday/:slug`) par la function elle-même — ce code existe déjà dans `birthday-preview/index.ts`.
 
-Petite fonction publique qui prend un `slug` et retourne le tag de version courant utilisé par `birthday-preview` (`updated_at` + 8 premiers car. de `social_share_photo_id`). Permet au frontend d'appeler une seule source de vérité.
+## Changements
 
-Alternative plus légère : exposer la même logique directement côté frontend via une query Supabase (lecture de `birthday_pages.updated_at` + `social_share_photo_id`), sans nouvelle edge function. Recommandé : option client-side, plus simple.
+### 1. `src/utils/buildBirthdayShareUrl.ts`
 
-### 2. Helper `buildBirthdayShareUrl(slug, page)` 
+- Modifier `buildBirthdayShareUrl(slug, opts)` pour retourner :
+  `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/<slug>?s=<versionTag>`
+  au lieu de `https://joiedevivre-africa.com/birthday/<slug>?s=...`.
+- Garder `computeBirthdayShareVersionTag` inchangé.
+- Conserver la version sync et la version async (qui charge `updated_at` + `social_share_photo_id` depuis la DB).
+- Ajouter un commentaire expliquant que cette URL est le point d’entrée crawler + redirection humaine.
 
-Utilitaire frontend qui construit :
-```
-https://joiedevivre-africa.com/birthday/<slug>?s=<versionTag>
-```
-où `versionTag` = `<unix(updated_at)>-<social_share_photo_id?.slice(0,8) ?? 'default'>` (même format que la version utilisée par `birthday-preview`).
+### 2. `src/pages/Dashboard.tsx` (encart « Partagez votre page d’anniversaire »)
 
-À placer dans `src/utils/buildShareUrl.ts` (ou nouveau fichier dédié `src/utils/buildBirthdayShareUrl.ts` pour éviter de polluer).
+- Remplacer l’affichage en clair `{getAppBaseUrl()}/birthday/{slug}` par l’URL générée via `buildBirthdayShareUrl(slug)` (l’utilisateur copie alors l’URL qui marche).
 
-### 3. Mettre à jour tous les points de partage de page anniversaire
+### 3. `src/components/ShareBirthdayToCirclesModal.tsx`
 
-Remplacer les constructions actuelles `…/birthday/${slug}` par `buildBirthdayShareUrl(slug, page)` dans :
-- `BirthdayAlbum.tsx` (boutons partage WhatsApp, copie de lien)
-- `BirthdayPage.tsx` (header share, partage social principal)
-- `useFundShareCard` / autres helpers qui partagent des liens de cagnotte liée à une page d'anniversaire si concernés
-- Toute carte « inviter à signer / partager l'album »
+- Initialiser `birthdayUrl` via `buildBirthdayShareUrl(slug)` plutôt que `${getAppBaseUrl()}/birthday/${slug}` (pour ne plus jamais exposer l’URL cassée même 1 frame).
 
-Auditer via `rg "/birthday/\$\{"` et `rg "buildShareUrl"`.
+### 4. Vérification
 
-### 4. Côté `birthday-preview`
+- `curl -A "WhatsApp/..." <nouvelle URL>` → doit retourner le HTML birthday-preview avec la bonne `og:image`.
+- Charger la même URL dans un navigateur → redirection 302 vers `/birthday/<slug>` sur le domaine.
 
-Aucune modification fonctionnelle nécessaire — la fonction ignore déjà les query params inconnus (le `slug` est extrait du path). Vérifier juste que le paramètre `?s=...` est bien transmis tel quel par les redirections (302 vers SPA pour humains : ajouter le param dans la `Location` pour éviter de le perdre).
+## Notes
 
-### 5. Auto-déclenchement quand le user change la photo de partage
-
-Quand `handleSetSocialCover` ou la validation auto modifie `social_share_photo_id` :
-- `purge-birthday-og-cache` est déjà appelé (re-scrape FB/Graph)
-- Ajouter en plus : toast informatif « Si vous aviez déjà partagé un lien sur WhatsApp, repartagez-le pour que la nouvelle image apparaisse » (WhatsApp ne re-scrape pas les anciens liens même versionnés).
-
-### 6. Cas spécifique de Ange Felicia (correctif data ponctuel)
-
-Optionnel : exécuter une migration ponctuelle qui, pour les pages où `social_share_photo_id IS NULL` mais une photo image existe, sélectionne la première photo comme `social_share_photo_id`. Cela améliore le rendu par défaut et stabilise le `versionTag`.
-
-## Détails techniques
-
-```text
-URL avant : https://joiedevivre-africa.com/birthday/ange-felicia--2026
-URL après : https://joiedevivre-africa.com/birthday/ange-felicia--2026?s=1778894574-6f8dfe74
-```
-
-- Quand l'owner change la photo → nouveau `versionTag` → nouvelle URL → WhatsApp re-scrape.
-- Les humains qui cliquent voient le même contenu (le SPA ignore `?s=...`).
-- Les crawlers reçoivent le HTML correct avec `og:image` à jour (déjà OK aujourd'hui).
-- ETag/Cache-Control de la preview function restent valides car la version est déjà encodée dans l'ETag.
-
-## Hors-scope
-
-- Pas de modif de la cascade de fallback dans `birthday-preview` (déjà correcte).
-- Pas de modif des retries `purge-birthday-og-cache` (déjà robuste).
-- Pas de nouvelle table.
-
-## Fichiers touchés
-
-- `src/utils/buildBirthdayShareUrl.ts` (nouveau)
-- `src/components/BirthdayAlbum.tsx` (partages)
-- `src/pages/BirthdayPage.tsx` (partages + toast info)
-- Audit des autres sites de partage `…/birthday/…`
-- (optionnel) migration ponctuelle de backfill
+- Aucun changement nécessaire dans `birthday-preview/index.ts` (déjà OK pour humains et crawlers).
+- Aucun changement DB requis.
+- Les liens déjà envoyés sur WhatsApp resteront figés dans le cache WhatsApp côté client — il faudra repartager depuis l’app pour voir la photo de l’album.
+- Le routage propre `joiedevivre-africa.com/birthday/*` reste cassé (problème d’infra Lovable, pas de `_redirects`). Si tu veux ensuite une URL « jolie », on pourra demander à Lovable d’ajouter un edge route ou faire un proxy applicatif, mais ça sortirait du scope de ce correctif immédiat.
