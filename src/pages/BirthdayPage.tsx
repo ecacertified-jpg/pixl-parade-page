@@ -22,6 +22,7 @@ import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
 import { BirthdayCountdown } from "@/components/BirthdayCountdown";
 import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
 import { useSchemaInjector } from "@/components/schema";
+import { buildBirthdayShareUrl } from "@/utils/buildBirthdayShareUrl";
 
 interface BirthdayPageData {
   id: string;
@@ -33,6 +34,7 @@ interface BirthdayPageData {
   fund_id: string | null;
   is_active: boolean;
   social_share_photo_id: string | null;
+  updated_at?: string | null;
 }
 
 interface WishMessage {
