@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendWhatsAppTemplate, sendWhatsApp } from "../_shared/sms-sender.ts";
+import { DEFAULT_OG_IMAGE_URL } from "../_shared/og-image-version.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -207,7 +208,7 @@ serve(async (req) => {
     allNotifiedUserIds.add(business.user_id);
 
     // Header image URL for the fund_completed template
-    const FUND_COMPLETED_HEADER_IMAGE = 'https://joiedevivre-africa.com/og-image.jpg?v=2026051602';
+    const FUND_COMPLETED_HEADER_IMAGE = DEFAULT_OG_IMAGE_URL;
 
     // Helper: send fund_completed WhatsApp + in-app notification
     async function notifyFriend(profile: { user_id: string; first_name: string | null; phone: string | null }, source: string) {

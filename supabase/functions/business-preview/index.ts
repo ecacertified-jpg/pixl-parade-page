@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withOgVersion } from "../_shared/og-image-version.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -151,7 +152,7 @@ Deno.serve(async (req) => {
     const businessName = business.business_name || "Boutique";
     const businessType = business.business_type || "";
     const description = business.description || `Découvrez ${businessName} sur JOIE DE VIVRE`;
-    const logoUrl = business.logo_url || `${appUrl}/og-image.jpg?v=2026051602`;
+    const logoUrl = business.logo_url || withOgVersion(`${appUrl}/og-image.jpg`);
     const address = business.address || "";
     const productCountText = productsCount ? `${productsCount} produit${productsCount > 1 ? 's' : ''}` : "";
     

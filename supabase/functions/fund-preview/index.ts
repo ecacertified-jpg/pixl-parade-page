@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withOgVersion } from "../_shared/og-image-version.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -153,7 +154,7 @@ Deno.serve(async (req) => {
     // Dynamic OG image URL using generate-fund-og-image function
     const supabaseProjectUrl = Deno.env.get("SUPABASE_URL")!;
     const ogImage = `${supabaseProjectUrl}/functions/v1/generate-fund-og-image?id=${fundId}`;
-    const fallbackImage = productImage || `${appUrl}/og-image.jpg?v=2026051602`;
+    const fallbackImage = productImage || withOgVersion(`${appUrl}/og-image.jpg`);
 
     // Build Schema.org JSON-LD for Event/FundingScheme
     const schemaJsonLd = JSON.stringify({
