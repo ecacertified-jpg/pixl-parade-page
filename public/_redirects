@@ -4,4 +4,6 @@
 /f/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/fund-preview/:splat  200
 /b/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/business-preview/:splat  200
 /p/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/product-preview/:splat  200
+/event/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/event-preview/:splat  200
+/evenement/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/event-preview/:splat  200
 /*    /index.html   200
