@@ -847,8 +847,10 @@ export default function Dashboard() {
                     variant="outline"
                     className="gap-1.5 text-xs flex-1"
                     onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(`${getAppBaseUrl()}/birthday/${birthdayPageSlug}`);
+                       try {
+                         const { buildBirthdayShareUrlAsync } = await import('@/utils/buildBirthdayShareUrl');
+                         const versioned = await buildBirthdayShareUrlAsync(birthdayPageSlug);
+                         await navigator.clipboard.writeText(versioned);
                         setBirthdayLinkCopied(true);
                         toast({ title: 'Lien copié ! 📋' });
                         setTimeout(() => setBirthdayLinkCopied(false), 2000);
