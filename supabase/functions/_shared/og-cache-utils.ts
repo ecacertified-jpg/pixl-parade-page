@@ -80,7 +80,7 @@ export async function getCachedImage(
  */
 export async function cacheImage(
   supabaseAdmin: SupabaseClient,
-  entityType: "product" | "fund" | "business" | "admin",
+  entityType: "product" | "fund" | "business" | "admin" | "birthday",
   entityId: string,
   cacheKey: string,
   imageBuffer: ArrayBuffer,

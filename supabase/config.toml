@@ -195,6 +195,10 @@ entrypoint = "./functions/generate-fund-og-image/index.tsx"
 verify_jwt = false
 entrypoint = "./functions/generate-business-og-image/index.tsx"
 
+[functions.generate-birthday-og-image]
+verify_jwt = false
+entrypoint = "./functions/generate-birthday-og-image/index.tsx"
+
 [functions.sitemap-full]
 verify_jwt = false
 
