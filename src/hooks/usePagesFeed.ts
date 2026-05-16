@@ -119,7 +119,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
       if (birthdayRes.data) {
         for (const bp of birthdayRes.data) {
           const profile = profileMap.get(bp.user_id);
-          const photos = (bp.birthday_page_photos as any[]) || [];
+          const photos = ((bp.birthday_page_photos as unknown) as any[]) || [];
           const mediaItems: FeedMedia[] = photos
             .map((p: any): FeedMedia | null => {
               if (p.media_type === 'video' || p.video_url) {
