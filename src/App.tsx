@@ -136,6 +136,7 @@ const OrdersManagement = lazy(() => import("./pages/Admin/OrdersManagement"));
 const AdminNotificationsPage = lazy(() => import("./pages/Admin/AdminNotificationsPage"));
 const ShareAnalytics = lazy(() => import("./pages/Admin/ShareAnalytics"));
 const IndexNowAnalytics = lazy(() => import("./pages/Admin/IndexNowAnalytics"));
+const SocialPreviewDebug = lazy(() => import("./pages/Admin/SocialPreviewDebug"));
 const WhatsAppOtpAnalytics = lazy(() => import("./pages/Admin/WhatsAppOtpAnalytics"));
 const MessagingDeliveryDashboard = lazy(() => import("./pages/Admin/MessagingDeliveryDashboard"));
 const WhatsAppTemplateDashboard = lazy(() => import("./pages/Admin/WhatsAppTemplateDashboard"));
