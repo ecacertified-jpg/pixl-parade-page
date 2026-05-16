@@ -1,44 +1,111 @@
-## Diagnostic
 
-J’ai testé exactement ce que WhatsApp reçoit en grattant chaque URL avec un User-Agent WhatsApp :
+## Le vrai problème
 
-- `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/ange-felicia--2026` → ✅ rend le bon HTML (`og:image` = photo de l’album d’Ange Felicia, version `1747...-6f8dfe74`).
-- `https://joiedevivre-africa.com/birthday/ange-felicia--2026` → ❌ rend `index.html` (titre générique JDV, `og:image = og-image.jpg?v=2026051602`).
-- Idem pour `www.joiedevivre-africa.com` et `pixl-parade-page.lovable.app`.
+Sur le hosting Lovable, `joiedevivre-africa.com/birthday/<slug>` renvoie toujours `index.html` (le SPA), peu importe le User-Agent. WhatsApp lit donc l'image OG générique JDV au lieu de l'image de l'album. Lovable n'exécute pas `public/_redirects` (convention Netlify uniquement) et il n'y a aucun hook serveur exposé pour injecter des meta tags dynamiques par slug.
 
-La cause : sur le hosting Lovable, le fichier `public/_redirects` est ignoré (c’est une convention Netlify). Le routage `\/birthday\/* → birthday-preview` n’a donc jamais été appliqué sur le domaine public — toutes les routes tombent dans le fallback SPA qui sert `index.html` aux crawlers. Côté DB la photo est bien sélectionnée (`social_share_photo_id = 6f8dfe74…`), donc le problème n’est pas dans les données, c’est l’URL partagée qui n’atteint pas la bonne edge function.
+Conséquence : **il est impossible, depuis le code du projet seul, de servir un OG correct sur `joiedevivre-africa.com/birthday/<slug>`**. Il faut un composant d'infrastructure devant le domaine qui sache router les crawlers vers l'edge function `birthday-preview` et les humains vers le SPA.
 
-## Correctif retenu (immédiat)
+## Solution recommandée : Cloudflare Worker en frontal du domaine
 
-Faire pointer les URLs de partage anniversaire directement vers l’edge function `birthday-preview`. Les crawlers (WhatsApp, Facebook, LinkedIn) liront alors le bon `og:image`. Les humains seront redirigés 302 vers le SPA (`/birthday/:slug`) par la function elle-même — ce code existe déjà dans `birthday-preview/index.ts`.
+C'est l'approche standard pour ce cas (custom OG sur hosting statique). Une seule pièce d'infra, ~30 lignes de code, gratuite jusqu'à 100k req/jour.
 
-## Changements
+### Architecture
 
-### 1. `src/utils/buildBirthdayShareUrl.ts`
+```text
+WhatsApp/Facebook ──┐
+                    ├──► joiedevivre-africa.com ──► Cloudflare Worker
+Navigateur humain ──┘                                      │
+                                                           ├─ crawler + /birthday/* ──► fetch(supabase birthday-preview) ──► HTML OG
+                                                           ├─ crawler + /f/*,/b/*,/p/*,/event/* ──► fetch(<preview function correspondante>)
+                                                           └─ tout le reste ──► fetch(origine Lovable actuelle) ──► SPA
+```
 
-- Modifier `buildBirthdayShareUrl(slug, opts)` pour retourner :
-  `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/<slug>?s=<versionTag>`
-  au lieu de `https://joiedevivre-africa.com/birthday/<slug>?s=...`.
-- Garder `computeBirthdayShareVersionTag` inchangé.
-- Conserver la version sync et la version async (qui charge `updated_at` + `social_share_photo_id` depuis la DB).
-- Ajouter un commentaire expliquant que cette URL est le point d’entrée crawler + redirection humaine.
+L'URL partagée reste `https://joiedevivre-africa.com/birthday/<slug>?s=<version>`. WhatsApp voit l'image de l'album. L'humain qui clique atterrit directement sur le SPA (pas de 302 visible).
 
-### 2. `src/pages/Dashboard.tsx` (encart « Partagez votre page d’anniversaire »)
+### Étapes
 
-- Remplacer l’affichage en clair `{getAppBaseUrl()}/birthday/{slug}` par l’URL générée via `buildBirthdayShareUrl(slug)` (l’utilisateur copie alors l’URL qui marche).
+1. **DNS** — Passer `joiedevivre-africa.com` derrière Cloudflare (changer les nameservers chez le registrar pour ceux fournis par Cloudflare). Le DNS reste pointé vers Lovable (CNAME existant), Cloudflare devient juste le proxy (orange cloud ON).
 
-### 3. `src/components/ShareBirthdayToCirclesModal.tsx`
+2. **Worker** — Créer un Worker avec le code ci-dessous, le router sur `joiedevivre-africa.com/*` et `www.joiedevivre-africa.com/*`. À déployer depuis le dashboard Cloudflare (5 min, pas besoin de CLI).
 
-- Initialiser `birthdayUrl` via `buildBirthdayShareUrl(slug)` plutôt que `${getAppBaseUrl()}/birthday/${slug}` (pour ne plus jamais exposer l’URL cassée même 1 frame).
+3. **Code du projet** — Revenir `buildBirthdayShareUrl` à l'URL jolie `https://joiedevivre-africa.com/birthday/<slug>?s=<version>`. Les fichiers concernés :
+   - `src/utils/buildBirthdayShareUrl.ts` — retourner l'URL canonique du domaine.
+   - `src/components/ShareBirthdayToCirclesModal.tsx` et `src/pages/Dashboard.tsx` — aucun changement (ils appellent déjà `buildBirthdayShareUrl`).
+   - Garder `public/_redirects` pour mémoire (ignoré par Lovable mais utile si un jour migration vers Netlify/Vercel).
 
-### 4. Vérification
+4. **Vérification**
+   - `curl -A "WhatsApp/2.24.10 i" https://joiedevivre-africa.com/birthday/ange-felicia--2026?s=...` → doit retourner le HTML `birthday-preview` avec `og:image` = photo de l'album.
+   - `curl -A "Mozilla/5.0 ..." https://joiedevivre-africa.com/birthday/ange-felicia--2026?s=...` → doit retourner `index.html` (le SPA Lovable).
+   - WhatsApp doit afficher la photo ET l'URL jolie sous l'aperçu.
 
-- `curl -A "WhatsApp/..." <nouvelle URL>` → doit retourner le HTML birthday-preview avec la bonne `og:image`.
-- Charger la même URL dans un navigateur → redirection 302 vers `/birthday/<slug>` sur le domaine.
+### Détails techniques
+
+#### Code du Worker (à coller dans le dashboard Cloudflare)
+
+```js
+const CRAWLERS = [
+  "facebookexternalhit", "facebot", "twitterbot", "whatsapp", "linkedinbot",
+  "slackbot", "telegrambot", "discordbot", "googlebot", "bingbot",
+  "applebot", "pinterestbot", "pinterest", "vkshare", "viber",
+  "snapchat", "redditbot", "embedly", "iframely",
+];
+const SUPA = "https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1";
+const PREVIEW_ROUTES = [
+  { prefix: "/birthday/",     fn: "birthday-preview" },
+  { prefix: "/anniversaire/", fn: "birthday-preview" },
+  { prefix: "/f/",            fn: "fund-preview"     },
+  { prefix: "/b/",            fn: "business-preview" },
+  { prefix: "/p/",            fn: "product-preview"  },
+  { prefix: "/event/",        fn: "event-preview"    },
+  { prefix: "/evenement/",    fn: "event-preview"    },
+  { prefix: "/join/ADM-",     fn: "join-preview", keepFullPath: true },
+];
+
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const ua = (request.headers.get("user-agent") || "").toLowerCase();
+    const isCrawler = CRAWLERS.some(c => ua.includes(c));
+
+    if (isCrawler) {
+      for (const r of PREVIEW_ROUTES) {
+        if (url.pathname.startsWith(r.prefix)) {
+          const slug = r.keepFullPath
+            ? url.pathname.replace("/join/", "")
+            : url.pathname.slice(r.prefix.length);
+          const target = `${SUPA}/${r.fn}/${slug}${url.search}`;
+          return fetch(target, { headers: { "user-agent": request.headers.get("user-agent") } });
+        }
+      }
+    }
+    // Humans (or non-preview paths) → origine Lovable normale
+    return fetch(request);
+  },
+};
+```
+
+#### Patch `buildBirthdayShareUrl.ts`
+
+```ts
+const PUBLIC_DOMAIN = "https://joiedevivre-africa.com";
+
+export function buildBirthdayShareUrl(slug, opts) {
+  const url = new URL(`${PUBLIC_DOMAIN}/birthday/${encodeURIComponent(slug)}`);
+  if (opts && (opts.updatedAt || opts.socialSharePhotoId)) {
+    url.searchParams.set("s", computeBirthdayShareVersionTag(opts));
+  }
+  return url.toString();
+}
+```
+
+## Alternatives (moins recommandées)
+
+- **Garder l'URL Supabase actuelle** — fonctionne immédiatement (déjà en place) mais l'URL est moche dans WhatsApp. C'est ce qu'on a aujourd'hui.
+- **Demander à Lovable d'ajouter un edge route natif** — plus propre à terme mais dépend de leur roadmap et n'est pas exposé dans l'UI aujourd'hui.
+- **Cloudflare "Bulk Redirects" sans Worker** — ne marche pas car il faudrait rediriger les crawlers et préserver les humains, ce qui nécessite la lecture du User-Agent (donc un Worker).
 
 ## Notes
 
-- Aucun changement nécessaire dans `birthday-preview/index.ts` (déjà OK pour humains et crawlers).
-- Aucun changement DB requis.
-- Les liens déjà envoyés sur WhatsApp resteront figés dans le cache WhatsApp côté client — il faudra repartager depuis l’app pour voir la photo de l’album.
-- Le routage propre `joiedevivre-africa.com/birthday/*` reste cassé (problème d’infra Lovable, pas de `_redirects`). Si tu veux ensuite une URL « jolie », on pourra demander à Lovable d’ajouter un edge route ou faire un proxy applicatif, mais ça sortirait du scope de ce correctif immédiat.
+- Le Worker s'applique aussi automatiquement aux autres preview functions (`/f/`, `/b/`, `/p/`, `/event/`, `/join/`) qui ont le même problème que `/birthday/`.
+- Les liens WhatsApp déjà envoyés avec l'URL Supabase resteront figés dans le cache WhatsApp — il faudra repartager depuis l'app pour voir la nouvelle URL jolie.
+- Aucun changement DB ni edge function nécessaire.
