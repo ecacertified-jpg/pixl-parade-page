@@ -65,7 +65,10 @@ export default function Shop() {
   const [isLocating, setIsLocating] = useState(false);
 
   // Jumia external import → fund flow
-  const [jumiaModalOpen, setJumiaModalOpen] = useState(false);
+  const [externalPlatform, setExternalPlatform] = useState<{
+    label: string;
+    url: string;
+  } | null>(null);
   const [fundPreset, setFundPreset] = useState<{
     productUrl: string;
     productName: string;
@@ -505,16 +508,39 @@ export default function Shop() {
               />
             </div>
 
-            {/* Import depuis une plateforme externe (Jumia) → lance directement une cagnotte */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setJumiaModalOpen(true)}
-              className="w-full gap-2 mb-4 border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-800 dark:border-orange-500/40 dark:text-orange-300 dark:hover:bg-orange-500/10"
-            >
-              <ShoppingBag className="h-4 w-4" />
-              Ajouter depuis Jumia.ci
-            </Button>
+            {/* Acheter ailleurs : cagnotte sur un produit hébergé sur une plateforme externe */}
+            <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50/60 dark:border-orange-500/30 dark:bg-orange-500/5 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <ShoppingBag className="h-4 w-4 text-orange-700 dark:text-orange-300" />
+                <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                  Acheter ailleurs
+                </span>
+                <span className="text-[11px] text-orange-700/70 dark:text-orange-300/70">
+                  · lance une cagnotte sur un produit externe
+                </span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {[
+                  { label: "Jumia.ci", url: "https://www.jumia.ci/" },
+                  { label: "Amazon", url: "https://www.amazon.com/" },
+                  { label: "AliExpress", url: "https://www.aliexpress.com/" },
+                  { label: "Shein", url: "https://www.shein.com/" },
+                  { label: "Temu", url: "https://www.temu.com/" },
+                  { label: "Alibaba", url: "https://www.alibaba.com/" },
+                  { label: "eBay", url: "https://www.ebay.com/" },
+                ].map((p) => (
+                  <Button
+                    key={p.label}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExternalPlatform(p)}
+                    className="whitespace-nowrap gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-500/40 dark:text-orange-300 dark:hover:bg-orange-500/15"
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
             
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {tasteFilters.map((taste) => {
@@ -952,9 +978,11 @@ export default function Shop() {
       {/* Jumia import → External product fund */}
       <JumiaImportModal
         mode="fund"
-        isOpen={jumiaModalOpen}
-        onClose={() => setJumiaModalOpen(false)}
+        isOpen={!!externalPlatform}
+        onClose={() => setExternalPlatform(null)}
         countryCode={profileCountryCode}
+        defaultPlatformUrl={externalPlatform?.url}
+        defaultPlatformLabel={externalPlatform?.label}
         onLaunchFund={(preset) => setFundPreset(preset)}
       />
       <ExternalProductFundModal
