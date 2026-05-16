@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 const ALLOWED_HOSTS: { match: RegExp; platform: string }[] = [
-  { match: /(^|\.)jumia\.(ci|com|com\.ng|sn|ma|ke|tn|ug|gh|cm|ic|africa|com\.gh)$/i, platform: 'Jumia' },
+  { match: /(^|\.)jumia\.(ci|com|com\.ng|sn|ma|ke|tn|ug|gh|cm|ic|africa|com\.gh|com\.eg|dz)$/i, platform: 'Jumia' },
   { match: /(^|\.)amazon\.[a-z.]+$/i, platform: 'Amazon' },
   { match: /(^|\.)aliexpress\.com$/i, platform: 'AliExpress' },
   { match: /(^|\.)alibaba\.com$/i, platform: 'Alibaba' },
@@ -16,12 +16,100 @@ const ALLOWED_HOSTS: { match: RegExp; platform: string }[] = [
   { match: /(^|\.)ebay\.[a-z.]+$/i, platform: 'eBay' },
 ]
 
+// Fuzzy fallback: catches new TLDs, mobile subdomains, regional variants
+const FUZZY_HOSTS: { keyword: RegExp; platform: string }[] = [
+  { keyword: /jumia/i, platform: 'Jumia' },
+  { keyword: /amazon/i, platform: 'Amazon' },
+  { keyword: /aliexpress/i, platform: 'AliExpress' },
+  { keyword: /alibaba/i, platform: 'Alibaba' },
+  { keyword: /shein/i, platform: 'Shein' },
+  { keyword: /temu/i, platform: 'Temu' },
+  { keyword: /ebay/i, platform: 'eBay' },
+]
+
 function detectPlatform(hostname: string): string | null {
   const h = hostname.replace(/^www\./i, '')
   for (const { match, platform } of ALLOWED_HOSTS) {
     if (match.test(h)) return platform
   }
+  // Fuzzy match for non-canonical hosts (m.jumia.ci, deals.jumia.com, jumia.com.eg, etc.)
+  for (const { keyword, platform } of FUZZY_HOSTS) {
+    if (keyword.test(h)) return platform
+  }
   return null
+}
+
+/**
+ * Normalize a raw user input into a clean product URL:
+ *  - extract the first http(s) URL from messy text (WhatsApp shares, etc.)
+ *  - prepend https:// when missing
+ *  - rewrite m.* mobile subdomains to www.*
+ *  - strip tracking params (utm_*, gclid, fbclid, ref, _ga, sclid, mc_*, ...)
+ */
+function normalizeRawUrl(input: string): string | null {
+  let raw = input.trim()
+  if (!raw) return null
+  // Extract first URL from messy text
+  const urlMatch = raw.match(/https?:\/\/[^\s<>"']+/i)
+  if (urlMatch) {
+    raw = urlMatch[0]
+  } else if (/^[a-z0-9-]+(\.[a-z0-9-]+)+/i.test(raw)) {
+    // Bare domain like "www.jumia.ci/foo" — prepend scheme
+    raw = 'https://' + raw.replace(/^\/+/, '')
+  } else {
+    return null
+  }
+  let parsed: URL
+  try {
+    parsed = new URL(raw)
+  } catch {
+    return null
+  }
+  // Rewrite mobile → www
+  if (/^m\./i.test(parsed.hostname)) {
+    parsed.hostname = 'www.' + parsed.hostname.slice(2)
+  }
+  // Strip tracking / share params
+  const stripParams = [
+    /^utm_/i, /^gclid$/i, /^fbclid$/i, /^msclkid$/i, /^_ga$/i, /^mc_/i,
+    /^sclid$/i, /^ref$/i, /^src$/i, /^source$/i, /^share_/i, /^shared_/i,
+    /^spm$/i, /^scm$/i, /^pdp_/i, /^algo_/i, /^aff_/i,
+  ]
+  const keep: [string, string][] = []
+  for (const [k, v] of parsed.searchParams) {
+    if (!stripParams.some((rx) => rx.test(k))) keep.push([k, v])
+  }
+  parsed.search = ''
+  for (const [k, v] of keep) parsed.searchParams.set(k, v)
+  return parsed.toString()
+}
+
+/** Jumia-specific extra extractors: itemprop=price, data-price attrs, h1 fallback. */
+function pickJumiaExtras(html: string): { name?: string; price?: number; image?: string } {
+  const out: { name?: string; price?: number; image?: string } = {}
+  // <span itemprop="price" content="12345"> or <meta itemprop="price" content="...">
+  const itemPropPrice = html.match(/itemprop=["']price["'][^>]*content=["']([^"']+)["']/i)
+    || html.match(/content=["']([^"']+)["'][^>]*itemprop=["']price["']/i)
+  if (itemPropPrice) {
+    const n = Number.parseFloat(itemPropPrice[1].replace(/[^\d.]/g, ''))
+    if (Number.isFinite(n) && n > 0) out.price = Math.round(n)
+  }
+  // data-price="12345" attribute (Jumia & many e-commerce themes)
+  if (out.price == null) {
+    const dataPrice = html.match(/data-price=["']([\d.,]+)["']/i)
+    if (dataPrice) {
+      const norm = dataPrice[1].replace(/[^\d.,]/g, '').replace(/,/g, '')
+      const n = Number.parseFloat(norm)
+      if (Number.isFinite(n) && n > 0) out.price = Math.round(n)
+    }
+  }
+  // <h1 class="-fs20 -pts -pbxs"> Product Name </h1>
+  const h1 = html.match(/<h1[^>]*>([\s\S]{1,300}?)<\/h1>/i)
+  if (h1) {
+    const stripped = h1[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+    if (stripped) out.name = stripped.slice(0, 200)
+  }
+  return out
 }
 
 function pickMeta(html: string, ...keys: string[]): string | null {
@@ -111,12 +199,11 @@ Deno.serve(async (req) => {
     if (!rawUrl || rawUrl.length > 2000) {
       return new Response(JSON.stringify({ error: 'URL is required (max 2000 chars)' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
-    let parsed: URL
-    try {
-      parsed = new URL(rawUrl)
-    } catch {
+    const normalized = normalizeRawUrl(rawUrl)
+    if (!normalized) {
       return new Response(JSON.stringify({ error: 'Invalid URL' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
+    const parsed = new URL(normalized)
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       return new Response(JSON.stringify({ error: 'Only http(s) URLs are allowed' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -150,11 +237,16 @@ Deno.serve(async (req) => {
       clearTimeout(timeout)
     }
 
+    const extras = platform === 'Jumia' ? pickJumiaExtras(html) : {}
     const name =
       pickMeta(html, 'og:title', 'twitter:title') ||
+      extras.name ||
       (html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() ?? null)
-    const image = pickMeta(html, 'og:image', 'og:image:url', 'twitter:image', 'twitter:image:src')
-    const price = pickPrice(html)
+    const image =
+      pickMeta(html, 'og:image', 'og:image:url', 'twitter:image', 'twitter:image:src') ||
+      extras.image ||
+      null
+    const price = pickPrice(html) ?? extras.price ?? null
     const currency = pickMeta(html, 'product:price:currency', 'og:price:currency') || 'XOF'
 
     return new Response(
