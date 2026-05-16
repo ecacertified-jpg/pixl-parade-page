@@ -69,6 +69,15 @@ export default function Shop() {
     label: string;
     url: string;
   } | null>(null);
+  // Last platform clicked in the "Acheter ailleurs" section — persisted across reloads
+  const [lastExternalPlatformLabel, setLastExternalPlatformLabel] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return window.localStorage.getItem("jdv:lastExternalPlatform");
+    } catch {
+      return null;
+    }
+  });
   const [fundPreset, setFundPreset] = useState<{
     productUrl: string;
     productName: string;
@@ -520,25 +529,53 @@ export default function Shop() {
                 </span>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {[
-                  { label: "Jumia.ci", url: "https://www.jumia.ci/" },
-                  { label: "Amazon", url: "https://www.amazon.com/" },
-                  { label: "AliExpress", url: "https://www.aliexpress.com/" },
-                  { label: "Shein", url: "https://www.shein.com/" },
-                  { label: "Temu", url: "https://www.temu.com/" },
-                  { label: "Alibaba", url: "https://www.alibaba.com/" },
-                  { label: "eBay", url: "https://www.ebay.com/" },
-                ].map((p) => (
-                  <Button
-                    key={p.label}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setExternalPlatform(p)}
-                    className="whitespace-nowrap gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-500/40 dark:text-orange-300 dark:hover:bg-orange-500/15"
-                  >
-                    {p.label}
-                  </Button>
-                ))}
+                {(() => {
+                  const all = [
+                    { label: "Jumia.ci", url: "https://www.jumia.ci/" },
+                    { label: "Amazon", url: "https://www.amazon.com/" },
+                    { label: "AliExpress", url: "https://www.aliexpress.com/" },
+                    { label: "Shein", url: "https://www.shein.com/" },
+                    { label: "Temu", url: "https://www.temu.com/" },
+                    { label: "Alibaba", url: "https://www.alibaba.com/" },
+                    { label: "eBay", url: "https://www.ebay.com/" },
+                  ];
+                  // Last-used platform comes first
+                  const sorted = lastExternalPlatformLabel
+                    ? [...all].sort((a, b) =>
+                        a.label === lastExternalPlatformLabel ? -1 : b.label === lastExternalPlatformLabel ? 1 : 0,
+                      )
+                    : all;
+                  return sorted.map((p) => {
+                    const isLast = p.label === lastExternalPlatformLabel;
+                    return (
+                      <Button
+                        key={p.label}
+                        variant={isLast ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setExternalPlatform(p);
+                          setLastExternalPlatformLabel(p.label);
+                          try {
+                            window.localStorage.setItem("jdv:lastExternalPlatform", p.label);
+                          } catch {
+                            /* ignore quota / privacy mode */
+                          }
+                        }}
+                        className={cn(
+                          "whitespace-nowrap gap-1.5",
+                          isLast
+                            ? "bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                            : "border-orange-300 text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-500/40 dark:text-orange-300 dark:hover:bg-orange-500/15",
+                        )}
+                      >
+                        {p.label}
+                        {isLast && (
+                          <span className="text-[10px] opacity-80">· dernier</span>
+                        )}
+                      </Button>
+                    );
+                  });
+                })()}
               </div>
             </div>
             
