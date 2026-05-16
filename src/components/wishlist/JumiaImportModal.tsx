@@ -58,7 +58,17 @@ export function JumiaImportModal({
   const add = useAddExternalFavorite();
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      // Sync the restored/selected platform into the modal as soon as it opens,
+      // so the user immediately sees which marketplace is pre-filled (label + URL).
+      setUrl(defaultPlatformUrl ?? "");
+      setName("");
+      setImageUrl("");
+      setPrice("");
+      setPlatform(defaultPlatformLabel ?? null);
+      setPreviewing(false);
+      setPreviewed(false);
+    } else {
       setUrl("");
       setName("");
       setImageUrl("");
@@ -67,7 +77,7 @@ export function JumiaImportModal({
       setPreviewing(false);
       setPreviewed(false);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultPlatformUrl, defaultPlatformLabel]);
 
   const handlePreview = async () => {
     if (!url.trim()) {
