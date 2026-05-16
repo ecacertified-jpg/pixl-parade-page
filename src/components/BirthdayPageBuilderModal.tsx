@@ -50,6 +50,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { getAppBaseUrl } from '@/utils/appUrl';
+import { invalidateBirthdayOg } from '@/utils/invalidateBirthdayOg';
 import {
   useBirthdayPageBuilderStatus,
   type PageType,
@@ -316,6 +317,7 @@ export function BirthdayPageBuilderModal({
         .maybeSingle();
 
       let pageId: string | null = null;
+      let publishedSlug: string | null = existing?.slug ?? null;
       if (existing) {
         pageId = existing.id;
         await supabase
@@ -343,7 +345,12 @@ export function BirthdayPageBuilderModal({
           return;
         }
         pageId = inserted?.id ?? null;
+        publishedSlug = slug;
       }
+
+      // Bump OG cache version + re-prime social-network scrapers so the
+      // freshly-published page shows the right card in shares.
+      void invalidateBirthdayOg(publishedSlug);
 
       // Sync friends selected in localStorage to birthday_page_friends
       if (pageId) {
