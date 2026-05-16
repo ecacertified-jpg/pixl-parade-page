@@ -13,7 +13,7 @@ const corsHeaders = {
 };
 
 const SITE_URL = "https://joiedevivre-africa.com";
-const OG_IMAGE = `${SITE_URL}/og-image.jpg?v=20260426`;
+const OG_IMAGE = `${SITE_URL}/og-image.jpg?v=2026051602`;
 
 const CRAWLER_PATTERNS = [
   "facebookexternalhit",

@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const SITE_URL = "https://joiedevivre-africa.com";
 const SUPABASE_URL = "https://vaimfeurvzokepqqqrsl.supabase.co";
-const DEFAULT_OG = `${SITE_URL}/og-image.jpg`;
+const DEFAULT_OG = `${SITE_URL}/og-image.jpg?v=2026051602`;
 const BIRTHDAY_OG_FN = `${SUPABASE_URL}/functions/v1/generate-birthday-og-image`;
 
 const CRAWLER_PATTERNS = [
