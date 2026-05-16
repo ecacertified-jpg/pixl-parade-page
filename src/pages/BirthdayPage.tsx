@@ -32,6 +32,7 @@ interface BirthdayPageData {
   cover_image_url: string | null;
   fund_id: string | null;
   is_active: boolean;
+  social_share_photo_id: string | null;
 }
 
 interface WishMessage {
@@ -512,6 +513,10 @@ const BirthdayPage = () => {
             items={albumItems}
             onItemAdded={(item) => setAlbumItems(prev => [item, ...prev])}
             pageOwnerUserId={page!.user_id}
+            socialSharePhotoId={page!.social_share_photo_id}
+            onSocialSharePhotoChanged={(photoId) =>
+              setPage(prev => (prev ? { ...prev, social_share_photo_id: photoId } : prev))
+            }
             onItemRemoved={(id) => setAlbumItems(prev => prev.filter(i => i.id !== id))}
             onItemUpdated={(updated) =>
               setAlbumItems(prev => prev.map(i => (i.id === updated.id ? { ...i, ...updated } : i)))

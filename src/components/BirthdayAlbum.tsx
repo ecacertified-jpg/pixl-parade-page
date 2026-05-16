@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, Video, BookOpen, ImagePlus, Play, X, Loader2,
   Sparkles, Send, Quote, MoreVertical, Pencil, Trash2, Lock,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Share2
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
@@ -62,6 +62,8 @@ interface BirthdayAlbumProps {
   pageOwnerUserId?: string | null;
   onItemRemoved?: (id: string) => void;
   onItemUpdated?: (item: AlbumItem) => void;
+  socialSharePhotoId?: string | null;
+  onSocialSharePhotoChanged?: (photoId: string | null) => void;
 }
 
 type TabType = "all" | "image" | "video" | "memory";
@@ -81,6 +83,8 @@ export function BirthdayAlbum({
   pageOwnerUserId = null,
   onItemRemoved,
   onItemUpdated,
+  socialSharePhotoId = null,
+  onSocialSharePhotoChanged,
 }: BirthdayAlbumProps) {
   const navigate = useNavigate();
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +203,30 @@ export function BirthdayAlbum({
   };
   const canEdit = (item: AlbumItem) =>
     !!user && !!item.uploader_id && item.uploader_id === user.id;
+
+  const isPageOwner = !!user && !!pageOwnerUserId && pageOwnerUserId === user.id;
+  const canSetAsSocialCover = (item: AlbumItem) =>
+    isPageOwner && item.media_type === "image" && !!item.image_url;
+
+  const handleSetSocialCover = async (item: AlbumItem) => {
+    if (!canSetAsSocialCover(item)) return;
+    const isAlreadySelected = socialSharePhotoId === item.id;
+    const newValue = isAlreadySelected ? null : item.id;
+    const { error } = await supabase
+      .from("birthday_pages")
+      .update({ social_share_photo_id: newValue })
+      .eq("id", pageId);
+    if (error) {
+      toast.error("Impossible de mettre à jour l'image de partage");
+      return;
+    }
+    onSocialSharePhotoChanged?.(newValue);
+    toast.success(
+      isAlreadySelected
+        ? "Image de partage retirée"
+        : "Image de partage mise à jour ✨ — Facebook & WhatsApp l'utiliseront au prochain partage"
+    );
+  };
 
   const handleStartEdit = (item: AlbumItem) => {
     setEditingItem(item);
@@ -580,6 +608,7 @@ export function BirthdayAlbum({
             const isMine = !!user && !!item.uploader_id && item.uploader_id === user.id;
             const authorInitial = (item.uploader_name || "?").trim().charAt(0).toUpperCase();
             const isAboveTheFold = index < 3;
+            const isSocialCover = socialSharePhotoId === item.id;
             return (
               <motion.div
                 key={item.id}
@@ -638,6 +667,17 @@ export function BirthdayAlbum({
                   )}
                 </div>
 
+                {/* Social-cover badge (owner-visible) */}
+                {isSocialCover && (
+                  <div
+                    className="absolute top-1 left-1 z-10 flex items-center gap-1 bg-primary/90 text-primary-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full shadow"
+                    title="Cette photo est utilisée comme aperçu de partage sur les réseaux sociaux"
+                  >
+                    <Share2 className="h-3 w-3" />
+                    <span>Image de partage</span>
+                  </div>
+                )}
+
                 {/* Reactions overlay */}
                 <div className="absolute bottom-6 left-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
                   <AlbumItemReactions
@@ -692,6 +732,12 @@ export function BirthdayAlbum({
                         {canEdit(item) && (
                           <DropdownMenuItem onClick={() => handleStartEdit(item)}>
                             <Pencil className="h-4 w-4 mr-2" /> Modifier
+                          </DropdownMenuItem>
+                        )}
+                        {canSetAsSocialCover(item) && (
+                          <DropdownMenuItem onClick={() => handleSetSocialCover(item)}>
+                            <Share2 className="h-4 w-4 mr-2" />
+                            {isSocialCover ? "Retirer du partage" : "Utiliser comme image de partage"}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
