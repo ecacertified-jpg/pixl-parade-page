@@ -53,9 +53,29 @@ export function ShareBirthdayToCirclesModal({
     if (isOpen) fetchContacts();
   }, [isOpen, user]);
 
-  const birthdayUrl = birthdaySlug
-    ? `${getAppBaseUrl()}/birthday/${birthdaySlug}`
-    : '';
+  const [birthdayUrl, setBirthdayUrl] = useState<string>(
+    birthdaySlug ? `${getAppBaseUrl()}/birthday/${birthdaySlug}` : '',
+  );
+
+  // Enrichit l'URL partagée avec `?s=<versionTag>` pour forcer WhatsApp et
+  // Facebook à re-scraper l'aperçu OG dès que la photo de partage change.
+  useEffect(() => {
+    if (!birthdaySlug) {
+      setBirthdayUrl('');
+      return;
+    }
+    setBirthdayUrl(`${getAppBaseUrl()}/birthday/${birthdaySlug}`);
+    if (!isOpen) return;
+    let cancelled = false;
+    import('@/utils/buildBirthdayShareUrl').then(({ buildBirthdayShareUrlAsync }) => {
+      buildBirthdayShareUrlAsync(birthdaySlug).then((versioned) => {
+        if (!cancelled) setBirthdayUrl(versioned);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [birthdaySlug, isOpen]);
 
   const viralMessage = `🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${birthdayUrl}`;
 

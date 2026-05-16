@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
+import { buildBirthdayShareUrlAsync } from '@/utils/buildBirthdayShareUrl';
 import {
   Sheet,
   SheetContent,
@@ -81,10 +82,36 @@ interface BirthdayPageShareButtonProps {
   onShared?: (method: string) => void;
 }
 
-export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl, age, onShared }: BirthdayPageShareButtonProps) {
+export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl: rawPageUrl, age, onShared }: BirthdayPageShareButtonProps) {
   const [view, setView] = useState<
     'choice' | 'whatsapp_groups' | 'femmes' | 'femmes_months' | 'social'
   >('choice');
+  // URL effectivement partagée : on enrichit `pageUrl` avec un cache-buster
+  // `?s=<versionTag>` qui force WhatsApp/Facebook à re-scraper l'aperçu OG
+  // dès que l'image de partage (social_share_photo_id) change.
+  const [pageUrl, setPageUrl] = useState<string>(rawPageUrl);
+
+  useEffect(() => {
+    setPageUrl(rawPageUrl);
+    if (!open) return;
+    // Si rawPageUrl porte déjà un cache-buster, on n'écrase pas.
+    try {
+      const u = new URL(rawPageUrl);
+      if (u.searchParams.has('s')) return;
+      const match = u.pathname.match(/\/birthday\/([^\/?#]+)/);
+      const slug = match?.[1];
+      if (!slug) return;
+      let cancelled = false;
+      buildBirthdayShareUrlAsync(slug).then((versioned) => {
+        if (!cancelled) setPageUrl(versioned);
+      });
+      return () => {
+        cancelled = true;
+      };
+    } catch {
+      /* ignore — keep rawPageUrl */
+    }
+  }, [open, rawPageUrl]);
 
   useEffect(() => {
     if (open) setView('choice');

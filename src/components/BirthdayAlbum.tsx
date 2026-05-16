@@ -239,7 +239,12 @@ export function BirthdayAlbum({
     toast.success(
       isAlreadySelected
         ? "Image de partage retirée"
-        : "Image de partage mise à jour ✨ — Facebook & WhatsApp l'utiliseront au prochain partage"
+        : "Image de partage mise à jour ✨ — Facebook & WhatsApp l'utiliseront au prochain partage",
+      {
+        description:
+          "Astuce : si vous aviez déjà partagé votre lien sur WhatsApp, repartagez-le pour que la nouvelle image apparaisse.",
+        duration: 7000,
+      },
     );
   };
 
