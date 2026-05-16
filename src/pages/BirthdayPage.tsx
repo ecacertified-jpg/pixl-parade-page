@@ -336,7 +336,10 @@ const BirthdayPage = () => {
     );
   }
 
-  const pageUrl = `${getAppBaseUrl()}/birthday/${slug}`;
+  const pageUrl = buildBirthdayShareUrl(slug || "", {
+    updatedAt: page?.updated_at,
+    socialSharePhotoId: page?.social_share_photo_id,
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/30 via-background to-background">
