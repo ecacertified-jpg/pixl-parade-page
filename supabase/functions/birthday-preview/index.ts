@@ -8,6 +8,7 @@ const corsHeaders = {
 const SITE_URL = "https://joiedevivre-africa.com";
 const SUPABASE_URL = "https://vaimfeurvzokepqqqrsl.supabase.co";
 const DEFAULT_OG = `${SITE_URL}/og-image.png`;
+const BIRTHDAY_OG_FN = `${SUPABASE_URL}/functions/v1/generate-birthday-og-image`;
 
 const CRAWLER_PATTERNS = [
   "facebookexternalhit",
@@ -212,7 +213,8 @@ Deno.serve(async (req) => {
     const firstName = profile?.first_name?.trim() || "notre ami(e)";
     const age = computeAge(profile?.birthday ?? null, page.celebration_year);
     const coverImage =
-      page.cover_image_url || profile?.avatar_url || DEFAULT_OG;
+      page.cover_image_url ||
+      `${BIRTHDAY_OG_FN}?slug=${encodeURIComponent(page.slug)}`;
 
     const html = buildHtml({
       firstName,
