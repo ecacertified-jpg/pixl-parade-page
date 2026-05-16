@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const slug = url.searchParams.get("slug");
     const forceRefresh = url.searchParams.get("refresh") === "true";
+    const version = url.searchParams.get("v") || "0";
 
     if (!slug) {
       return new Response("slug required", { status: 400, headers: corsHeaders });
@@ -67,8 +68,13 @@ Deno.serve(async (req) => {
     }
     const avatar = profile?.avatar_url || "";
 
-    const cacheKey = `birthday_${slug}_${page.celebration_year}`;
-    const dataHash = hashData(JSON.stringify({ firstName, age, avatar, y: page.celebration_year }));
+    // Include version in cache key + hash so a bumped ?v= forces a fresh
+    // image while leaving older versions cached for crawlers that may
+    // still hold the old URL.
+    const cacheKey = `birthday_${slug}_${page.celebration_year}_${version}`;
+    const dataHash = hashData(
+      JSON.stringify({ firstName, age, avatar, y: page.celebration_year, v: version }),
+    );
 
     if (!forceRefresh) {
       const cached = await getCachedImage(supabase, cacheKey);
@@ -180,7 +186,8 @@ Deno.serve(async (req) => {
     return new Response(imageBuffer, {
       headers: {
         "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=86400, s-maxage=604800",
+        // Long immutable-style cache: URL changes via ?v= when content changes.
+        "Cache-Control": "public, max-age=604800, s-maxage=2592000, immutable",
         ...corsHeaders,
       },
     });

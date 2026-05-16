@@ -1099,6 +1099,7 @@ export type Database = {
           published_via_onboarding: boolean
           slug: string
           title: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -1112,6 +1113,7 @@ export type Database = {
           published_via_onboarding?: boolean
           slug: string
           title: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -1125,6 +1127,7 @@ export type Database = {
           published_via_onboarding?: boolean
           slug?: string
           title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
