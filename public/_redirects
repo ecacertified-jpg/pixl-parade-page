@@ -1,4 +1,7 @@
 /join/ADM-*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/join-preview/ADM-:splat  200
 /birthday/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/:splat  200
 /anniversaire/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/:splat  200
+/f/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/fund-preview/:splat  200
+/b/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/business-preview/:splat  200
+/p/*  https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/product-preview/:splat  200
 /*    /index.html   200
