@@ -78,6 +78,7 @@ import { CreateCircleModal } from "@/components/CreateCircleModal";
 import { AssignCircleMenu } from "@/components/AssignCircleMenu";
 import { ShareBirthdayToCirclesModal } from "@/components/ShareBirthdayToCirclesModal";
 import { getAppBaseUrl } from "@/utils/appUrl";
+import { buildBirthdayShareUrl } from "@/utils/buildBirthdayShareUrl";
 import { Copy, Check as CheckIcon, Share2 } from "lucide-react";
 const BirthdaysTab = lazy(() => import('@/components/BirthdaysTab').then(m => ({ default: m.BirthdaysTab })));
 
@@ -838,7 +839,7 @@ export default function Dashboard() {
                 </p>
                 <div className="bg-muted/50 rounded-lg px-3 py-2 mb-3">
                   <p className="text-xs font-mono text-foreground break-all">
-                    {getAppBaseUrl()}/birthday/{birthdayPageSlug}
+                    {buildBirthdayShareUrl(birthdayPageSlug)}
                   </p>
                 </div>
                 <div className="flex gap-2">
