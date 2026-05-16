@@ -89,7 +89,7 @@ const AIInfo = () => {
       "Suggestions de cadeaux personnalisées",
       "Mode hors ligne partiel (PWA)"
     ],
-    screenshot: `${DOMAIN}/og-image.png`,
+    screenshot: `${DOMAIN}/og-image.jpg`,
     provider: { "@id": `${DOMAIN}/#organization` }
   };
 

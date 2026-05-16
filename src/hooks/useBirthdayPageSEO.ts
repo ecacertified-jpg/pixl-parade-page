@@ -59,7 +59,7 @@ export function useBirthdayPageSEO({
     ].filter(Boolean).join(', ');
 
     const pageUrl = `${DOMAIN}/birthday/${slug}`;
-    const image = coverImage || `${DOMAIN}/og-image.png`;
+    const image = coverImage || `${DOMAIN}/og-image.jpg`;
 
     // Title
     const prevTitle = document.title;

@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
     // Dynamic OG image URL using generate-fund-og-image function
     const supabaseProjectUrl = Deno.env.get("SUPABASE_URL")!;
     const ogImage = `${supabaseProjectUrl}/functions/v1/generate-fund-og-image?id=${fundId}`;
-    const fallbackImage = productImage || `${appUrl}/og-image.png`;
+    const fallbackImage = productImage || `${appUrl}/og-image.jpg`;
 
     // Build Schema.org JSON-LD for Event/FundingScheme
     const schemaJsonLd = JSON.stringify({

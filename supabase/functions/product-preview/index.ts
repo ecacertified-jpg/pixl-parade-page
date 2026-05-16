@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     const productName = product.name || "Produit";
     const productDescription = product.description || `Découvrez ${productName} sur JOIE DE VIVRE`;
     const price = product.price ? `${product.price.toLocaleString("fr-FR")} ${product.currency || "XOF"}` : "";
-    const fallbackImageUrl = product.image_url || `${appUrl}/og-image.png`;
+    const fallbackImageUrl = product.image_url || `${appUrl}/og-image.jpg`;
     // Image OG dynamique générée par l'Edge Function
     const ogImageUrl = `${supabaseProjectUrl}/functions/v1/generate-og-image?id=${productId}`;
     const vendorName = product.business_accounts?.business_name || "JOIE DE VIVRE";
