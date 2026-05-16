@@ -1,74 +1,37 @@
-
 ## Objectif
 
-Quand on partage le lien d'une page d'anniversaire (ex: `https://joiedevivre-africa.com/birthday/audrey-amour-eliorah`) sur WhatsApp, Facebook, Instagram, LinkedIn, etc., l'aperçu doit afficher :
+Ajouter un bouton "Ajouter depuis Jumia.ci" dans la boutique principale (`/shop`), sous la barre de recherche produits, qui permet à l'utilisateur de coller un lien produit Jumia et de lancer immédiatement une cagnotte JDV pour ce produit (sans passer par la wishlist).
 
-- la **photo de couverture** de la page d'anniversaire (comme dans l'image fournie),
-- le **titre** « Anniversaire de [Prénom] » (et l'âge si dispo),
-- une **description** personnalisée (date, message d'invitation à participer),
-- le bon lien canonique.
+## Comportement
 
-Aujourd'hui, ça ne marche pas : les crawlers (WhatsApp, Facebook…) n'exécutent pas le JavaScript. Ils ne voient donc que les meta OG génériques du `index.html` (logo JDV + texte landing). Le hook `useBirthdayPageSEO` met bien à jour les meta côté client, mais ils arrivent trop tard pour les bots.
+1. Sur l'onglet "Produits" de `/shop`, juste sous l'input de recherche, afficher un bouton orange pleine largeur identique au design de `/wishlist-catalog` (même style, même icône `ShoppingBag`).
+2. Au clic → ouverture d'une variante du modal Jumia (mode "cagnotte").
+3. L'utilisateur colle l'URL → bouton "Aperçu" appelle `fetch-external-product-meta` (déjà existant, allowlist Jumia incluse) → pré-remplit nom, prix, image, plateforme.
+4. Le CTA principal du modal devient "Lancer une cagnotte" (au lieu de "Ajouter à mes souhaits"). À la soumission, le modal se ferme et ouvre `ExternalProductFundModal` avec un `preset` (productUrl, productName, productImageUrl, estimatedPrice, platform).
+5. La cagnotte créée suit le flow existant `SELF_PURCHASE_PLATFORMS = {'Jumia'}` : à 100%, le bénéficiaire reçoit ses fonds via Wave et achète lui-même sur Jumia (voir mémo [Jumia external wishlist]).
 
-## Solution
+## Changements de code
 
-Servir une version HTML pré-rendue (juste les meta) aux crawlers via une edge function, sur le même modèle que `join-preview` qui existe déjà dans le projet.
+### 1. `src/components/wishlist/JumiaImportModal.tsx`
+- Ajouter une prop optionnelle `mode?: "favorite" | "fund"` (défaut `"favorite"` pour ne rien casser sur `/wishlist-catalog`).
+- Ajouter une prop optionnelle `onLaunchFund?: (preset: { productUrl, productName, productImageUrl, estimatedPrice, platform }) => void`.
+- En mode `"fund"` : ne pas appeler `useAddExternalFavorite`. Le bouton de soumission devient "Lancer une cagnotte" et appelle `onLaunchFund(preset)` puis `onClose()`. Texte du modal légèrement adapté ("Une cagnotte JDV sera lancée pour ce produit").
 
-### 1. Edge function `birthday-preview`
-
-Nouvelle fonction Supabase `supabase/functions/birthday-preview/index.ts` qui :
-
-- prend `:slug` en paramètre d'URL,
-- lit la page d'anniversaire dans la base (firstName, age, coverImage, celebrationYear, slug, isActive),
-- détecte le `User-Agent` :
-  - **Crawler social** (`facebookexternalhit`, `WhatsApp`, `Twitterbot`, `LinkedInBot`, `Slackbot`, `Discordbot`, `TelegramBot`, `Pinterest`, `Googlebot`, etc.) → renvoie une page HTML minimale contenant uniquement les balises `<title>`, `og:*`, `twitter:*`, `description` et un `<meta http-equiv="refresh">` vers la vraie URL (au cas où).
-  - **Navigateur humain** → `302` vers `/birthday/:slug` côté SPA (URL inchangée pour l'utilisateur).
-- garantit `og:image` = URL absolue de la photo de couverture (ou OG image généré, voir §2),
-- pose `og:image:width=1200`, `og:image:height=630`, `og:type=profile`, locale `fr_FR`.
-
-### 2. Image OG par défaut si pas de cover
-
-Si la page n'a pas de photo : appeler/réutiliser `generate-og-image` (déjà présent) pour produire une carte 1200×630 avec :
-
-- prénom + âge,
-- date d'anniversaire,
-- petit visuel JDV (logo, gradient rose/violet de la charte),
-- mention « Souhaite-lui un joyeux anniversaire ».
-
-L'URL renvoyée est mise dans `og:image`. Cache 24 h.
-
-### 3. Routage `public/_redirects`
-
-Ajouter avant la règle SPA :
-
-```text
-/birthday/*       https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/:splat   200
-/anniversaire/*   https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview/:splat   200
-```
-
-L'edge function se charge ensuite de différencier bot vs humain. C'est exactement le pattern utilisé pour `/join/ADM-*` → `join-preview`.
-
-### 4. Vérification
-
-- Test avec **Meta Sharing Debugger** (`https://developers.facebook.com/tools/debug/`) sur un lien `/birthday/:slug`.
-- Test avec **WhatsApp** : envoyer le lien dans un chat → l'aperçu doit montrer la photo + le titre.
-- Test avec **Twitter Card Validator**.
-- Vérifier qu'un humain qui clique arrive bien sur la SPA sans flash de page intermédiaire.
-
-## Détails techniques
-
-- Aucune modification du frontend nécessaire — `useBirthdayPageSEO` continue de fonctionner pour l'expérience in-app.
-- La fonction doit être **publique** (pas de JWT requis) → ajouter dans `supabase/config.toml` :
-  ```toml
-  [functions.birthday-preview]
-  verify_jwt = false
-  ```
-- Cache HTTP: `Cache-Control: public, max-age=300, s-maxage=3600` pour soulager la base.
-- Échapper proprement le contenu dans les meta (pas d'injection HTML via le prénom).
-- Si la page est `is_active = false` ou inexistante : renvoyer une OG « générique JDV » + lien vers la home, pas une 404 (les crawlers de WhatsApp réessayent rarement).
+### 2. `src/pages/Shop.tsx`
+- Importer `JumiaImportModal`, `ExternalProductFundModal`, `ShoppingBag` (lucide), `useCountry` (déjà importé via `effectiveCountryFilter`).
+- États locaux : `jumiaModalOpen`, `fundPreset`.
+- Insérer le bouton orange juste après l'input de recherche produits (~ligne 488), uniquement quand `activeTab === "products"`, mêmes classes Tailwind que `/wishlist-catalog` (`border-orange-300 text-orange-700 hover:bg-orange-50 …`).
+- Monter `<JumiaImportModal mode="fund" isOpen={jumiaModalOpen} onClose={…} countryCode={profileCountryCode} onLaunchFund={setFundPreset} />` et `<ExternalProductFundModal isOpen={!!fundPreset} onClose={() => setFundPreset(null)} preset={fundPreset} />` en bas du JSX.
 
 ## Hors scope
 
-- Pages business, cagnottes seules, événements (peuvent suivre le même pattern dans un second temps si besoin).
-- SSR complet de l'app — on rend juste le `<head>` aux bots, pas le `<body>`.
-- Re-validation automatique côté Facebook (peut être ajoutée via un appel à l'API « scrape » après publication d'une page).
+- Pas de changement DB, RLS, edge functions — la table `collective_funds` supporte déjà `is_external_product` / `external_platform`, l'edge `fetch-external-product-meta` couvre déjà Jumia, et `process-fund-completion` gère déjà le statut `awaiting_beneficiary_purchase`.
+- Pas d'ajout au panier ni de checkout direct sur Jumia.
+- L'onglet "Expériences" ne reçoit pas le bouton.
+- Pas de changement sur `/wishlist-catalog` (mode par défaut préservé).
+
+## Détails techniques
+
+- `JumiaImportModal` exporte déjà `defaultPlatformUrl` / `defaultPlatformLabel` — on peut réutiliser les valeurs Jumia par défaut.
+- `ExternalProductFundModal` accepte déjà la prop `preset` au format `{ productUrl, productName, productImageUrl, estimatedPrice, platform }` (cf. usage dans `WishlistCatalog.tsx` lignes 429-443).
+- Aucun nouveau secret, aucune migration.

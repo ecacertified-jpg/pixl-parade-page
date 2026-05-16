@@ -24,6 +24,19 @@ interface JumiaImportModalProps {
   /** Default platform to suggest in the helper button. Defaults to Jumia. */
   defaultPlatformUrl?: string;
   defaultPlatformLabel?: string;
+  /**
+   * "favorite" (default): adds the product to the user's external favorites (wishlist).
+   * "fund": skips the wishlist and calls `onLaunchFund` with the preset so the caller
+   * can open the ExternalProductFundModal directly.
+   */
+  mode?: "favorite" | "fund";
+  onLaunchFund?: (preset: {
+    productUrl: string;
+    productName: string;
+    productImageUrl: string | null;
+    estimatedPrice: number;
+    platform: string;
+  }) => void;
 }
 
 export function JumiaImportModal({
@@ -32,6 +45,8 @@ export function JumiaImportModal({
   countryCode,
   defaultPlatformUrl = "https://www.jumia.ci/",
   defaultPlatformLabel = "Jumia.ci",
+  mode = "favorite",
+  onLaunchFund,
 }: JumiaImportModalProps) {
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
@@ -103,6 +118,17 @@ export function JumiaImportModal({
       toast.error("Prix invalide.");
       return;
     }
+    if (mode === "fund") {
+      onLaunchFund?.({
+        productUrl: url.trim(),
+        productName: name.trim().slice(0, 200),
+        productImageUrl: imageUrl.trim() || null,
+        estimatedPrice: priceNum,
+        platform: platform ?? "Jumia",
+      });
+      onClose();
+      return;
+    }
     try {
       await add.mutateAsync({
         platform: platform ?? "Jumia",
@@ -128,7 +154,9 @@ export function JumiaImportModal({
             Ajouter un produit depuis {defaultPlatformLabel}
           </DialogTitle>
           <DialogDescription>
-            Parcourez {defaultPlatformLabel}, copiez le lien d'un produit que vous aimez et collez-le ici. Une cagnotte JDV pourra ensuite être lancée pour ce cadeau.
+            {mode === "fund"
+              ? `Parcourez ${defaultPlatformLabel}, copiez le lien d'un produit et collez-le ici. Une cagnotte JDV sera lancée pour ce cadeau.`
+              : `Parcourez ${defaultPlatformLabel}, copiez le lien d'un produit que vous aimez et collez-le ici. Une cagnotte JDV pourra ensuite être lancée pour ce cadeau.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -251,15 +279,19 @@ export function JumiaImportModal({
           </p>
 
           <div className="flex gap-2 justify-end pt-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={add.isPending}>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={mode === "favorite" && add.isPending}>
               Annuler
             </Button>
             <Button
               type="submit"
-              disabled={add.isPending || !name.trim() || !price}
+              disabled={(mode === "favorite" && add.isPending) || !name.trim() || !price}
               className="bg-gradient-primary"
             >
-              {add.isPending ? "Ajout…" : "Ajouter à mes souhaits"}
+              {mode === "fund"
+                ? "Lancer une cagnotte"
+                : add.isPending
+                  ? "Ajout…"
+                  : "Ajouter à mes souhaits"}
             </Button>
           </div>
         </form>
