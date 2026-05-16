@@ -948,6 +948,20 @@ export default function Shop() {
         isOpen={!!fullscreenProduct}
         onClose={() => setFullscreenProduct(null)}
       />
+
+      {/* Jumia import → External product fund */}
+      <JumiaImportModal
+        mode="fund"
+        isOpen={jumiaModalOpen}
+        onClose={() => setJumiaModalOpen(false)}
+        countryCode={profileCountryCode}
+        onLaunchFund={(preset) => setFundPreset(preset)}
+      />
+      <ExternalProductFundModal
+        isOpen={!!fundPreset}
+        onClose={() => setFundPreset(null)}
+        preset={fundPreset}
+      />
     </div>
     </>
   );
