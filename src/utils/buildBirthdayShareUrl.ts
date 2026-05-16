@@ -1,18 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * URL de l'edge function `birthday-preview`. On partage directement cette
- * URL plutôt que `https://joiedevivre-africa.com/birthday/<slug>` car le
- * hosting Lovable ne traite pas `public/_redirects` (convention Netlify) :
- * les crawlers (WhatsApp/Facebook/LinkedIn) recevraient sinon `index.html`
- * et l'image OG générique JDV.
- *
- * Côté humain, `birthday-preview` détecte les User-Agents non-crawler et
- * renvoie une 302 vers `https://joiedevivre-africa.com/birthday/<slug>`,
- * donc l'expérience navigateur reste identique.
+ * Domaine public partagé dans WhatsApp/Facebook/etc. Le routage crawler
+ * vs humain est fait par un Cloudflare Worker placé devant le domaine :
+ *   - crawler (UA WhatsApp/Facebook/...) → proxy vers
+ *     `<SUPABASE>/functions/v1/birthday-preview/<slug>` (HTML OG)
+ *   - humain → origine Lovable normale (SPA `/birthday/:slug`)
+ * L'URL ci-dessous reste donc l'URL "jolie" affichée dans l'aperçu.
  */
-const BIRTHDAY_PREVIEW_FN =
-  "https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-preview";
+const PUBLIC_DOMAIN = "https://joiedevivre-africa.com";
 
 /**
  * Construit le tag de version utilisé pour invalider les caches OG
@@ -53,7 +49,7 @@ export function buildBirthdayShareUrl(
   slug: string,
   opts?: { updatedAt?: string | null; socialSharePhotoId?: string | null },
 ): string {
-  const url = new URL(`${BIRTHDAY_PREVIEW_FN}/${encodeURIComponent(slug)}`);
+  const url = new URL(`${PUBLIC_DOMAIN}/birthday/${encodeURIComponent(slug)}`);
   if (opts && (opts.updatedAt || opts.socialSharePhotoId)) {
     url.searchParams.set("s", computeBirthdayShareVersionTag(opts));
   }
