@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useFriendCircles } from '@/hooks/useFriendCircles';
-import { getAppBaseUrl } from '@/utils/appUrl';
+import { buildBirthdayShareUrl } from '@/utils/buildBirthdayShareUrl';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCountrySafe } from '@/contexts/CountryContext';
@@ -54,7 +54,7 @@ export function ShareBirthdayToCirclesModal({
   }, [isOpen, user]);
 
   const [birthdayUrl, setBirthdayUrl] = useState<string>(
-    birthdaySlug ? `${getAppBaseUrl()}/birthday/${birthdaySlug}` : '',
+    birthdaySlug ? buildBirthdayShareUrl(birthdaySlug) : '',
   );
 
   // Enrichit l'URL partagée avec `?s=<versionTag>` pour forcer WhatsApp et
@@ -64,7 +64,7 @@ export function ShareBirthdayToCirclesModal({
       setBirthdayUrl('');
       return;
     }
-    setBirthdayUrl(`${getAppBaseUrl()}/birthday/${birthdaySlug}`);
+    setBirthdayUrl(buildBirthdayShareUrl(birthdaySlug));
     if (!isOpen) return;
     let cancelled = false;
     import('@/utils/buildBirthdayShareUrl').then(({ buildBirthdayShareUrlAsync }) => {
