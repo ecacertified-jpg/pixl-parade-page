@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const SITE_URL = "https://joiedevivre-africa.com";
-const DEFAULT_OG = `${SITE_URL}/og-image.png`;
+const DEFAULT_OG = `${SITE_URL}/og-image.jpg`;
 
 const CRAWLER_PATTERNS = [
   "facebookexternalhit", "Facebot", "Twitterbot", "WhatsApp", "LinkedInBot",

@@ -72,7 +72,7 @@ const EventPage = () => {
       description: page.description || `Page de célébration : ${page.title}`,
       startDate: page.event_date || undefined,
       url: `https://joiedevivre-africa.com/event/${slug}`,
-      image: page.cover_image_url || 'https://joiedevivre-africa.com/og-image.png',
+      image: page.cover_image_url || 'https://joiedevivre-africa.com/og-image.jpg',
       eventStatus: 'https://schema.org/EventScheduled',
       eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
       organizer: { '@type': 'Organization', name: 'JOIE DE VIVRE', url: 'https://joiedevivre-africa.com' },

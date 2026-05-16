@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
       ? `${product.price.toLocaleString("fr-FR")} ${product.currency || "XOF"}`
       : "";
     const vendorName = product.business_accounts?.business_name || "JOIE DE VIVRE";
-    const productImage = product.image_url || "https://joiedevivre-africa.com/og-image.png";
+    const productImage = product.image_url || "https://joiedevivre-africa.com/og-image.jpg";
     const displayName = product.name.length > 45
       ? product.name.substring(0, 42) + "..."
       : product.name;

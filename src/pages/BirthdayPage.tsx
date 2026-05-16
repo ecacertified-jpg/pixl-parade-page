@@ -125,7 +125,7 @@ const BirthdayPage = () => {
       description: `Page de célébration pour l'anniversaire de ${firstName}. Écrivez un message, partagez des souvenirs et participez au cadeau collectif.`,
       startDate: `${page.celebration_year}-01-01`,
       url: `https://joiedevivre-africa.com/birthday/${slug}`,
-      image: page.cover_image_url || 'https://joiedevivre-africa.com/og-image.png',
+      image: page.cover_image_url || 'https://joiedevivre-africa.com/og-image.jpg',
       eventStatus: 'https://schema.org/EventScheduled',
       eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
       organizer: {

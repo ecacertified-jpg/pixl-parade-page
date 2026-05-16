@@ -236,7 +236,7 @@ export default function ProductPreview() {
         id={product.id}
         name={product.name}
         description={product.description || `Découvrez ${product.name} sur JOIE DE VIVRE`}
-        image={displayImageUrl || "https://joiedevivre-africa.com/og-image.png"}
+        image={displayImageUrl || "https://joiedevivre-africa.com/og-image.jpg"}
         images={product.images || undefined}
         price={product.price}
         currency={product.currency}

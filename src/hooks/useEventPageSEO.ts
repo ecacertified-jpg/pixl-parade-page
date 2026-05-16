@@ -39,7 +39,7 @@ export function useEventPageSEO({ title, occasion, slug, coverImage, eventDate, 
     const pageTitle = `${title} | ${occasionLabel} - JOIE DE VIVRE`;
     const desc = description || `Célébrez ce ${occasionLabel.toLowerCase()} ! Écrivez un message, partagez vos photos et participez au cadeau collectif.`;
     const pageUrl = `${DOMAIN}/event/${slug}`;
-    const image = coverImage || `${DOMAIN}/og-image.png`;
+    const image = coverImage || `${DOMAIN}/og-image.jpg`;
 
     const prevTitle = document.title;
     document.title = pageTitle;
