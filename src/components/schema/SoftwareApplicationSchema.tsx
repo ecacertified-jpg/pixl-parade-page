@@ -1,4 +1,5 @@
 import { useSchemaInjector } from './useSchemaInjector';
+import { OG_IMAGE_VERSION } from '@/config/ogImage';
 
 const DOMAIN = 'https://joiedevivre-africa.com';
 
@@ -49,7 +50,7 @@ export function SoftwareApplicationSchema({ variant }: SoftwareApplicationSchema
       "Paiement sécurisé via Mobile Money",
       "Visibilité auprès de milliers d'acheteurs"
     ],
-    "screenshot": `${DOMAIN}/og-image.jpg?v=2026051602`,
+    "screenshot": `${DOMAIN}/og-image.jpg?v=${OG_IMAGE_VERSION}`,
     "author": {
       "@type": "Organization",
       "name": "AMTEY'S SARLU",

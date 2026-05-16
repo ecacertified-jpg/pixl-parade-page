@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withOgVersion } from "../_shared/og-image-version.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
     const productName = product.name || "Produit";
     const productDescription = product.description || `Découvrez ${productName} sur JOIE DE VIVRE`;
     const price = product.price ? `${product.price.toLocaleString("fr-FR")} ${product.currency || "XOF"}` : "";
-    const fallbackImageUrl = product.image_url || `${appUrl}/og-image.jpg?v=2026051602`;
+    const fallbackImageUrl = product.image_url || withOgVersion(`${appUrl}/og-image.jpg`);
     // Image OG dynamique générée par l'Edge Function
     const ogImageUrl = `${supabaseProjectUrl}/functions/v1/generate-og-image?id=${productId}`;
     const vendorName = product.business_accounts?.business_name || "JOIE DE VIVRE";

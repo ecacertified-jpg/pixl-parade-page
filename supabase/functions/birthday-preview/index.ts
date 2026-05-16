@@ -1,13 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  DEFAULT_OG_IMAGE_URL,
+  OG_IMAGE_SITE_URL,
+} from "../_shared/og-image-version.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SITE_URL = "https://joiedevivre-africa.com";
+const SITE_URL = OG_IMAGE_SITE_URL;
 const SUPABASE_URL = "https://vaimfeurvzokepqqqrsl.supabase.co";
-const DEFAULT_OG = `${SITE_URL}/og-image.jpg?v=2026051602`;
+const DEFAULT_OG = DEFAULT_OG_IMAGE_URL;
 const BIRTHDAY_OG_FN = `${SUPABASE_URL}/functions/v1/generate-birthday-og-image`;
 
 const CRAWLER_PATTERNS = [

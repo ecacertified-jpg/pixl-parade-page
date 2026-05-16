@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { DEFAULT_OG_IMAGE_URL } from '@/config/ogImage';
 
 export type AIContentType = 'marketplace' | 'faq' | 'article' | 'product' | 'business-profile' | 'fund' | 'documentation' | 'landing' | 'dashboard';
 export type AIAudience = 'consumers' | 'gift-givers' | 'business-owners' | 'developers' | 'all';
@@ -44,7 +45,7 @@ export interface SEOHeadProps {
 }
 
 const APP_NAME = "JOIE DE VIVRE";
-const DEFAULT_IMAGE = "https://joiedevivre-africa.com/og-image.jpg?v=2026051602";
+const DEFAULT_IMAGE = DEFAULT_OG_IMAGE_URL;
 const DEFAULT_IMAGE_WIDTH = 1200;
 const DEFAULT_IMAGE_HEIGHT = 630;
 const BASE_URL = "https://joiedevivre-africa.com";
