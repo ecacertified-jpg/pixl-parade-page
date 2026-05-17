@@ -1,111 +1,53 @@
+## Diagnostic
 
-## Le vrai problème
+J'ai testé en parallèle :
 
-Sur le hosting Lovable, `joiedevivre-africa.com/birthday/<slug>` renvoie toujours `index.html` (le SPA), peu importe le User-Agent. WhatsApp lit donc l'image OG générique JDV au lieu de l'image de l'album. Lovable n'exécute pas `public/_redirects` (convention Netlify uniquement) et il n'y a aucun hook serveur exposé pour injecter des meta tags dynamiques par slug.
+| URL | Résultat (User-Agent WhatsApp) |
+|---|---|
+| `jdv-og-router.dry-pine-f26a.workers.dev/birthday/eva-2026` | ✅ OG dynamique : *"Anniversaire de Eva — 16 ans"* + image générée |
+| `joiedevivre-africa.com/birthday/eva-2026` | ❌ OG générique JDV + `og-image.jpg` statique |
 
-Conséquence : **il est impossible, depuis le code du projet seul, de servir un OG correct sur `joiedevivre-africa.com/birthday/<slug>`**. Il faut un composant d'infrastructure devant le domaine qui sache router les crawlers vers l'edge function `birthday-preview` et les humains vers le SPA.
+**Conclusion :** Le Worker est bien codé et déployé. Mais les **routes Cloudflare `joiedevivre-africa.com/*` et `www.joiedevivre-africa.com/*` ne s'activent pas** sur le domaine custom. WhatsApp tape donc le HTML brut de Lovable au lieu de passer par le Worker.
 
-## Solution recommandée : Cloudflare Worker en frontal du domaine
+## Cause
 
-C'est l'approche standard pour ce cas (custom OG sur hosting statique). Une seule pièce d'infra, ~30 lignes de code, gratuite jusqu'à 100k req/jour.
+Pour qu'une route Worker `joiedevivre-africa.com/*` fonctionne, le domaine doit :
+1. Être **ajouté comme Zone dans Cloudflare** (compte qui héberge le Worker)
+2. Avoir ses **nameservers (NS) pointés vers Cloudflare** chez le registrar
+3. Avoir ses enregistrements DNS **proxifiés** (nuage orange 🟧)
 
-### Architecture
+Or actuellement, le domaine est connecté à Lovable via un A record `185.158.133.1` **en direct** (sans passer par Cloudflare). Les routes Worker ne peuvent donc rien intercepter — Cloudflare ne voit jamais le trafic.
 
-```text
-WhatsApp/Facebook ──┐
-                    ├──► joiedevivre-africa.com ──► Cloudflare Worker
-Navigateur humain ──┘                                      │
-                                                           ├─ crawler + /birthday/* ──► fetch(supabase birthday-preview) ──► HTML OG
-                                                           ├─ crawler + /f/*,/b/*,/p/*,/event/* ──► fetch(<preview function correspondante>)
-                                                           └─ tout le reste ──► fetch(origine Lovable actuelle) ──► SPA
-```
+## Deux options de résolution
 
-L'URL partagée reste `https://joiedevivre-africa.com/birthday/<slug>?s=<version>`. WhatsApp voit l'image de l'album. L'humain qui clique atterrit directement sur le SPA (pas de 302 visible).
+### Option A — Passer le domaine sous Cloudflare (recommandé pour OG WhatsApp)
 
-### Étapes
+1. **Cloudflare → Add a Site** → entrer `joiedevivre-africa.com` (plan Free OK)
+2. Cloudflare scanne les DNS existants → vérifier que le A record `@ → 185.158.133.1` et `www → 185.158.133.1` sont présents, **proxy activé (orange)**
+3. Chez le registrar du domaine, changer les **nameservers** vers ceux fournis par Cloudflare
+4. Attendre l'activation de la zone (5 min à quelques heures)
+5. Dans Lovable → Project Settings → Domains → reconnecter le domaine en **cochant "Domain uses Cloudflare or a similar proxy"** (mode CNAME compatible proxy)
+6. Une fois actif, les routes Worker s'activeront automatiquement → WhatsApp affichera l'OG dynamique
 
-1. **DNS** — Passer `joiedevivre-africa.com` derrière Cloudflare (changer les nameservers chez le registrar pour ceux fournis par Cloudflare). Le DNS reste pointé vers Lovable (CNAME existant), Cloudflare devient juste le proxy (orange cloud ON).
+**Avantage :** OG previews WhatsApp/Facebook parfaites, gratuit, CDN bonus.
+**Inconvénient :** changement de nameservers (impact emails à vérifier — MX/SPF/DKIM à recréer dans Cloudflare DNS).
 
-2. **Worker** — Créer un Worker avec le code ci-dessous, le router sur `joiedevivre-africa.com/*` et `www.joiedevivre-africa.com/*`. À déployer depuis le dashboard Cloudflare (5 min, pas besoin de CLI).
+### Option B — Utiliser un sous-domaine dédié au Worker
 
-3. **Code du projet** — Revenir `buildBirthdayShareUrl` à l'URL jolie `https://joiedevivre-africa.com/birthday/<slug>?s=<version>`. Les fichiers concernés :
-   - `src/utils/buildBirthdayShareUrl.ts` — retourner l'URL canonique du domaine.
-   - `src/components/ShareBirthdayToCirclesModal.tsx` et `src/pages/Dashboard.tsx` — aucun changement (ils appellent déjà `buildBirthdayShareUrl`).
-   - Garder `public/_redirects` pour mémoire (ignoré par Lovable mais utile si un jour migration vers Netlify/Vercel).
+Garder Lovable sur l'apex, et router uniquement les liens partagés vers un sous-domaine sous Cloudflare :
+- Ex : `share.joiedevivre-africa.com/birthday/:slug` géré par le Worker
+- Modifier `buildBirthdayShareUrl.ts` pour générer les URL de partage sur ce sous-domaine
+- Nécessite quand même que **le sous-domaine** soit sous zone Cloudflare
 
-4. **Vérification**
-   - `curl -A "WhatsApp/2.24.10 i" https://joiedevivre-africa.com/birthday/ange-felicia--2026?s=...` → doit retourner le HTML `birthday-preview` avec `og:image` = photo de l'album.
-   - `curl -A "Mozilla/5.0 ..." https://joiedevivre-africa.com/birthday/ange-felicia--2026?s=...` → doit retourner `index.html` (le SPA Lovable).
-   - WhatsApp doit afficher la photo ET l'URL jolie sous l'aperçu.
+**Inconvénient :** URLs partagées différentes du domaine principal, moins propre pour le SEO/branding.
 
-### Détails techniques
+## Recommandation
 
-#### Code du Worker (à coller dans le dashboard Cloudflare)
+**Option A** est la bonne pour un projet déjà en prod sur ce domaine. Le passage sous Cloudflare apporte aussi : cache CDN gratuit, protection DDoS, analytics, SSL plus fin.
 
-```js
-const CRAWLERS = [
-  "facebookexternalhit", "facebot", "twitterbot", "whatsapp", "linkedinbot",
-  "slackbot", "telegrambot", "discordbot", "googlebot", "bingbot",
-  "applebot", "pinterestbot", "pinterest", "vkshare", "viber",
-  "snapchat", "redditbot", "embedly", "iframely",
-];
-const SUPA = "https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1";
-const PREVIEW_ROUTES = [
-  { prefix: "/birthday/",     fn: "birthday-preview" },
-  { prefix: "/anniversaire/", fn: "birthday-preview" },
-  { prefix: "/f/",            fn: "fund-preview"     },
-  { prefix: "/b/",            fn: "business-preview" },
-  { prefix: "/p/",            fn: "product-preview"  },
-  { prefix: "/event/",        fn: "event-preview"    },
-  { prefix: "/evenement/",    fn: "event-preview"    },
-  { prefix: "/join/ADM-",     fn: "join-preview", keepFullPath: true },
-];
+## Question pour toi
 
-export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    const ua = (request.headers.get("user-agent") || "").toLowerCase();
-    const isCrawler = CRAWLERS.some(c => ua.includes(c));
-
-    if (isCrawler) {
-      for (const r of PREVIEW_ROUTES) {
-        if (url.pathname.startsWith(r.prefix)) {
-          const slug = r.keepFullPath
-            ? url.pathname.replace("/join/", "")
-            : url.pathname.slice(r.prefix.length);
-          const target = `${SUPA}/${r.fn}/${slug}${url.search}`;
-          return fetch(target, { headers: { "user-agent": request.headers.get("user-agent") } });
-        }
-      }
-    }
-    // Humans (or non-preview paths) → origine Lovable normale
-    return fetch(request);
-  },
-};
-```
-
-#### Patch `buildBirthdayShareUrl.ts`
-
-```ts
-const PUBLIC_DOMAIN = "https://joiedevivre-africa.com";
-
-export function buildBirthdayShareUrl(slug, opts) {
-  const url = new URL(`${PUBLIC_DOMAIN}/birthday/${encodeURIComponent(slug)}`);
-  if (opts && (opts.updatedAt || opts.socialSharePhotoId)) {
-    url.searchParams.set("s", computeBirthdayShareVersionTag(opts));
-  }
-  return url.toString();
-}
-```
-
-## Alternatives (moins recommandées)
-
-- **Garder l'URL Supabase actuelle** — fonctionne immédiatement (déjà en place) mais l'URL est moche dans WhatsApp. C'est ce qu'on a aujourd'hui.
-- **Demander à Lovable d'ajouter un edge route natif** — plus propre à terme mais dépend de leur roadmap et n'est pas exposé dans l'UI aujourd'hui.
-- **Cloudflare "Bulk Redirects" sans Worker** — ne marche pas car il faudrait rediriger les crawlers et préserver les humains, ce qui nécessite la lecture du User-Agent (donc un Worker).
-
-## Notes
-
-- Le Worker s'applique aussi automatiquement aux autres preview functions (`/f/`, `/b/`, `/p/`, `/event/`, `/join/`) qui ont le même problème que `/birthday/`.
-- Les liens WhatsApp déjà envoyés avec l'URL Supabase resteront figés dans le cache WhatsApp — il faudra repartager depuis l'app pour voir la nouvelle URL jolie.
-- Aucun changement DB ni edge function nécessaire.
+Veux-tu :
+1. **Migrer le domaine sous Cloudflare** (Option A) — je peux te guider étape par étape pour la migration NS + recréation des DNS (incluant tes emails si tu en as)
+2. **Passer par un sous-domaine `share.joiedevivre-africa.com`** (Option B) — je modifie le code de génération d'URL
+3. **Abandonner le Worker** et revenir à une solution edge-function only (le bouton "Recharger" Facebook que tu utilises déjà)
