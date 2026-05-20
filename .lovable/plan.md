@@ -1,53 +1,95 @@
+# Corrections du Worker `jdv-og-router`
+
 ## Diagnostic
 
-J'ai testé en parallèle :
+Le code actuel a 2 défauts qui se manifestent uniquement sur le domaine custom (et pas toujours sur `*.workers.dev`) :
 
-| URL | Résultat (User-Agent WhatsApp) |
-|---|---|
-| `jdv-og-router.dry-pine-f26a.workers.dev/birthday/eva-2026` | ✅ OG dynamique : *"Anniversaire de Eva — 16 ans"* + image générée |
-| `joiedevivre-africa.com/birthday/eva-2026` | ❌ OG générique JDV + `og-image.jpg` statique |
+### Problème 1 — Appel Supabase sans `apikey` (CRITIQUE)
+```js
+return fetch(target, { headers: { "user-agent": ua } });
+```
+Les Edge Functions Supabase exigent un header `apikey` (anon key) même quand `verify_jwt = false`. Sans ce header, Supabase renvoie `401 Unauthorized` → le crawler WhatsApp reçoit une page d'erreur au lieu des balises OG dynamiques.
 
-**Conclusion :** Le Worker est bien codé et déployé. Mais les **routes Cloudflare `joiedevivre-africa.com/*` et `www.joiedevivre-africa.com/*` ne s'activent pas** sur le domaine custom. WhatsApp tape donc le HTML brut de Lovable au lieu de passer par le Worker.
+### Problème 2 — Boucle de sous-requête pour les humains
+```js
+return fetch(request);
+```
+Sur un domaine custom, le Worker est branché sur la route `joiedevivre-africa.com/*`. Quand on fait `fetch(request)` (même URL), Cloudflare réinjecte la requête dans le Worker → boucle détectée → erreur 1042/1019. Il faut taper directement sur l'origine Lovable.
 
-## Cause
+### Problème 3 (mineur) — Query string perdue
+`url.pathname` ne contient pas `?s=<versionTag>`. Le cache-buster est perdu lors de l'appel à `birthday-preview`. La fonction continue de marcher (elle lit le slug du path), mais le `?s=` n'est pas transmis.
 
-Pour qu'une route Worker `joiedevivre-africa.com/*` fonctionne, le domaine doit :
-1. Être **ajouté comme Zone dans Cloudflare** (compte qui héberge le Worker)
-2. Avoir ses **nameservers (NS) pointés vers Cloudflare** chez le registrar
-3. Avoir ses enregistrements DNS **proxifiés** (nuage orange 🟧)
+---
 
-Or actuellement, le domaine est connecté à Lovable via un A record `185.158.133.1` **en direct** (sans passer par Cloudflare). Les routes Worker ne peuvent donc rien intercepter — Cloudflare ne voit jamais le trafic.
+## Nouveau code du Worker
 
-## Deux options de résolution
+```js
+const CRAWLERS = /facebookexternalhit|Facebot|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Discordbot|Googlebot|bingbot|Applebot|PinterestBot|Pinterest|vkShare|Viber|Snapchat|redditbot|embedly|Iframely/i;
 
-### Option A — Passer le domaine sous Cloudflare (recommandé pour OG WhatsApp)
+const SUPABASE = "https://vaimfeurvzokepqqqrsl.supabase.co";
+// Clé anon publique Supabase (sans danger côté Worker)
+const SUPABASE_ANON_KEY = "REMPLACER_PAR_LA_CLE_ANON";
 
-1. **Cloudflare → Add a Site** → entrer `joiedevivre-africa.com` (plan Free OK)
-2. Cloudflare scanne les DNS existants → vérifier que le A record `@ → 185.158.133.1` et `www → 185.158.133.1` sont présents, **proxy activé (orange)**
-3. Chez le registrar du domaine, changer les **nameservers** vers ceux fournis par Cloudflare
-4. Attendre l'activation de la zone (5 min à quelques heures)
-5. Dans Lovable → Project Settings → Domains → reconnecter le domaine en **cochant "Domain uses Cloudflare or a similar proxy"** (mode CNAME compatible proxy)
-6. Une fois actif, les routes Worker s'activeront automatiquement → WhatsApp affichera l'OG dynamique
+// IP de l'origine Lovable (cf. doc custom domain)
+const LOVABLE_ORIGIN = "185.158.133.1";
 
-**Avantage :** OG previews WhatsApp/Facebook parfaites, gratuit, CDN bonus.
-**Inconvénient :** changement de nameservers (impact emails à vérifier — MX/SPF/DKIM à recréer dans Cloudflare DNS).
+const PREVIEW_MAP = {
+  "/birthday/":    "birthday-preview",
+  "/anniversaire/": "birthday-preview",
+  "/event/":        "event-preview",
+  "/evenement/":    "event-preview",
+};
 
-### Option B — Utiliser un sous-domaine dédié au Worker
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const ua = request.headers.get("user-agent") || "";
 
-Garder Lovable sur l'apex, et router uniquement les liens partagés vers un sous-domaine sous Cloudflare :
-- Ex : `share.joiedevivre-africa.com/birthday/:slug` géré par le Worker
-- Modifier `buildBirthdayShareUrl.ts` pour générer les URL de partage sur ce sous-domaine
-- Nécessite quand même que **le sous-domaine** soit sous zone Cloudflare
+    // 1. Crawler → proxy vers Supabase Edge Function
+    if (CRAWLERS.test(ua)) {
+      for (const [prefix, fn] of Object.entries(PREVIEW_MAP)) {
+        if (url.pathname.startsWith(prefix)) {
+          const slug = url.pathname.slice(prefix.length).split("/")[0];
+          if (!slug) break;
+          const target = `${SUPABASE}/functions/v1/${fn}/${slug}${url.search}`;
+          return fetch(target, {
+            headers: {
+              "user-agent": ua,
+              "apikey": SUPABASE_ANON_KEY,
+              "authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          });
+        }
+      }
+    }
 
-**Inconvénient :** URLs partagées différentes du domaine principal, moins propre pour le SEO/branding.
+    // 2. Humain → origine Lovable directement (évite la boucle Worker)
+    const originUrl = new URL(url.pathname + url.search, `https://${LOVABLE_ORIGIN}`);
+    return fetch(originUrl.toString(), {
+      method: request.method,
+      headers: { ...Object.fromEntries(request.headers), host: url.hostname },
+      body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
+      redirect: "manual",
+    });
+  },
+};
+```
 
-## Recommandation
+---
 
-**Option A** est la bonne pour un projet déjà en prod sur ce domaine. Le passage sous Cloudflare apporte aussi : cache CDN gratuit, protection DDoS, analytics, SSL plus fin.
+## Étapes pour appliquer
 
-## Question pour toi
+1. Récupérer la **clé anon publique** Supabase (Dashboard → Settings → API → `anon public`). Elle est sans danger côté Worker (publique par design).
+2. Dans Cloudflare → Workers & Pages → `jdv-og-router` → **Edit code** → remplacer le contenu de `worker.js` par celui ci-dessus.
+3. Remplacer `REMPLACER_PAR_LA_CLE_ANON` par la vraie clé anon (ou la passer en variable d'environnement via **Settings → Variables**).
+4. Cliquer **Deploy**.
+5. Re-tester avec le WhatsApp Sharing Debugger sur `https://joiedevivre-africa.com/birthday/eva-2026`.
 
-Veux-tu :
-1. **Migrer le domaine sous Cloudflare** (Option A) — je peux te guider étape par étape pour la migration NS + recréation des DNS (incluant tes emails si tu en as)
-2. **Passer par un sous-domaine `share.joiedevivre-africa.com`** (Option B) — je modifie le code de génération d'URL
-3. **Abandonner le Worker** et revenir à une solution edge-function only (le bouton "Recharger" Facebook que tu utilises déjà)
+## Test rapide en ligne de commande
+```bash
+curl -A "WhatsApp/2.23.20.0" -i https://joiedevivre-africa.com/birthday/eva-2026 | head -40
+```
+Doit retourner `<meta property="og:title" content="🎂 ...">` etc.
+
+## Note
+Aucun fichier du projet Lovable n'est modifié — toute la correction se passe dans le Worker Cloudflare.
