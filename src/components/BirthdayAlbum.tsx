@@ -387,7 +387,8 @@ export function BirthdayAlbum({
       if (error) throw error;
       onItemAdded(data as AlbumItem);
       toast.success("Photo ajoutée ! 📸 Partage l'album !");
-    } catch {
+    } catch (err) {
+      console.error("[BirthdayAlbum] photo upload failed", err);
       toast.error("Erreur lors de l'upload de la photo");
     } finally {
       setUploading(false);
@@ -460,7 +461,8 @@ export function BirthdayAlbum({
       if (error) throw error;
       onItemAdded(data as AlbumItem);
       toast.success("Vidéo ajoutée ! 🎬 Partage l'album !");
-    } catch {
+    } catch (err) {
+      console.error("[BirthdayAlbum] video upload failed", err);
       toast.error("Erreur lors de l'upload de la vidéo");
     } finally {
       setUploading(false);
