@@ -988,6 +988,53 @@ export type Database = {
         }
         Relationships: []
       }
+      birthday_page_cover_videos: {
+        Row: {
+          birthday_page_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          poster_url: string | null
+          schedule_kind: Database["public"]["Enums"]["cover_video_schedule_kind"]
+          updated_at: string
+          user_id: string
+          video_url: string
+        }
+        Insert: {
+          birthday_page_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          schedule_kind: Database["public"]["Enums"]["cover_video_schedule_kind"]
+          updated_at?: string
+          user_id: string
+          video_url: string
+        }
+        Update: {
+          birthday_page_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          schedule_kind?: Database["public"]["Enums"]["cover_video_schedule_kind"]
+          updated_at?: string
+          user_id?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_page_cover_videos_birthday_page_id_fkey"
+            columns: ["birthday_page_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       birthday_page_friends: {
         Row: {
           added_by: string
@@ -3042,6 +3089,51 @@ export type Database = {
           struggling_metrics?: string[] | null
           struggling_since?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      cover_video_library: {
+        Row: {
+          calendar_day: number | null
+          calendar_month: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          poster_url: string | null
+          priority: number
+          schedule_kind: Database["public"]["Enums"]["cover_video_schedule_kind"]
+          title: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          calendar_day?: number | null
+          calendar_month?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          priority?: number
+          schedule_kind: Database["public"]["Enums"]["cover_video_schedule_kind"]
+          title: string
+          updated_at?: string
+          video_url: string
+        }
+        Update: {
+          calendar_day?: number | null
+          calendar_month?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          priority?: number
+          schedule_kind?: Database["public"]["Enums"]["cover_video_schedule_kind"]
+          title?: string
+          updated_at?: string
+          video_url?: string
         }
         Relationships: []
       }
@@ -9711,7 +9803,13 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      cover_video_schedule_kind:
+        | "greeting_morning"
+        | "greeting_afternoon"
+        | "greeting_evening"
+        | "greeting_night"
+        | "calendar_event"
+        | "birthday_day"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9838,6 +9936,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      cover_video_schedule_kind: [
+        "greeting_morning",
+        "greeting_afternoon",
+        "greeting_evening",
+        "greeting_night",
+        "calendar_event",
+        "birthday_day",
+      ],
+    },
   },
 } as const

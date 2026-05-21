@@ -132,6 +132,7 @@ const CountryObjectivesPage = lazy(() => import("./pages/Admin/CountryObjectives
 const CountryMonthlyComparisonPage = lazy(() => import("./pages/Admin/CountryMonthlyComparisonPage"));
 const ForecastPage = lazy(() => import("./pages/Admin/ForecastPage"));
 const AdminBirthdays = lazy(() => import("./pages/Admin/AdminBirthdays"));
+const AdminCoverVideos = lazy(() => import("./pages/Admin/AdminCoverVideos"));
 const OrdersManagement = lazy(() => import("./pages/Admin/OrdersManagement"));
 const AdminNotificationsPage = lazy(() => import("./pages/Admin/AdminNotificationsPage"));
 const ShareAnalytics = lazy(() => import("./pages/Admin/ShareAnalytics"));
@@ -317,6 +318,7 @@ const App = () => (
             <Route path="/admin/commissions" element={<AdminRoute><L><CommissionsDashboard /></L></AdminRoute>} />
             <Route path="/admin/external-purchases" element={<AdminRoute><L><ExternalPurchases /></L></AdminRoute>} />
             <Route path="/admin/birthdays" element={<AdminRoute><L><AdminBirthdays /></L></AdminRoute>} />
+            <Route path="/admin/cover-videos" element={<AdminRoute><L><AdminCoverVideos /></L></AdminRoute>} />
             <Route path="/admin/whatsapp-ai" element={<AdminRoute><L><WhatsAppAIChat /></L></AdminRoute>} />
             <Route path="/admin/onboarding" element={<AdminRoute><L><OnboardingProgressDashboard /></L></AdminRoute>} />
             <Route path="/admin/funds/:fundId" element={<AdminRoute><L><AdminFundDetail /></L></AdminRoute>} />

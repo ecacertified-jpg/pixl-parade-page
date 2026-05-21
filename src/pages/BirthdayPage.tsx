@@ -20,6 +20,8 @@ import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
 import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
 import { BirthdayCountdown } from "@/components/BirthdayCountdown";
+import { CoverVideoCarousel } from "@/components/birthday/CoverVideoCarousel";
+import { CoverVideosManagerSheet } from "@/components/birthday/CoverVideosManagerSheet";
 import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 import { buildBirthdayShareUrl } from "@/utils/buildBirthdayShareUrl";
@@ -84,6 +86,7 @@ const BirthdayPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
+  const [showVideosManager, setShowVideosManager] = useState(false);
 
   const confettiTriggered = useRef(false);
 
@@ -356,42 +359,69 @@ const BirthdayPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="relative overflow-hidden"
       >
-        {page?.cover_image_url ? (
-          <div className="h-48 md:h-64 w-full">
-            <img src={page.cover_image_url} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-background" />
-          </div>
-        ) : (
-          <div className="h-48 md:h-64 w-full bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/40 flex items-center justify-center">
-            <div className="text-6xl md:text-8xl animate-bounce">🎂</div>
-          </div>
-        )}
-
-        <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
-          <motion.h1
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.3, type: "spring" }}
-            className="text-3xl md:text-4xl font-bold font-poppins text-foreground drop-shadow-lg"
-          >
-            🎉 {age ? `${age} ans, ${firstName} !` : `Joyeux Anniversaire ${firstName} !`}
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="text-muted-foreground mt-2 font-nunito"
-          >
-            {page?.title}
-          </motion.p>
-          {birthdayPerson.birthday && (
-            <BirthdayCountdown
-              birthday={birthdayPerson.birthday}
-              celebrationYear={page?.celebration_year}
-            />
-          )}
-        </div>
+        <CoverVideoCarousel
+          birthdayPageId={page?.id ?? null}
+          birthday={birthdayPerson.birthday}
+          fallbackImageUrl={page?.cover_image_url ?? null}
+          className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
+          overlay={
+            <div className="absolute inset-x-0 bottom-0 z-10 p-4 md:p-6">
+              {user?.id === page?.user_id && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setShowVideosManager(true)}
+                  className="absolute top-[-3rem] right-3 bg-white/90 text-foreground hover:bg-white gap-1 shadow-card"
+                >
+                  🎬 Vidéos
+                </Button>
+              )}
+              <div className="flex items-end gap-3">
+                <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
+                  {birthdayPerson.avatar_url ? (
+                    <img
+                      src={birthdayPerson.avatar_url}
+                      alt={firstName}
+                      className="h-full w-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <AvatarFallback className="bg-primary/20 text-primary font-poppins font-bold text-lg">
+                      {firstName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex-1 min-w-0 pb-1">
+                  <motion.h1
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-xl md:text-3xl font-bold font-poppins text-white drop-shadow-lg truncate"
+                  >
+                    {firstName}
+                    {age ? ` · ${age} ans` : ""}
+                  </motion.h1>
+                  {birthdayPerson.birthday && (
+                    <div className="mt-1">
+                      <BirthdayCountdown
+                        birthday={birthdayPerson.birthday}
+                        celebrationYear={page?.celebration_year}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          }
+        />
       </motion.div>
+
+      {page && user?.id === page.user_id && (
+        <CoverVideosManagerSheet
+          open={showVideosManager}
+          onOpenChange={setShowVideosManager}
+          birthdayPageId={page.id}
+        />
+      )}
 
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
         {/* Cagnotte section — toujours visible */}

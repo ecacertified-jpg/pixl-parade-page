@@ -31,6 +31,7 @@ import {
   Rocket,
   MessageSquare,
   Cake,
+  Film,
   Bot,
   ListChecks,
   Eye
@@ -87,6 +88,7 @@ const navItems: NavItem[] = [
   { title: 'Chat IA WA', href: '/admin/whatsapp-ai', icon: Bot },
   { title: 'WA Cagnottes', href: '/admin/business-fund-wa', icon: Gift },
   { title: 'Anniversaires', href: '/admin/birthdays', icon: Cake },
+  { title: 'Vidéos de couverture', href: '/admin/cover-videos', icon: Film },
   { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },
