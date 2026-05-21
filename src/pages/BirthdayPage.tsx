@@ -21,6 +21,7 @@ import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
 import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
 import { BirthdayCountdown } from "@/components/BirthdayCountdown";
 import { CoverVideoCarousel } from "@/components/birthday/CoverVideoCarousel";
+import { CoverVideosManagerSheet } from "@/components/birthday/CoverVideosManagerSheet";
 import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 import { buildBirthdayShareUrl } from "@/utils/buildBirthdayShareUrl";
@@ -85,6 +86,7 @@ const BirthdayPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
+  const [showVideosManager, setShowVideosManager] = useState(false);
 
   const confettiTriggered = useRef(false);
 
@@ -364,6 +366,16 @@ const BirthdayPage = () => {
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
             <div className="absolute inset-x-0 bottom-0 z-10 p-4 md:p-6">
+              {user?.id === page?.user_id && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setShowVideosManager(true)}
+                  className="absolute top-[-3rem] right-3 bg-white/90 text-foreground hover:bg-white gap-1 shadow-card"
+                >
+                  🎬 Vidéos
+                </Button>
+              )}
               <div className="flex items-end gap-3">
                 <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
                   {birthdayPerson.avatar_url ? (
@@ -402,6 +414,14 @@ const BirthdayPage = () => {
           }
         />
       </motion.div>
+
+      {page && user?.id === page.user_id && (
+        <CoverVideosManagerSheet
+          open={showVideosManager}
+          onOpenChange={setShowVideosManager}
+          birthdayPageId={page.id}
+        />
+      )}
 
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
         {/* Cagnotte section — toujours visible */}
