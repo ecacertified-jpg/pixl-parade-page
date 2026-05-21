@@ -1,95 +1,104 @@
-# Corrections du Worker `jdv-og-router`
+# Vidéos de couverture animées sur la page d'anniversaire
 
-## Diagnostic
+## Objectif
+Transformer l'en-tête de `/birthday/:slug` en un espace vidéo immersif qui crée de l'émotion :
+- défilement automatique de vidéos contextuelles (salutation du jour, fêtes calendaires, anniversaire)
+- son activé par défaut, plein écran au tap
+- overlay style profil social : photo de profil + Prénom + âge + compte à rebours
 
-Le code actuel a 2 défauts qui se manifestent uniquement sur le domaine custom (et pas toujours sur `*.workers.dev`) :
+## 1. Bibliothèque de vidéos de couverture
 
-### Problème 1 — Appel Supabase sans `apikey` (CRITIQUE)
-```js
-return fetch(target, { headers: { "user-agent": ua } });
-```
-Les Edge Functions Supabase exigent un header `apikey` (anon key) même quand `verify_jwt = false`. Sans ce header, Supabase renvoie `401 Unauthorized` → le crawler WhatsApp reçoit une page d'erreur au lieu des balises OG dynamiques.
+### 1a. Vidéos par défaut (admin)
+Nouveau bucket / dossier `assets/cover-videos/` (bucket `assets` existant) contenant les MP4 fournis par les admins.
 
-### Problème 2 — Boucle de sous-requête pour les humains
-```js
-return fetch(request);
-```
-Sur un domaine custom, le Worker est branché sur la route `joiedevivre-africa.com/*`. Quand on fait `fetch(request)` (même URL), Cloudflare réinjecte la requête dans le Worker → boucle détectée → erreur 1042/1019. Il faut taper directement sur l'origine Lovable.
+Nouvelle table `cover_video_library` :
+- `id`, `title`, `video_url`, `poster_url` (thumbnail)
+- `schedule_kind` enum : `greeting_morning` | `greeting_afternoon` | `greeting_evening` | `greeting_night` | `calendar_event` | `birthday_day`
+- `calendar_month`, `calendar_day` (nullable, pour Noël 12/25, St-Valentin 02/14, Pâques calculé, Fête des mères, Nouvel An…)
+- `priority` (int, pour l'ordre)
+- `is_active`
+- RLS : lecture publique (authenticated + anon), écriture admin via `has_role(admin)`
 
-### Problème 3 (mineur) — Query string perdue
-`url.pathname` ne contient pas `?s=<versionTag>`. Le cache-buster est perdu lors de l'appel à `birthday-preview`. La fonction continue de marcher (elle lit le slug du path), mais le `?s=` n'est pas transmis.
+### 1b. Vidéos personnalisées (utilisateur)
+Nouvelle table `birthday_page_cover_videos` :
+- `id`, `birthday_page_id` (FK), `user_id`
+- `video_url`, `poster_url`
+- `schedule_kind` (même enum, l'utilisateur choisit le créneau)
+- `display_order`, `created_at`
+- RLS : propriétaire CRUD ; lecture publique si la page est `is_active`
+
+Les vidéos perso d'un créneau **remplacent** les vidéos défaut du même créneau ; sinon fallback admin.
+
+### 1c. Page Admin
+Nouvelle entrée `/admin/cover-videos` (sous `AdminLayout`) :
+- upload MP4 vers `assets/cover-videos/`, génération auto du poster (1ʳᵉ frame via `extractSingleThumbnail`)
+- formulaire schedule_kind + date calendaire
+- liste / activation / suppression
+
+## 2. Composant `CoverVideoCarousel`
+
+Nouveau `src/components/birthday/CoverVideoCarousel.tsx` :
+- Hook `useCoverVideoPlaylist(birthdayPageId, birthdayDate)` :
+  - Détecte le contexte temporel local du visiteur :
+    - 05–11h → `greeting_morning`
+    - 12–17h → `greeting_afternoon`
+    - 18–21h → `greeting_evening`
+    - 22–04h → `greeting_night`
+  - Détecte les fêtes calendaires actives (j ±1 autour de la date)
+  - Si aujourd'hui = date d'anniversaire → insère les vidéos `birthday_day` en tête
+  - Construit la playlist : `[birthday_day?, calendar_event?, greeting]` (vidéos perso prioritaires)
+- Lecture : `<video autoPlay playsInline>` avec **son activé**.
+  - iOS bloque l'autoplay audio : fallback `muted` + bouton "🔊 Activer le son" (tap-to-unmute) visible 1ʳᵉ vue, mémorisé dans `localStorage`.
+- Avance auto à la fin de chaque vidéo (`onEnded`) avec fondu enchaîné. Durée min 6 s / max 20 s.
+- Tap → ouvre une modale plein écran (Dialog) avec contrôles natifs.
+- Indicateurs de progression style stories en haut.
+
+## 3. Overlay profil-style
+
+Remplace l'overlay actuel (titre centré + countdown) par un bandeau bas-gauche inspiré de la capture :
+- Avatar rond (photo de profil utilisateur, fallback initiales) avec liseré blanc.
+- À droite de l'avatar :
+  - **Prénom + âge** en gros (`{firstName} · {age} ans`)
+  - Sous-ligne : `BirthdayCountdown` compact (00 jrs · 00 hrs · 00 min · 00 sec) sur fond pilule glassmorphism.
+- Bouton caméra (admin de la page seulement) → ouvre `BirthdayPageBuilderModal` sur l'onglet "Vidéos de couverture".
+
+## 4. Édition utilisateur
+
+Dans `BirthdayPageBuilderModal`, nouvel onglet **Vidéos de couverture** :
+- Liste des 6 créneaux (matin / aprèm / soir / nuit / fête / anniversaire)
+- Pour chacun : preview vidéo défaut + bouton "Uploader la mienne"
+- Upload vers `assets/birthday-pages/{user_id}/cover-videos/`
+- Validation : MP4/MOV, ≤ 25 Mo, ≤ 30 s (réutilise `videoValidation.ts`)
+- Génération auto du poster
+
+## 5. Intégration `BirthdayPage.tsx`
+
+Lignes 359-393 : remplacer le bloc `cover_image_url` par `<CoverVideoCarousel>` ; déplacer le `<motion.h1>` + countdown vers le nouvel overlay profil. Conserver `cover_image_url` comme **poster du 1ᵉʳ frame** (fallback si aucune vidéo configurée).
+
+## 6. OG / partage
+Aucun impact OG : `birthday-preview` continue d'utiliser `cover_image_url` comme image statique (les réseaux ne lisent pas les vidéos en aperçu de toute façon). Le worker Cloudflare reste inchangé.
 
 ---
 
-## Nouveau code du Worker
+## Détails techniques
 
-```js
-const CRAWLERS = /facebookexternalhit|Facebot|Twitterbot|WhatsApp|LinkedInBot|Slackbot|TelegramBot|Discordbot|Googlebot|bingbot|Applebot|PinterestBot|Pinterest|vkShare|Viber|Snapchat|redditbot|embedly|Iframely/i;
+**Migrations Supabase :**
+1. `CREATE TYPE cover_schedule_kind AS ENUM (...)`
+2. Table `cover_video_library` + RLS (lecture anon, écriture admin)
+3. Table `birthday_page_cover_videos` + RLS (owner CRUD, public read si page active)
+4. Policies storage `assets/cover-videos/*` (admin write) et `assets/birthday-pages/{uid}/cover-videos/*` (owner write, public read)
 
-const SUPABASE = "https://vaimfeurvzokepqqqrsl.supabase.co";
-// Clé anon publique Supabase (sans danger côté Worker)
-const SUPABASE_ANON_KEY = "REMPLACER_PAR_LA_CLE_ANON";
+**Hooks à créer :**
+- `useCoverVideoLibrary()` — admin
+- `useBirthdayPageCoverVideos(pageId)` — owner + public
+- `useCoverVideoPlaylist(pageId, birthday)` — résolution playlist contextuelle
 
-// IP de l'origine Lovable (cf. doc custom domain)
-const LOVABLE_ORIGIN = "185.158.133.1";
+**Considérations perf :**
+- `preload="metadata"` pour la suivante, `preload="auto"` pour la courante
+- Compression côté upload via `compressVideo` (à ajouter si absent, sinon limiter taille)
+- Lazy-load des vidéos hors playlist immédiate
 
-const PREVIEW_MAP = {
-  "/birthday/":    "birthday-preview",
-  "/anniversaire/": "birthday-preview",
-  "/event/":        "event-preview",
-  "/evenement/":    "event-preview",
-};
-
-export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    const ua = request.headers.get("user-agent") || "";
-
-    // 1. Crawler → proxy vers Supabase Edge Function
-    if (CRAWLERS.test(ua)) {
-      for (const [prefix, fn] of Object.entries(PREVIEW_MAP)) {
-        if (url.pathname.startsWith(prefix)) {
-          const slug = url.pathname.slice(prefix.length).split("/")[0];
-          if (!slug) break;
-          const target = `${SUPABASE}/functions/v1/${fn}/${slug}${url.search}`;
-          return fetch(target, {
-            headers: {
-              "user-agent": ua,
-              "apikey": SUPABASE_ANON_KEY,
-              "authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-            },
-          });
-        }
-      }
-    }
-
-    // 2. Humain → origine Lovable directement (évite la boucle Worker)
-    const originUrl = new URL(url.pathname + url.search, `https://${LOVABLE_ORIGIN}`);
-    return fetch(originUrl.toString(), {
-      method: request.method,
-      headers: { ...Object.fromEntries(request.headers), host: url.hostname },
-      body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
-      redirect: "manual",
-    });
-  },
-};
-```
-
----
-
-## Étapes pour appliquer
-
-1. Récupérer la **clé anon publique** Supabase (Dashboard → Settings → API → `anon public`). Elle est sans danger côté Worker (publique par design).
-2. Dans Cloudflare → Workers & Pages → `jdv-og-router` → **Edit code** → remplacer le contenu de `worker.js` par celui ci-dessus.
-3. Remplacer `REMPLACER_PAR_LA_CLE_ANON` par la vraie clé anon (ou la passer en variable d'environnement via **Settings → Variables**).
-4. Cliquer **Deploy**.
-5. Re-tester avec le WhatsApp Sharing Debugger sur `https://joiedevivre-africa.com/birthday/eva-2026`.
-
-## Test rapide en ligne de commande
-```bash
-curl -A "WhatsApp/2.23.20.0" -i https://joiedevivre-africa.com/birthday/eva-2026 | head -40
-```
-Doit retourner `<meta property="og:title" content="🎂 ...">` etc.
-
-## Note
-Aucun fichier du projet Lovable n'est modifié — toute la correction se passe dans le Worker Cloudflare.
+**Considérations UX :**
+- Si aucune vidéo n'est disponible (lib admin vide) → fallback image actuelle
+- Réduire la hauteur du header sur mobile (`h-56`) → `h-[70vh]` pour l'immersion vidéo
+- Bouton mute/unmute toujours accessible, persistant via `localStorage`
