@@ -1084,11 +1084,73 @@ export type Database = {
           },
         ]
       }
+      birthday_page_photo_favorites: {
+        Row: {
+          created_at: string
+          photo_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          photo_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          photo_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_page_photo_favorites_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_page_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      birthday_page_photo_views: {
+        Row: {
+          created_at: string
+          id: string
+          photo_id: string
+          viewed_on: string
+          viewer_fingerprint: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          photo_id: string
+          viewed_on?: string
+          viewer_fingerprint?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          photo_id?: string
+          viewed_on?: string
+          viewer_fingerprint?: string | null
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_page_photo_views_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_page_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       birthday_page_photos: {
         Row: {
           birthday_page_id: string
           caption: string | null
           created_at: string
+          event_kind: string | null
           id: string
           image_url: string
           media_type: string
@@ -1097,11 +1159,13 @@ export type Database = {
           uploader_name: string | null
           video_thumbnail_url: string | null
           video_url: string | null
+          view_count: number
         }
         Insert: {
           birthday_page_id: string
           caption?: string | null
           created_at?: string
+          event_kind?: string | null
           id?: string
           image_url: string
           media_type?: string
@@ -1110,11 +1174,13 @@ export type Database = {
           uploader_name?: string | null
           video_thumbnail_url?: string | null
           video_url?: string | null
+          view_count?: number
         }
         Update: {
           birthday_page_id?: string
           caption?: string | null
           created_at?: string
+          event_kind?: string | null
           id?: string
           image_url?: string
           media_type?: string
@@ -1123,6 +1189,7 @@ export type Database = {
           uploader_name?: string | null
           video_thumbnail_url?: string | null
           video_url?: string | null
+          view_count?: number
         }
         Relationships: [
           {
@@ -9705,6 +9772,10 @@ export type Database = {
       }
       promote_to_super_admin_by_phone: {
         Args: { p_email: string; p_password: string; p_phone: string }
+        Returns: undefined
+      }
+      record_album_photo_view: {
+        Args: { _fingerprint?: string; _photo_id: string }
         Returns: undefined
       }
       request_contact_relationship: {
