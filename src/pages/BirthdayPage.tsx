@@ -16,7 +16,7 @@ import {
   PartyPopper, Heart, Gift, Send, Share2, MessageCircle,
   Sparkles, Loader2, ArrowLeft
 } from "lucide-react";
-import { BirthdayAlbum } from "@/components/BirthdayAlbum";
+import { BirthdayAlbumFlickr } from "@/components/birthday/album/BirthdayAlbumFlickr";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
 import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
 import { BirthdayCountdown } from "@/components/BirthdayCountdown";
@@ -58,6 +58,8 @@ interface AlbumItem {
   video_url: string | null;
   video_thumbnail_url: string | null;
   memory_text: string | null;
+  event_kind: string | null;
+  view_count: number;
 }
 
 interface FundInfo {
@@ -233,7 +235,7 @@ const BirthdayPage = () => {
       // Load album items
       const { data: pics } = await supabase
         .from('birthday_page_photos')
-        .select('id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
+        .select('id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text, event_kind, view_count')
         .eq('birthday_page_id', pageData.id)
         .order('created_at', { ascending: false });
 
@@ -568,7 +570,7 @@ const BirthdayPage = () => {
 
         {/* Album souvenir */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <BirthdayAlbum
+          <BirthdayAlbumFlickr
             pageId={page!.id}
             slug={slug!}
             firstName={firstName}
