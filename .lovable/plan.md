@@ -1,104 +1,87 @@
-# Vidéos de couverture animées sur la page d'anniversaire
+## Refonte de l'album souvenir façon Flickr
 
-## Objectif
-Transformer l'en-tête de `/birthday/:slug` en un espace vidéo immersif qui crée de l'émotion :
-- défilement automatique de vidéos contextuelles (salutation du jour, fêtes calendaires, anniversaire)
-- son activé par défaut, plein écran au tap
-- overlay style profil social : photo de profil + Prénom + âge + compte à rebours
+Transformer la section « Album souvenir de X » de la page d'anniversaire en une expérience inspirée de Flickr : 4 onglets principaux (Galerie / Événements / Souvenirs / Favoris), des sous-onglets Photos/Vidéos partout où ils ont du sens, et un parcours en 3 niveaux pour les événements (liste d'événements → cartes d'événements avec couverture → grille interne → lecteur plein écran).
 
-## 1. Bibliothèque de vidéos de couverture
+### 1. Modèle de données
 
-### 1a. Vidéos par défaut (admin)
-Nouveau bucket / dossier `assets/cover-videos/` (bucket `assets` existant) contenant les MP4 fournis par les admins.
+Ajouter à `birthday_page_photos` :
+- `event_kind` (text, nullable) — slug parmi `anniversaire`, `mariage_traditionnel`, `mariage_religieux`, `mariage_civil`, `reussite_academique`, `reussite_scolaire`, `promotion_pro`. NULL = élément hors événement (toujours visible dans Galerie).
+- `view_count` (int, défaut 0).
 
-Nouvelle table `cover_video_library` :
-- `id`, `title`, `video_url`, `poster_url` (thumbnail)
-- `schedule_kind` enum : `greeting_morning` | `greeting_afternoon` | `greeting_evening` | `greeting_night` | `calendar_event` | `birthday_day`
-- `calendar_month`, `calendar_day` (nullable, pour Noël 12/25, St-Valentin 02/14, Pâques calculé, Fête des mères, Nouvel An…)
-- `priority` (int, pour l'ordre)
-- `is_active`
-- RLS : lecture publique (authenticated + anon), écriture admin via `has_role(admin)`
+Nouvelles tables :
+- `birthday_page_photo_views` (photo_id, viewer_id nullable, viewer_fingerprint, viewed_at) — 1 vue / utilisateur / 24 h, déclenche un trigger qui incrémente `view_count`.
+- `birthday_page_photo_favorites` (photo_id, user_id, created_at) — l'étoile « Favoris » de Flickr ; PK composite.
 
-### 1b. Vidéos personnalisées (utilisateur)
-Nouvelle table `birthday_page_cover_videos` :
-- `id`, `birthday_page_id` (FK), `user_id`
-- `video_url`, `poster_url`
-- `schedule_kind` (même enum, l'utilisateur choisit le créneau)
-- `display_order`, `created_at`
-- RLS : propriétaire CRUD ; lecture publique si la page est `is_active`
+RLS : lecture publique (page active), insert favoris/views par utilisateur authentifié, suppression de son propre favori.
 
-Les vidéos perso d'un créneau **remplacent** les vidéos défaut du même créneau ; sinon fallback admin.
+Constante front `EVENT_KINDS` avec label FR + parent (Mariage / Réussite groupent leurs sous-types pour l'UI).
 
-### 1c. Page Admin
-Nouvelle entrée `/admin/cover-videos` (sous `AdminLayout`) :
-- upload MP4 vers `assets/cover-videos/`, génération auto du poster (1ʳᵉ frame via `extractSingleThumbnail`)
-- formulaire schedule_kind + date calendaire
-- liste / activation / suppression
+### 2. Architecture des composants
 
-## 2. Composant `CoverVideoCarousel`
+```text
+BirthdayAlbumFlickr/
+  index.tsx                  ← orchestrateur (4 onglets principaux)
+  GalleryTab.tsx             ← tout sauf souvenirs, sous-onglets Photos/Vidéos
+  EventsTab.tsx              ← niveau 1 : grille des cartes d'événements
+    EventCoverCard.tsx       ← 1ʳᵉ photo/vidéo + titre + n photos/vidéos · n vues
+    EventDetailView.tsx      ← niveau 2 : header Flickr + grille interne
+    EventUploadSheet.tsx     ← upload ciblé sur un event_kind + sous-type
+  MemoriesTab.tsx            ← cartes texte (existant migré)
+  FavoritesTab.tsx           ← items mis en favori, sous-onglets Photos/Vidéos
+  shared/
+    MediaGrid.tsx            ← grille pleine largeur (style Tent-making Bats / Brown Basilisk)
+    MediaTile.tsx            ← tuile + métriques (★ favoris · 💬 commentaires) + réactions au survol
+    MediaLightbox.tsx        ← lecteur immersif + barre d'actions (★, 💬, ↗, ⬇, ⋯)
+    SearchBar.tsx            ← recherche locale (légende, uploader, type)
+```
 
-Nouveau `src/components/birthday/CoverVideoCarousel.tsx` :
-- Hook `useCoverVideoPlaylist(birthdayPageId, birthdayDate)` :
-  - Détecte le contexte temporel local du visiteur :
-    - 05–11h → `greeting_morning`
-    - 12–17h → `greeting_afternoon`
-    - 18–21h → `greeting_evening`
-    - 22–04h → `greeting_night`
-  - Détecte les fêtes calendaires actives (j ±1 autour de la date)
-  - Si aujourd'hui = date d'anniversaire → insère les vidéos `birthday_day` en tête
-  - Construit la playlist : `[birthday_day?, calendar_event?, greeting]` (vidéos perso prioritaires)
-- Lecture : `<video autoPlay playsInline>` avec **son activé**.
-  - iOS bloque l'autoplay audio : fallback `muted` + bouton "🔊 Activer le son" (tap-to-unmute) visible 1ʳᵉ vue, mémorisé dans `localStorage`.
-- Avance auto à la fin de chaque vidéo (`onEnded`) avec fondu enchaîné. Durée min 6 s / max 20 s.
-- Tap → ouvre une modale plein écran (Dialog) avec contrôles natifs.
-- Indicateurs de progression style stories en haut.
+`BirthdayAlbum.tsx` actuel est remplacé par `BirthdayAlbumFlickr` dans `BirthdayPage.tsx` ; tout le code de réactions, upload, edit/delete est extrait dans des hooks (`useAlbumUpload`, `useAlbumReactions`, `useAlbumFavorites`) pour rester DRY.
 
-## 3. Overlay profil-style
+### 3. Comportement détaillé
 
-Remplace l'overlay actuel (titre centré + countdown) par un bandeau bas-gauche inspiré de la capture :
-- Avatar rond (photo de profil utilisateur, fallback initiales) avec liseré blanc.
-- À droite de l'avatar :
-  - **Prénom + âge** en gros (`{firstName} · {age} ans`)
-  - Sous-ligne : `BirthdayCountdown` compact (00 jrs · 00 hrs · 00 min · 00 sec) sur fond pilule glassmorphism.
-- Bouton caméra (admin de la page seulement) → ouvre `BirthdayPageBuilderModal` sur l'onglet "Vidéos de couverture".
+**Onglets principaux** (barre soulignée bleue façon Flickr, scroll horizontal sur mobile)
+- **Galerie** : tout le contenu non-textuel + sous-onglets Photos / Vidéos. Tri « Date d'importation » dans un Select.
+- **Événements** : remplace Albums. Sous-onglets Photos / Vidéos qui filtrent ce qui apparaît dans les cartes événements et dans la vue détail.
+- **Souvenirs** : conserve les cartes texte avec citations (état actuel).
+- **Favoris** : items favorisés par l'utilisateur courant, + sous-onglets Photos / Vidéos (vue désactivée pour visiteurs anonymes avec CTA login).
 
-## 4. Édition utilisateur
+**Niveau 1 — grille des cartes événements**
+- Une carte par `event_kind` ayant ≥ 1 média : couverture = 1ʳᵉ photo/vidéo (poster vidéo si vidéo), overlay bas gauche avec titre FR + ligne `309 photos · 60 vues` (somme des `view_count`).
+- Boutons `+` discrets par événement → ouvre `EventUploadSheet` pré-rempli avec `event_kind` + filtre photo/vidéo selon le sous-onglet actif.
+- Mariage / Réussite : la carte parent regroupe ses sous-types (tradi/religieux/civil) et expose `+` par sous-type dans une popover.
 
-Dans `BirthdayPageBuilderModal`, nouvel onglet **Vidéos de couverture** :
-- Liste des 6 créneaux (matin / aprèm / soir / nuit / fête / anniversaire)
-- Pour chacun : preview vidéo défaut + bouton "Uploader la mienne"
-- Upload vers `assets/birthday-pages/{user_id}/cover-videos/`
-- Validation : MP4/MOV, ≤ 25 Mo, ≤ 30 s (réutilise `videoValidation.ts`)
-- Génération auto du poster
+**Niveau 2 — détail d'événement** (vue Panama)
+- Header : flèche retour ←, icône partage ↗, titre en très grand (Poppins semibold), `par {nom_de_l_utilisateur_celebre}`, ligne `n photos · n vues`, barre d'icônes vue (slideshow ▷, grille dense, grille large, liste).
+- Grille pleine largeur (1 col mobile, 2 col tablette, 3 col desktop) — tuiles `MediaTile` avec titre + métriques `★ 36  💬 4  +` sous chaque média (style Tent-making Bats).
+- Tap sur tuile → `MediaLightbox`.
 
-## 5. Intégration `BirthdayPage.tsx`
+**Niveau 3 — lightbox réactive**
+- Média plein écran fond noir, swipe + flèches.
+- Barre d'actions bas : `★ 36` (favoris), `💬 4` (commentaires), `↗` (partage), `⬇` (download), `⋯` (menu edit/delete/définir comme image de partage social — droits inchangés).
+- Réactions emoji existantes (`AlbumItemReactions`) intégrées dans cette barre.
 
-Lignes 359-393 : remplacer le bloc `cover_image_url` par `<CoverVideoCarousel>` ; déplacer le `<motion.h1>` + countdown vers le nouvel overlay profil. Conserver `cover_image_url` comme **poster du 1ᵉʳ frame** (fallback si aucune vidéo configurée).
+**Galerie & Favoris** réutilisent `MediaGrid` + `MediaTile` (mêmes hover/réactions, mêmes métriques) avec une `SearchBar` en haut (filtre `caption`, `uploader_name`, `event_kind`).
 
-## 6. OG / partage
-Aucun impact OG : `birthday-preview` continue d'utiliser `cover_image_url` comme image statique (les réseaux ne lisent pas les vidéos en aperçu de toute façon). Le worker Cloudflare reste inchangé.
+### 4. Upload contextuel
+- Depuis Événements, l'upload pré-remplit `event_kind` et impose `media_type` selon le sous-onglet actif.
+- Depuis Galerie, `event_kind` reste NULL (élément non rangé).
+- Validation : sous-types Mariage/Réussite obligent à choisir un sous-type avant envoi.
 
----
+### 5. Migration progressive
+- Les items existants gardent `event_kind = NULL` → apparaissent dans Galerie. Aucune perte.
+- Un bouton « Classer dans un événement » apparaît sur les tuiles dont l'utilisateur est propriétaire pour les ranger a posteriori.
 
-## Détails techniques
+### 6. Détails techniques
 
-**Migrations Supabase :**
-1. `CREATE TYPE cover_schedule_kind AS ENUM (...)`
-2. Table `cover_video_library` + RLS (lecture anon, écriture admin)
-3. Table `birthday_page_cover_videos` + RLS (owner CRUD, public read si page active)
-4. Policies storage `assets/cover-videos/*` (admin write) et `assets/birthday-pages/{uid}/cover-videos/*` (owner write, public read)
+- Tracking de vue : appel `rpc('record_photo_view', { photo_id })` à l'ouverture de la lightbox, dédupliqué par `localStorage` côté client + contrainte unique `(photo_id, viewer_id|fingerprint, date_trunc('day', viewed_at))` côté DB.
+- Pré-chargement vidéo : `<video preload="metadata" poster={video_thumbnail_url}>` dans les tuiles, autoplay muet uniquement dans la lightbox (cohérent avec `CoverVideoCarousel`).
+- Accessibilité : focus trap dans la lightbox, alt = `caption || uploader_name`, tailles tactiles ≥ 44 px.
+- Tokens design : conserver `--primary`, `--secondary`, `--shadow-card`. Soulignement d'onglet actif = `border-primary` (jamais `border-blue-500`).
+- Aucune modification de logique métier hors album : réactions, partage social, OG cache restent câblés comme aujourd'hui.
 
-**Hooks à créer :**
-- `useCoverVideoLibrary()` — admin
-- `useBirthdayPageCoverVideos(pageId)` — owner + public
-- `useCoverVideoPlaylist(pageId, birthday)` — résolution playlist contextuelle
-
-**Considérations perf :**
-- `preload="metadata"` pour la suivante, `preload="auto"` pour la courante
-- Compression côté upload via `compressVideo` (à ajouter si absent, sinon limiter taille)
-- Lazy-load des vidéos hors playlist immédiate
-
-**Considérations UX :**
-- Si aucune vidéo n'est disponible (lib admin vide) → fallback image actuelle
-- Réduire la hauteur du header sur mobile (`h-56`) → `h-[70vh]` pour l'immersion vidéo
-- Bouton mute/unmute toujours accessible, persistant via `localStorage`
+### Livrables
+1. Migration SQL (colonnes + 2 tables + RLS + RPC + trigger).
+2. `src/components/birthday/album/` (10 fichiers ci-dessus).
+3. Hooks `useAlbumUpload`, `useAlbumReactions`, `useAlbumFavorites`, `usePhotoViewTracking`.
+4. Branchement dans `BirthdayPage.tsx` ; suppression progressive de `BirthdayAlbum.tsx` après vérif.
+5. QA visuelle dans le preview à 758×588 (mobile-first).
