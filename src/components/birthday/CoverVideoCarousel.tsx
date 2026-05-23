@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useCoverVideoPlaylist } from "@/hooks/useCoverVideoPlaylist";
-import type { CoverVideoItem } from "@/utils/coverVideoSchedule";
+import { isSpecialDayPlaylist, type CoverVideoItem } from "@/utils/coverVideoSchedule";
 
 const MUTE_STORAGE_KEY = "birthday-cover-muted";
 const MAX_DURATION_MS = 20_000;
@@ -38,9 +38,21 @@ export function CoverVideoCarousel({
   const [expanded, setExpanded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fallbackTimerRef = useRef<number | null>(null);
+  const userOverrodeMuteRef = useRef(false);
 
   const current: CoverVideoItem | undefined = playlist[index];
   const [showUnmuteHint, setShowUnmuteHint] = useState(true);
+
+  const isSpecialDay = isSpecialDayPlaylist(playlist, birthday ?? null);
+
+  // Auto-unmute on special days (birthday or active calendar event) unless the
+  // user has explicitly chosen muted during this session.
+  useEffect(() => {
+    if (isSpecialDay && !userOverrodeMuteRef.current && muted) {
+      setMuted(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSpecialDay]);
 
   // Auto-hide the unmute hint after 4s; re-show when current video changes while muted.
   useEffect(() => {
@@ -76,7 +88,14 @@ export function CoverVideoCarousel({
     if (!el) return;
     el.muted = muted;
     el.play().catch(() => {
-      /* autoplay blocked; will retry on next user gesture */
+      // Autoplay with sound was blocked → fall back to muted so the video still plays.
+      if (!muted) {
+        el.muted = true;
+        setMuted(true);
+        el.play().catch(() => {
+          /* still blocked; will retry on next user gesture */
+        });
+      }
     });
   }, [muted, current?.id]);
 
@@ -86,6 +105,7 @@ export function CoverVideoCarousel({
   };
 
   const toggleMute = () => {
+    userOverrodeMuteRef.current = true;
     setMuted((m) => {
       const next = !m;
       try {

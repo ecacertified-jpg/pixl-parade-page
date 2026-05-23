@@ -80,6 +80,24 @@ export const SCHEDULE_KIND_LABELS: Record<CoverVideoScheduleKind, string> = {
 };
 
 /**
+ * True if the visitor is on a "special" day for this birthday page:
+ * - it's the user's birthday today, OR
+ * - the playlist contains at least one calendar_event video active today.
+ */
+export function isSpecialDayPlaylist(
+  playlist: CoverVideoItem[],
+  birthday: string | null,
+  now = new Date(),
+): boolean {
+  if (isBirthdayToday(birthday, now)) return true;
+  return playlist.some(
+    (v) =>
+      v.schedule_kind === "calendar_event" &&
+      isCalendarEventActive(v.calendar_month, v.calendar_day, now),
+  );
+}
+
+/**
  * Build the visitor's playlist from user-uploaded + library videos.
  * Priority: birthday_day > calendar_event (matching today) > current greeting.
  * User videos shadow library videos for the same schedule_kind.
