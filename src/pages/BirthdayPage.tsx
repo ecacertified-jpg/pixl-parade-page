@@ -91,6 +91,8 @@ const BirthdayPage = () => {
   const [showVideosManager, setShowVideosManager] = useState(false);
 
   const confettiTriggered = useRef(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Get profile info for the birthday person
   const [birthdayPerson, setBirthdayPerson] = useState<{ first_name: string; avatar_url: string | null; birthday: string | null }>({ first_name: '', avatar_url: null, birthday: null });
