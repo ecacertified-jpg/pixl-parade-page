@@ -25,6 +25,7 @@ import { CoverVideosManagerSheet } from "@/components/birthday/CoverVideosManage
 import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 import { buildBirthdayShareUrl } from "@/utils/buildBirthdayShareUrl";
+import { MessageWall } from "@/components/birthday/messages/MessageWall";
 
 interface BirthdayPageData {
   id: string;
@@ -565,83 +566,12 @@ const BirthdayPage = () => {
 
         {/* Messages section */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Heart className="h-5 w-5 text-heart" />
-              <h2 className="font-bold font-poppins">Messages d'anniversaire</h2>
-              <span className="text-xs text-muted-foreground ml-auto">{messages.length}</span>
-            </div>
-
-            {/* Write message */}
-            <div className="mb-4">
-              {user ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder={`Écris un message pour ${firstName}... 💖`}
-                    className="resize-none min-h-[80px]"
-                    maxLength={500}
-                  />
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    disabled={!newMessage.trim() || sendingMessage}
-                    onClick={handleSendMessage}
-                  >
-                    {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-                    Envoyer
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full border-dashed"
-                  onClick={() => navigate(`/auth?redirect=/birthday/${slug}&invited=true`)}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Créer un compte pour écrire un message
-                </Button>
-              )}
-            </div>
-
-            {/* Messages list */}
-            <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              <AnimatePresence>
-                {messages.map((msg, i) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-muted/50"
-                  >
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                        {(msg.sender_name || '?').charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{msg.sender_name || 'Un ami'}</span>
-                        {msg.is_from_fund && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gift/20 text-gift">💝 Contributeur</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{msg.message_text}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-
-              {messages.length === 0 && (
-                <div className="text-center py-8">
-                  <Sparkles className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
-                  <p className="text-sm text-muted-foreground">Sois le premier à écrire un message !</p>
-                </div>
-              )}
-            </div>
-          </Card>
+          <MessageWall
+            pageId={page!.id}
+            slug={slug!}
+            firstName={firstName}
+            pageOwnerUserId={page!.user_id}
+          />
         </motion.div>
 
         {/* Album souvenir */}
