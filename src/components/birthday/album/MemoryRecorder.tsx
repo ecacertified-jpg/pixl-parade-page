@@ -156,11 +156,11 @@ export function MemoryRecorder({ sending, onSend }: Props) {
             </div>
             <audio ref={audioRef} src={previewUrl || undefined} onEnded={() => setPlaying(false)} hidden />
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={reset} disabled={sending}>
+          <div className="flex flex-col-reverse sm:flex-row gap-2">
+            <Button variant="ghost" size="sm" onClick={reset} disabled={sending} className="w-full sm:w-auto">
               <Trash2 className="h-4 w-4 mr-1" /> Recommencer
             </Button>
-            <Button size="sm" className="flex-1" onClick={handleSend} disabled={sending}>
+            <Button size="sm" className="w-full sm:flex-1 min-w-0 whitespace-normal text-center h-auto py-2.5" onClick={handleSend} disabled={sending}>
               {sending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
               Envoyer le souvenir
             </Button>
