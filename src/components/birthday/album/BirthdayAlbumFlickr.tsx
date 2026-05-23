@@ -738,11 +738,13 @@ export function BirthdayAlbumFlickr({
         <EventDetailView
           eventKind={selectedEvent}
           items={eventDetailItems}
-          favCounts={favCounts} myFavs={myFavs} reactions={reactions}
+          favCounts={favCounts} myFavs={myFavs} reactions={reactions} commentCounts={commentCounts}
           user={user}
           onBack={() => setSelectedEvent(null)}
           onOpen={(idx) => openLightbox(eventDetailItems.map((i) => i.id), idx)}
           onToggleFav={toggleFavorite}
+          onShare={handleShareItem}
+          onComment={openCommentsOn}
           onAdd={(mode) => openUploadSheet(mode, selectedEvent)}
         />
       )}
@@ -898,16 +900,19 @@ export function BirthdayAlbumFlickr({
 // ============================================================
 
 function MediaTile({
-  item, index, favCount, isFav, reactionCounts,
-  onOpen, onToggleFav,
+  item, index, favCount, isFav, reactionCounts, commentsCount,
+  onOpen, onToggleFav, onShare, onComment,
 }: {
   item: AlbumItem;
   index: number;
   favCount: number;
   isFav: boolean;
   reactionCounts: ReactionCounts;
+  commentsCount: number;
   onOpen: () => void;
   onToggleFav: () => void;
+  onShare: () => void;
+  onComment: () => void;
 }) {
   const totalReactions = Object.values(reactionCounts).reduce((s, n) => s + n, 0);
   const isAboveFold = index < 4;
@@ -936,19 +941,25 @@ function MediaTile({
           </>
         )}
       </button>
-      <div className="flex items-center justify-between px-1 py-2">
+      <div className="flex items-center justify-between px-1 py-2 gap-1">
         <div className="text-xs text-foreground truncate flex-1">
           {item.caption || item.uploader_name || "Souvenir"}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <button onClick={(e) => { e.stopPropagation(); onToggleFav(); }}
-            className="flex items-center gap-0.5 hover:text-foreground">
+            className="flex items-center gap-0.5 hover:text-foreground px-1 py-0.5">
             <Star className={cn("h-3.5 w-3.5", isFav ? "fill-yellow-400 text-yellow-400" : "")} />
             <span>{favCount}</span>
           </button>
-          <span className="flex items-center gap-0.5">
-            <MessageCircle className="h-3.5 w-3.5" /> {totalReactions}
-          </span>
+          <button onClick={(e) => { e.stopPropagation(); onComment(); }}
+            className="flex items-center gap-0.5 hover:text-foreground px-1 py-0.5" aria-label="Commenter">
+            <MessageCircle className="h-3.5 w-3.5" />
+            <span>{commentsCount || totalReactions}</span>
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onShare(); }}
+            className="hover:text-foreground px-1 py-0.5" aria-label="Partager">
+            <Share2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </motion.div>
@@ -956,15 +967,18 @@ function MediaTile({
 }
 
 function MediaGrid({
-  items, favCounts, myFavs, reactions, user, onOpen, onToggleFav, emptyLabel,
+  items, favCounts, myFavs, reactions, commentCounts, user, onOpen, onToggleFav, onShare, onComment, emptyLabel,
 }: {
   items: AlbumItem[];
   favCounts: Record<string, number>;
   myFavs: Set<string>;
   reactions: Record<string, { counts: ReactionCounts; userReactions: UserReactions }>;
+  commentCounts: Record<string, number>;
   user: User | null;
   onOpen: (index: number) => void;
   onToggleFav: (item: AlbumItem) => void;
+  onShare: (item: AlbumItem) => void;
+  onComment: (item: AlbumItem) => void;
   emptyLabel: string;
 }) {
   if (items.length === 0) {
@@ -985,8 +999,11 @@ function MediaGrid({
           favCount={favCounts[item.id] || 0}
           isFav={myFavs.has(item.id)}
           reactionCounts={reactions[item.id]?.counts ?? {}}
+          commentsCount={commentCounts[item.id] || 0}
           onOpen={() => onOpen(idx)}
           onToggleFav={() => onToggleFav(item)}
+          onShare={() => onShare(item)}
+          onComment={() => onComment(item)}
         />
       ))}
     </div>
@@ -1067,17 +1084,20 @@ function EventsGrid({
 }
 
 function EventDetailView({
-  eventKind, items, favCounts, myFavs, reactions, user, onBack, onOpen, onToggleFav, onAdd,
+  eventKind, items, favCounts, myFavs, reactions, commentCounts, user, onBack, onOpen, onToggleFav, onShare, onComment, onAdd,
 }: {
   eventKind: AlbumEventKind;
   items: AlbumItem[];
   favCounts: Record<string, number>;
   myFavs: Set<string>;
   reactions: Record<string, { counts: ReactionCounts; userReactions: UserReactions }>;
+  commentCounts: Record<string, number>;
   user: User | null;
   onBack: () => void;
   onOpen: (index: number) => void;
   onToggleFav: (item: AlbumItem) => void;
+  onShare: (item: AlbumItem) => void;
+  onComment: (item: AlbumItem) => void;
   onAdd: (mode: "image" | "video") => void;
 }) {
   const photoCount = items.filter((i) => i.media_type === "image").length;
@@ -1108,8 +1128,8 @@ function EventDetailView({
         </p>
       </div>
       <MediaGrid items={items}
-        favCounts={favCounts} myFavs={myFavs} reactions={reactions} user={user}
-        onOpen={onOpen} onToggleFav={onToggleFav}
+        favCounts={favCounts} myFavs={myFavs} reactions={reactions} commentCounts={commentCounts} user={user}
+        onOpen={onOpen} onToggleFav={onToggleFav} onShare={onShare} onComment={onComment}
         emptyLabel="Aucun média dans cet événement. Ajoute-en avec le bouton +."
       />
     </div>
