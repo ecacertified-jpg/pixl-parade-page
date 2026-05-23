@@ -276,6 +276,46 @@ const BirthdayPage = () => {
   };
 
   const handleSendMessage = async () => {
+    return _handleSendMessage();
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !page || user.id !== page.user_id) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image trop lourde (max 5 Mo)");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/cover-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const newUrl = urlData.publicUrl;
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: newUrl })
+        .eq("user_id", user.id);
+      if (profErr) throw profErr;
+      setBirthdayPerson((prev) => ({ ...prev, avatar_url: newUrl }));
+      supabase.functions
+        .invoke("purge-birthday-og-cache", { body: { slug: page.slug } })
+        .catch(() => {});
+      toast.success("Photo de profil mise à jour ✨");
+    } catch (err) {
+      console.error(err);
+      toast.error("Impossible de mettre à jour la photo");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const _handleSendMessage = async () => {
     if (!user) {
       navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
       return;
