@@ -34,7 +34,7 @@ export function MessageWall({ pageId, slug, firstName, pageOwnerUserId }: Props)
         <span className="text-xs text-muted-foreground">({total})</span>
         <Button
           size="sm"
-          className="ml-auto bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-soft"
+          className="ml-auto bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-soft hover:opacity-95"
           onClick={() => setModalOpen(true)}
         >
           <Plus className="h-4 w-4 mr-1.5" /> Nouveau post
