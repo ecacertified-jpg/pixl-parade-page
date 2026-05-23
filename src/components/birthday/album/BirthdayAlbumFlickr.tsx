@@ -895,7 +895,7 @@ export function BirthdayAlbumFlickr({
       <AnimatePresence>
         {currentLightboxItem && lightboxIds && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 flex flex-col"
+            className="fixed inset-0 z-[100] bg-black/95 flex flex-col overflow-y-auto overscroll-contain"
             onClick={() => setLightboxIds(null)}
           >
             {/* Top bar */}
@@ -927,7 +927,7 @@ export function BirthdayAlbumFlickr({
             </div>
 
             {/* Media */}
-            <div className="flex-1 flex items-center justify-center relative" onClick={(e) => e.stopPropagation()}>
+            <div className="flex-shrink-0 flex items-center justify-center relative min-h-[40vh]" onClick={(e) => e.stopPropagation()}>
               {lightboxIndex > 0 && (
                 <Button variant="ghost" size="icon" className="absolute left-2 text-white hover:bg-white/10 h-12 w-12 rounded-full bg-black/40"
                   onClick={() => setLightboxIndex((i) => i - 1)}>
@@ -949,7 +949,7 @@ export function BirthdayAlbumFlickr({
             </div>
 
             {/* Bottom action bar */}
-            <div className="p-3 text-white" onClick={(e) => e.stopPropagation()}>
+            <div className="p-3 pb-[max(env(safe-area-inset-bottom),1rem)] text-white" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <button onClick={() => toggleFavorite(currentLightboxItem)}
                   className="flex items-center gap-1.5 text-sm">
