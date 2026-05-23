@@ -111,13 +111,17 @@ export function BirthdayAlbumFlickr({
   const [uploading, setUploading] = useState(false);
 
   // Memory form
-  const [showMemoryForm, setShowMemoryForm] = useState(false);
+  const [memorySheet, setMemorySheet] = useState<null | { mode: "text" | "audio" }>(null);
   const [memoryText, setMemoryText] = useState("");
   const [sendingMemory, setSendingMemory] = useState(false);
+  const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
+  // Comments counts (best-effort cache; details loaded on demand inside panels)
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   // Lightbox
   const [lightboxIds, setLightboxIds] = useState<string[] | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxShowComments, setLightboxShowComments] = useState(false);
 
   // Delete
   const [deletingItem, setDeletingItem] = useState<AlbumItem | null>(null);
