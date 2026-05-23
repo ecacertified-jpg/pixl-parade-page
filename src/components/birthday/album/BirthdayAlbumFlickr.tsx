@@ -955,10 +955,24 @@ export function BirthdayAlbumFlickr({
                   <Star className={cn("h-5 w-5", myFavs.has(currentLightboxItem.id) ? "fill-yellow-400 text-yellow-400" : "text-white")} />
                   <span>{favCounts[currentLightboxItem.id] || 0}</span>
                 </button>
-                <div className="flex items-center gap-1.5 text-sm text-white/70">
+                <button
+                  onClick={() => setLightboxShowComments((v) => !v)}
+                  className={cn(
+                    "flex items-center gap-1.5 text-sm",
+                    lightboxShowComments ? "text-white" : "text-white/70 hover:text-white",
+                  )}
+                  aria-label="Commentaires"
+                >
                   <MessageCircle className="h-5 w-5" />
-                  <span>{Object.values(reactions[currentLightboxItem.id]?.counts ?? {}).reduce((s, n) => s + n, 0)}</span>
-                </div>
+                  <span>{commentCounts[currentLightboxItem.id] || 0}</span>
+                </button>
+                <button
+                  onClick={() => handleShareItem(currentLightboxItem)}
+                  className="flex items-center gap-1.5 text-sm text-white/70 hover:text-white"
+                  aria-label="Partager"
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
                 <a href={currentLightboxItem.video_url || currentLightboxItem.image_url} target="_blank" rel="noreferrer"
                   className="flex items-center gap-1.5 text-sm">
                   <Download className="h-5 w-5" />
@@ -974,6 +988,19 @@ export function BirthdayAlbumFlickr({
               />
               {currentLightboxItem.uploader_name && (
                 <p className="text-xs text-white/60 mt-2">— {currentLightboxItem.uploader_name}</p>
+              )}
+              {lightboxShowComments && (
+                <div className="mt-3 max-h-[40vh] overflow-y-auto rounded-lg bg-white/5 p-3 border border-white/10">
+                  <PhotoCommentsPanel
+                    photoId={currentLightboxItem.id}
+                    user={user}
+                    pageOwnerUserId={pageOwnerUserId}
+                    authorName={null}
+                    onRequireAuth={() => requireAuth()}
+                    variant="dark"
+                    autoFocus
+                  />
+                </div>
               )}
             </div>
           </motion.div>
