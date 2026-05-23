@@ -653,9 +653,11 @@ export function BirthdayAlbumFlickr({
       {mainTab === "gallery" && (
         <MediaGrid items={galleryItems}
           favCounts={favCounts} myFavs={myFavs}
-          reactions={reactions} user={user}
+          reactions={reactions} commentCounts={commentCounts} user={user}
           onOpen={(idx) => openLightbox(galleryItems.map((i) => i.id), idx)}
           onToggleFav={toggleFavorite}
+          onShare={handleShareItem}
+          onComment={openCommentsOn}
           emptyLabel="Aucun média pour le moment."
         />
       )}
@@ -670,38 +672,57 @@ export function BirthdayAlbumFlickr({
         ) : (
           <MediaGrid items={favoriteItems}
             favCounts={favCounts} myFavs={myFavs}
-            reactions={reactions} user={user}
+            reactions={reactions} commentCounts={commentCounts} user={user}
             onOpen={(idx) => openLightbox(favoriteItems.map((i) => i.id), idx)}
             onToggleFav={toggleFavorite}
+            onShare={handleShareItem}
+            onComment={openCommentsOn}
             emptyLabel="Aucun favori pour le moment. Touche ★ sur un média pour le sauvegarder."
           />
         )
       )}
 
       {mainTab === "memories" && (
-        memoryItems.length === 0 ? (
-          <div className="text-center py-8">
-            <Quote className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
-            <p className="text-sm text-muted-foreground">Aucun souvenir partagé pour le moment.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {memoryItems.map((m) => (
-              <div key={m.id} className="bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/30 rounded-xl p-4">
-                <Quote className="h-5 w-5 text-primary/50 mb-2" />
-                <p className="text-sm italic font-nunito">"{m.memory_text}"</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-muted-foreground">— {m.uploader_name || "Un ami"}</span>
-                  {canManage(m) && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeletingItem(m)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )
+        <div className="space-y-3">
+          <Button
+            onClick={() => { if (!requireAuth()) setMemorySheet({ mode: "text" }); }}
+            className="w-full gap-2"
+          >
+            <Plus className="h-4 w-4" /> Ajouter un souvenir
+          </Button>
+          {memoryItems.length === 0 ? (
+            <div className="text-center py-8">
+              <Quote className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
+              <p className="text-sm text-muted-foreground">Aucun souvenir partagé pour le moment.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {memoryItems.map((m) => (
+                <MemoryCard
+                  key={m.id}
+                  item={{
+                    id: m.id,
+                    uploader_name: m.uploader_name,
+                    memory_text: m.memory_text,
+                    memory_audio_url: m.memory_audio_url ?? null,
+                    memory_audio_duration: m.memory_audio_duration ?? null,
+                    created_at: m.created_at,
+                  }}
+                  favCount={favCounts[m.id] || 0}
+                  isFav={myFavs.has(m.id)}
+                  reactionsTotal={Object.values(reactions[m.id]?.counts ?? {}).reduce((s, n) => s + n, 0)}
+                  commentsCount={commentCounts[m.id] || 0}
+                  canDelete={canManage(m)}
+                  onOpen={() => setOpenMemoryId(m.id)}
+                  onToggleFav={() => toggleFavorite(m)}
+                  onShare={() => handleShareItem(m)}
+                  onComment={() => setOpenMemoryId(m.id)}
+                  onDelete={() => setDeletingItem(m)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {mainTab === "events" && !selectedEvent && (
