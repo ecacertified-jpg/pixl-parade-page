@@ -1187,7 +1187,7 @@ export type Database = {
           created_at: string
           event_kind: string | null
           id: string
-          image_url: string
+          image_url: string | null
           media_type: string
           memory_audio_duration: number | null
           memory_audio_url: string | null
@@ -1204,7 +1204,7 @@ export type Database = {
           created_at?: string
           event_kind?: string | null
           id?: string
-          image_url: string
+          image_url?: string | null
           media_type?: string
           memory_audio_duration?: number | null
           memory_audio_url?: string | null
@@ -1221,7 +1221,7 @@ export type Database = {
           created_at?: string
           event_kind?: string | null
           id?: string
-          image_url?: string
+          image_url?: string | null
           media_type?: string
           memory_audio_duration?: number | null
           memory_audio_url?: string | null
