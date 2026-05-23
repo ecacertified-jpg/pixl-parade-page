@@ -903,6 +903,42 @@ export type Database = {
         }
         Relationships: []
       }
+      birthday_card_templates: {
+        Row: {
+          category: string
+          country: string | null
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          country?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          country?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       birthday_celebrations: {
         Row: {
           age_at_celebration: number | null
@@ -1314,43 +1350,82 @@ export type Database = {
       }
       birthday_wishes_messages: {
         Row: {
+          audio_url: string | null
           birthday_page_id: string | null
           birthday_user_id: string
+          card_template_id: string | null
           celebration_year: number
           created_at: string | null
           fund_id: string | null
           id: string
           is_from_fund: boolean | null
-          message_text: string
+          is_hidden: boolean
+          media_metadata: Json | null
+          media_type: string
+          media_url: string | null
+          message_text: string | null
+          moderation_reason: string | null
+          moderation_status: string
+          reactions_count: number
           sender_id: string | null
           sender_name: string | null
           thanks_sent: boolean | null
+          tone: string | null
+          visitor_first_name: string | null
+          visitor_phone_country: string | null
+          visitor_phone_hash: string | null
         }
         Insert: {
+          audio_url?: string | null
           birthday_page_id?: string | null
           birthday_user_id: string
+          card_template_id?: string | null
           celebration_year?: number
           created_at?: string | null
           fund_id?: string | null
           id?: string
           is_from_fund?: boolean | null
-          message_text: string
+          is_hidden?: boolean
+          media_metadata?: Json | null
+          media_type?: string
+          media_url?: string | null
+          message_text?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
+          reactions_count?: number
           sender_id?: string | null
           sender_name?: string | null
           thanks_sent?: boolean | null
+          tone?: string | null
+          visitor_first_name?: string | null
+          visitor_phone_country?: string | null
+          visitor_phone_hash?: string | null
         }
         Update: {
+          audio_url?: string | null
           birthday_page_id?: string | null
           birthday_user_id?: string
+          card_template_id?: string | null
           celebration_year?: number
           created_at?: string | null
           fund_id?: string | null
           id?: string
           is_from_fund?: boolean | null
-          message_text?: string
+          is_hidden?: boolean
+          media_metadata?: Json | null
+          media_type?: string
+          media_url?: string | null
+          message_text?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
+          reactions_count?: number
           sender_id?: string | null
           sender_name?: string | null
           thanks_sent?: boolean | null
+          tone?: string | null
+          visitor_first_name?: string | null
+          visitor_phone_country?: string | null
+          visitor_phone_hash?: string | null
         }
         Relationships: [
           {
