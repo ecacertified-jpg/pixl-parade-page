@@ -112,6 +112,7 @@ export function BirthdayAlbumFlickr({
 
   // Memory form
   const [memorySheet, setMemorySheet] = useState<null | { mode: "text" | "audio" }>(null);
+  const [memoryMode, setMemoryMode] = useState<"text" | "audio">("text");
   const [memoryText, setMemoryText] = useState("");
   const [sendingMemory, setSendingMemory] = useState(false);
   const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
