@@ -36,6 +36,7 @@ import { PhotoCommentsPanel } from "./PhotoCommentsPanel";
 import { MemoryRecorder } from "./MemoryRecorder";
 import { MemoryCard } from "./MemoryCard";
 import { MemoryDetailDialog } from "./MemoryDetailDialog";
+import placeholderUrl from "/placeholder.svg";
 
 export interface AlbumItem {
   id: string;
@@ -414,7 +415,7 @@ export function BirthdayAlbumFlickr({
           birthday_page_id: pageId,
           uploader_id: user!.id,
           uploader_name: name,
-          image_url: "",
+          image_url: placeholderUrl,
           media_type: "memory",
           memory_text: memoryText.trim(),
         })
@@ -424,7 +425,8 @@ export function BirthdayAlbumFlickr({
       setMemoryText("");
       setMemorySheet(null);
       toast.success("Souvenir partagé ! 💖");
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error("Erreur lors de l'envoi du souvenir");
     } finally {
       setSendingMemory(false);
@@ -449,7 +451,7 @@ export function BirthdayAlbumFlickr({
           birthday_page_id: pageId,
           uploader_id: user!.id,
           uploader_name: name,
-          image_url: "",
+          image_url: placeholderUrl,
           media_type: "memory",
           memory_audio_url: urlData.publicUrl,
           memory_audio_duration: Math.max(1, Math.round(durationSec)),
