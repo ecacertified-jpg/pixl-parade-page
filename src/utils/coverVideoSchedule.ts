@@ -10,7 +10,11 @@ export type CoverVideoScheduleKind =
   | "greeting_evening"
   | "greeting_night"
   | "calendar_event"
-  | "birthday_day";
+  | "birthday_day"
+  | "birthday_morning"
+  | "birthday_afternoon"
+  | "birthday_evening"
+  | "birthday_night";
 
 export interface CoverVideoItem {
   id: string;
@@ -31,6 +35,15 @@ export function currentGreetingKind(now = new Date()): CoverVideoScheduleKind {
   if (h >= 12 && h < 18) return "greeting_afternoon";
   if (h >= 18 && h < 22) return "greeting_evening";
   return "greeting_night";
+}
+
+/** Returns the birthday-day kind matching the current time-of-day slot. */
+export function currentBirthdayKind(now = new Date()): CoverVideoScheduleKind {
+  const h = now.getHours();
+  if (h >= 5 && h < 12) return "birthday_morning";
+  if (h >= 12 && h < 18) return "birthday_afternoon";
+  if (h >= 18 && h < 22) return "birthday_evening";
+  return "birthday_night";
 }
 
 export function isBirthdayToday(birthday: string | null, now = new Date()): boolean {
@@ -60,6 +73,10 @@ export const SCHEDULE_KIND_LABELS: Record<CoverVideoScheduleKind, string> = {
   greeting_night: "Bonne nuit",
   calendar_event: "Fête calendaire",
   birthday_day: "Jour de l'anniversaire",
+  birthday_morning: "Anniversaire — matin",
+  birthday_afternoon: "Anniversaire — après-midi",
+  birthday_evening: "Anniversaire — soir",
+  birthday_night: "Anniversaire — coucher",
 };
 
 /**
@@ -89,6 +106,9 @@ export function buildPlaylist(
   const result: CoverVideoItem[] = [];
 
   if (isBirthdayToday(birthday, now)) {
+    // Time-of-day specific birthday videos (morning/afternoon/evening/night)
+    result.push(...pickFor(currentBirthdayKind(now)));
+    // Generic birthday_day videos still play as part of the celebration mix
     result.push(...pickFor("birthday_day"));
   }
 
