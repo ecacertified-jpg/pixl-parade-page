@@ -282,6 +282,12 @@ const BirthdayPage = () => {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user || !page || user.id !== page.user_id) return;
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Format non supporté. Utilise JPG, PNG ou WebP.");
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image trop lourde (max 5 Mo)");
       return;
@@ -306,9 +312,9 @@ const BirthdayPage = () => {
         .invoke("purge-birthday-og-cache", { body: { slug: page.slug } })
         .catch(() => {});
       toast.success("Photo de profil mise à jour ✨");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Impossible de mettre à jour la photo");
+      toast.error(err?.message ? `Impossible de mettre à jour la photo: ${err.message}` : "Impossible de mettre à jour la photo");
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";
