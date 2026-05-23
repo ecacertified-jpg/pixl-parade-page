@@ -602,29 +602,11 @@ export function BirthdayAlbumFlickr({
           <span className="text-[10px]">Vidéo</span>
         </Button>
         <Button variant="outline" size="sm" className="flex-col h-auto py-3 gap-1 border-dashed"
-          onClick={() => { if (!requireAuth()) setShowMemoryForm((v) => !v); }}>
+          onClick={() => { if (!requireAuth()) setMemorySheet({ mode: "text" }); }}>
           <Quote className="h-4 w-4 text-heart" />
           <span className="text-[10px]">Souvenir</span>
         </Button>
       </div>
-
-      {/* Memory inline form */}
-      <AnimatePresence>
-        {showMemoryForm && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-4">
-            <div className="space-y-2 p-3 rounded-lg bg-muted/50">
-              <Textarea value={memoryText} onChange={(e) => setMemoryText(e.target.value)} placeholder={`Raconte un souvenir avec ${firstName}... ✨`} className="resize-none min-h-[80px]" maxLength={1000} />
-              <div className="flex gap-2">
-                <Button size="sm" className="flex-1" disabled={!memoryText.trim() || sendingMemory} onClick={handleSendMemory}>
-                  {sendingMemory ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-                  Envoyer
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowMemoryForm(false)}>Annuler</Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Main tabs - Flickr-like underline */}
       <div className="border-b border-border mb-4 -mx-1 px-1 overflow-x-auto">
