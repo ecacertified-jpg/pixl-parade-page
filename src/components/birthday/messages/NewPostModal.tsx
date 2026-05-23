@@ -484,7 +484,7 @@ function CardTemplates({ onSelect, selectedId }: {
             <button
               key={c} type="button"
               onClick={() => setCategory(c)}
-              className={`text-xs px-2.5 py-1 rounded-full border ${category === c ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+              className={`text-xs px-3 py-1 rounded-full border capitalize transition ${category === c ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-soft" : "bg-secondary/70 border-primary/20 hover:bg-secondary"}`}
             >{c}</button>
           ))}
         </div>
