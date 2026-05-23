@@ -788,6 +788,108 @@ export function BirthdayAlbumFlickr({
         </SheetContent>
       </Sheet>
 
+      {/* === Memory Sheet (texte / audio) === */}
+      <Sheet
+        open={!!memorySheet}
+        onOpenChange={(v) => {
+          if (!v) { setMemorySheet(null); setMemoryText(""); }
+        }}
+      >
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Ajouter un souvenir</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex gap-1 p-1 bg-muted rounded-full w-fit mx-auto">
+              <button
+                onClick={() => setMemoryMode("text")}
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1",
+                  memoryMode === "text" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <Quote className="h-3.5 w-3.5" /> Écrit
+              </button>
+              <button
+                onClick={() => setMemoryMode("audio")}
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1",
+                  memoryMode === "audio" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <Mic className="h-3.5 w-3.5" /> Audio
+              </button>
+            </div>
+
+            {memoryMode === "text" ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={memoryText}
+                  onChange={(e) => setMemoryText(e.target.value)}
+                  placeholder={`Raconte un souvenir avec ${firstName}…`}
+                  rows={5}
+                  maxLength={1500}
+                  className="resize-none"
+                />
+                <Button
+                  className="w-full"
+                  disabled={!memoryText.trim() || sendingMemory}
+                  onClick={handleSendMemoryText}
+                >
+                  {sendingMemory ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                  Partager le souvenir
+                </Button>
+              </div>
+            ) : (
+              <MemoryRecorder sending={sendingMemory} onSend={handleSendMemoryAudio} />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* === Memory detail dialog === */}
+      <MemoryDetailDialog
+        open={!!openMemoryId}
+        onOpenChange={(v) => !v && setOpenMemoryId(null)}
+        item={(() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          if (!m) return null;
+          return {
+            id: m.id,
+            uploader_id: m.uploader_id ?? null,
+            uploader_name: m.uploader_name,
+            memory_text: m.memory_text,
+            memory_audio_url: m.memory_audio_url ?? null,
+            memory_audio_duration: m.memory_audio_duration ?? null,
+            created_at: m.created_at,
+          };
+        })()}
+        user={user}
+        pageOwnerUserId={pageOwnerUserId}
+        favCount={openMemoryId ? (favCounts[openMemoryId] || 0) : 0}
+        isFav={openMemoryId ? myFavs.has(openMemoryId) : false}
+        reactionCounts={openMemoryId ? (reactions[openMemoryId]?.counts ?? {}) : {}}
+        userReactions={openMemoryId ? (reactions[openMemoryId]?.userReactions ?? {}) : {}}
+        canDelete={(() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          return m ? canManage(m) : false;
+        })()}
+        onToggleFav={() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          if (m) toggleFavorite(m);
+        }}
+        onShare={() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          if (m) handleShareItem(m);
+        }}
+        onDelete={() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          if (m) { setDeletingItem(m); setOpenMemoryId(null); }
+        }}
+        onReactionToggle={handleReactionToggle}
+        onRequireAuth={() => requireAuth()}
+      />
+
       {/* === Lightbox === */}
       <AnimatePresence>
         {currentLightboxItem && lightboxIds && (
