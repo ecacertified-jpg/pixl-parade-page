@@ -31,6 +31,10 @@ const KINDS: CoverVideoScheduleKind[] = [
   "greeting_night",
   "calendar_event",
   "birthday_day",
+  "birthday_morning",
+  "birthday_afternoon",
+  "birthday_evening",
+  "birthday_night",
 ];
 
 const MAX_BYTES = 60 * 1024 * 1024; // 60 MB pour l'admin

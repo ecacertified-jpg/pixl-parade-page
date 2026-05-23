@@ -9922,6 +9922,10 @@ export type Database = {
         | "greeting_night"
         | "calendar_event"
         | "birthday_day"
+        | "birthday_morning"
+        | "birthday_afternoon"
+        | "birthday_evening"
+        | "birthday_night"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -10056,6 +10060,10 @@ export const Constants = {
         "greeting_night",
         "calendar_event",
         "birthday_day",
+        "birthday_morning",
+        "birthday_afternoon",
+        "birthday_evening",
+        "birthday_night",
       ],
     },
   },
