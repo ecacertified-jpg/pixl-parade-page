@@ -11,7 +11,7 @@ import {
   Camera, Video, BookOpen, ImagePlus, Play, X, Loader2,
   Send, Quote, MoreVertical, Trash2, Lock,
   ChevronLeft, ChevronRight, Share2, Star, MessageCircle,
-  Search, ArrowLeft, Heart, Download, Plus,
+  Search, ArrowLeft, Heart, Download, Plus, Mic, Pencil,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
@@ -31,6 +31,11 @@ import {
   getEventEmoji,
 } from "@/data/album-event-kinds";
 import { cn } from "@/lib/utils";
+import { shareAlbumItem } from "@/utils/shareAlbumItem";
+import { PhotoCommentsPanel } from "./PhotoCommentsPanel";
+import { MemoryRecorder } from "./MemoryRecorder";
+import { MemoryCard } from "./MemoryCard";
+import { MemoryDetailDialog } from "./MemoryDetailDialog";
 
 export interface AlbumItem {
   id: string;
@@ -45,6 +50,8 @@ export interface AlbumItem {
   memory_text: string | null;
   event_kind: string | null;
   view_count: number;
+  memory_audio_url?: string | null;
+  memory_audio_duration?: number | null;
 }
 
 interface Props {
@@ -64,7 +71,7 @@ interface Props {
 type MainTab = "gallery" | "events" | "memories" | "favorites";
 type MediaFilter = "all" | "image" | "video";
 
-const ALBUM_COLS = "id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text, event_kind, view_count";
+const ALBUM_COLS = "id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text, event_kind, view_count, memory_audio_url, memory_audio_duration";
 
 function pluralize(n: number, s: string, p?: string) {
   return `${n} ${n > 1 ? (p ?? s + "s") : s}`;
@@ -104,13 +111,17 @@ export function BirthdayAlbumFlickr({
   const [uploading, setUploading] = useState(false);
 
   // Memory form
-  const [showMemoryForm, setShowMemoryForm] = useState(false);
+  const [memorySheet, setMemorySheet] = useState<null | { mode: "text" | "audio" }>(null);
   const [memoryText, setMemoryText] = useState("");
   const [sendingMemory, setSendingMemory] = useState(false);
+  const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
+  // Comments counts (best-effort cache; details loaded on demand inside panels)
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   // Lightbox
   const [lightboxIds, setLightboxIds] = useState<string[] | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxShowComments, setLightboxShowComments] = useState(false);
 
   // Delete
   const [deletingItem, setDeletingItem] = useState<AlbumItem | null>(null);
@@ -128,7 +139,7 @@ export function BirthdayAlbumFlickr({
     if (items.length === 0) return;
     const ids = items.map((i) => i.id);
 
-    const [rRes, fRes] = await Promise.all([
+    const [rRes, fRes, cRes] = await Promise.all([
       supabase
         .from("album_photo_reactions")
         .select("photo_id, user_id, reaction_type")
@@ -136,6 +147,10 @@ export function BirthdayAlbumFlickr({
       supabase
         .from("birthday_page_photo_favorites")
         .select("photo_id, user_id")
+        .in("photo_id", ids),
+      supabase
+        .from("album_photo_comments")
+        .select("photo_id")
         .in("photo_id", ids),
     ]);
 
@@ -155,6 +170,12 @@ export function BirthdayAlbumFlickr({
     }
     setFavCounts(fc);
     setMyFavs(mine);
+
+    const cc: Record<string, number> = {};
+    for (const row of cRes.data ?? []) {
+      cc[row.photo_id] = (cc[row.photo_id] || 0) + 1;
+    }
+    setCommentCounts(cc);
   }, [items, user]);
 
   useEffect(() => { loadAux(); }, [loadAux]);
@@ -380,7 +401,7 @@ export function BirthdayAlbumFlickr({
     }
   };
 
-  const handleSendMemory = async () => {
+  const handleSendMemoryText = async () => {
     if (requireAuth()) return;
     if (!memoryText.trim()) return;
     setSendingMemory(true);
@@ -400,13 +421,70 @@ export function BirthdayAlbumFlickr({
       if (error) throw error;
       onItemAdded(data as AlbumItem);
       setMemoryText("");
-      setShowMemoryForm(false);
+      setMemorySheet(null);
       toast.success("Souvenir partagé ! 💖");
     } catch {
       toast.error("Erreur lors de l'envoi du souvenir");
     } finally {
       setSendingMemory(false);
     }
+  };
+
+  const handleSendMemoryAudio = async (blob: Blob, durationSec: number, mime: string) => {
+    if (requireAuth()) return;
+    setSendingMemory(true);
+    try {
+      const ext = mime.includes("mp4") ? "m4a" : mime.includes("ogg") ? "ogg" : "webm";
+      const path = `${pageId}/audio-${user!.id}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("birthday-page-photos")
+        .upload(path, blob, { contentType: mime });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("birthday-page-photos").getPublicUrl(path);
+      const name = await getProfileName();
+      const { data, error } = await supabase
+        .from("birthday_page_photos")
+        .insert({
+          birthday_page_id: pageId,
+          uploader_id: user!.id,
+          uploader_name: name,
+          image_url: "",
+          media_type: "memory",
+          memory_audio_url: urlData.publicUrl,
+          memory_audio_duration: Math.max(1, Math.round(durationSec)),
+        })
+        .select(ALBUM_COLS).single();
+      if (error) throw error;
+      onItemAdded(data as AlbumItem);
+      setMemorySheet(null);
+      toast.success("Souvenir audio partagé ! 🎙️");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erreur lors de l'envoi du souvenir");
+    } finally {
+      setSendingMemory(false);
+    }
+  };
+
+  const handleShareItem = (item: AlbumItem) => {
+    const t = item.media_type === "memory"
+      ? `Souvenir avec ${firstName}`
+      : item.media_type === "video" ? `Vidéo souvenir de ${firstName}` : `Photo souvenir de ${firstName}`;
+    shareAlbumItem({ slug, itemId: item.id, title: t });
+  };
+
+  const openCommentsOn = (item: AlbumItem) => {
+    if (item.media_type === "memory") {
+      setOpenMemoryId(item.id);
+      return;
+    }
+    const ids = (mainTab === "favorites" ? favoriteItems : galleryItems).map((i) => i.id);
+    const list = ids.includes(item.id) ? ids : items.map((i) => i.id);
+    const idx = list.indexOf(item.id);
+    setLightboxIds(list);
+    setLightboxIndex(Math.max(0, idx));
+    setLightboxShowComments(true);
+    recordView(item.id);
   };
 
   // Delete
@@ -524,29 +602,11 @@ export function BirthdayAlbumFlickr({
           <span className="text-[10px]">Vidéo</span>
         </Button>
         <Button variant="outline" size="sm" className="flex-col h-auto py-3 gap-1 border-dashed"
-          onClick={() => { if (!requireAuth()) setShowMemoryForm((v) => !v); }}>
+          onClick={() => { if (!requireAuth()) setMemorySheet({ mode: "text" }); }}>
           <Quote className="h-4 w-4 text-heart" />
           <span className="text-[10px]">Souvenir</span>
         </Button>
       </div>
-
-      {/* Memory inline form */}
-      <AnimatePresence>
-        {showMemoryForm && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-4">
-            <div className="space-y-2 p-3 rounded-lg bg-muted/50">
-              <Textarea value={memoryText} onChange={(e) => setMemoryText(e.target.value)} placeholder={`Raconte un souvenir avec ${firstName}... ✨`} className="resize-none min-h-[80px]" maxLength={1000} />
-              <div className="flex gap-2">
-                <Button size="sm" className="flex-1" disabled={!memoryText.trim() || sendingMemory} onClick={handleSendMemory}>
-                  {sendingMemory ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-                  Envoyer
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowMemoryForm(false)}>Annuler</Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Main tabs - Flickr-like underline */}
       <div className="border-b border-border mb-4 -mx-1 px-1 overflow-x-auto">
@@ -593,9 +653,11 @@ export function BirthdayAlbumFlickr({
       {mainTab === "gallery" && (
         <MediaGrid items={galleryItems}
           favCounts={favCounts} myFavs={myFavs}
-          reactions={reactions} user={user}
+          reactions={reactions} commentCounts={commentCounts} user={user}
           onOpen={(idx) => openLightbox(galleryItems.map((i) => i.id), idx)}
           onToggleFav={toggleFavorite}
+          onShare={handleShareItem}
+          onComment={openCommentsOn}
           emptyLabel="Aucun média pour le moment."
         />
       )}
@@ -610,38 +672,57 @@ export function BirthdayAlbumFlickr({
         ) : (
           <MediaGrid items={favoriteItems}
             favCounts={favCounts} myFavs={myFavs}
-            reactions={reactions} user={user}
+            reactions={reactions} commentCounts={commentCounts} user={user}
             onOpen={(idx) => openLightbox(favoriteItems.map((i) => i.id), idx)}
             onToggleFav={toggleFavorite}
+            onShare={handleShareItem}
+            onComment={openCommentsOn}
             emptyLabel="Aucun favori pour le moment. Touche ★ sur un média pour le sauvegarder."
           />
         )
       )}
 
       {mainTab === "memories" && (
-        memoryItems.length === 0 ? (
-          <div className="text-center py-8">
-            <Quote className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
-            <p className="text-sm text-muted-foreground">Aucun souvenir partagé pour le moment.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {memoryItems.map((m) => (
-              <div key={m.id} className="bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/30 rounded-xl p-4">
-                <Quote className="h-5 w-5 text-primary/50 mb-2" />
-                <p className="text-sm italic font-nunito">"{m.memory_text}"</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-muted-foreground">— {m.uploader_name || "Un ami"}</span>
-                  {canManage(m) && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeletingItem(m)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )
+        <div className="space-y-3">
+          <Button
+            onClick={() => { if (!requireAuth()) setMemorySheet({ mode: "text" }); }}
+            className="w-full gap-2"
+          >
+            <Plus className="h-4 w-4" /> Ajouter un souvenir
+          </Button>
+          {memoryItems.length === 0 ? (
+            <div className="text-center py-8">
+              <Quote className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
+              <p className="text-sm text-muted-foreground">Aucun souvenir partagé pour le moment.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {memoryItems.map((m) => (
+                <MemoryCard
+                  key={m.id}
+                  item={{
+                    id: m.id,
+                    uploader_name: m.uploader_name,
+                    memory_text: m.memory_text,
+                    memory_audio_url: m.memory_audio_url ?? null,
+                    memory_audio_duration: m.memory_audio_duration ?? null,
+                    created_at: m.created_at,
+                  }}
+                  favCount={favCounts[m.id] || 0}
+                  isFav={myFavs.has(m.id)}
+                  reactionsTotal={Object.values(reactions[m.id]?.counts ?? {}).reduce((s, n) => s + n, 0)}
+                  commentsCount={commentCounts[m.id] || 0}
+                  canDelete={canManage(m)}
+                  onOpen={() => setOpenMemoryId(m.id)}
+                  onToggleFav={() => toggleFavorite(m)}
+                  onShare={() => handleShareItem(m)}
+                  onComment={() => setOpenMemoryId(m.id)}
+                  onDelete={() => setDeletingItem(m)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {mainTab === "events" && !selectedEvent && (
@@ -657,11 +738,13 @@ export function BirthdayAlbumFlickr({
         <EventDetailView
           eventKind={selectedEvent}
           items={eventDetailItems}
-          favCounts={favCounts} myFavs={myFavs} reactions={reactions}
+          favCounts={favCounts} myFavs={myFavs} reactions={reactions} commentCounts={commentCounts}
           user={user}
           onBack={() => setSelectedEvent(null)}
           onOpen={(idx) => openLightbox(eventDetailItems.map((i) => i.id), idx)}
           onToggleFav={toggleFavorite}
+          onShare={handleShareItem}
+          onComment={openCommentsOn}
           onAdd={(mode) => openUploadSheet(mode, selectedEvent)}
         />
       )}
@@ -817,16 +900,19 @@ export function BirthdayAlbumFlickr({
 // ============================================================
 
 function MediaTile({
-  item, index, favCount, isFav, reactionCounts,
-  onOpen, onToggleFav,
+  item, index, favCount, isFav, reactionCounts, commentsCount,
+  onOpen, onToggleFav, onShare, onComment,
 }: {
   item: AlbumItem;
   index: number;
   favCount: number;
   isFav: boolean;
   reactionCounts: ReactionCounts;
+  commentsCount: number;
   onOpen: () => void;
   onToggleFav: () => void;
+  onShare: () => void;
+  onComment: () => void;
 }) {
   const totalReactions = Object.values(reactionCounts).reduce((s, n) => s + n, 0);
   const isAboveFold = index < 4;
@@ -855,19 +941,25 @@ function MediaTile({
           </>
         )}
       </button>
-      <div className="flex items-center justify-between px-1 py-2">
+      <div className="flex items-center justify-between px-1 py-2 gap-1">
         <div className="text-xs text-foreground truncate flex-1">
           {item.caption || item.uploader_name || "Souvenir"}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <button onClick={(e) => { e.stopPropagation(); onToggleFav(); }}
-            className="flex items-center gap-0.5 hover:text-foreground">
+            className="flex items-center gap-0.5 hover:text-foreground px-1 py-0.5">
             <Star className={cn("h-3.5 w-3.5", isFav ? "fill-yellow-400 text-yellow-400" : "")} />
             <span>{favCount}</span>
           </button>
-          <span className="flex items-center gap-0.5">
-            <MessageCircle className="h-3.5 w-3.5" /> {totalReactions}
-          </span>
+          <button onClick={(e) => { e.stopPropagation(); onComment(); }}
+            className="flex items-center gap-0.5 hover:text-foreground px-1 py-0.5" aria-label="Commenter">
+            <MessageCircle className="h-3.5 w-3.5" />
+            <span>{commentsCount || totalReactions}</span>
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onShare(); }}
+            className="hover:text-foreground px-1 py-0.5" aria-label="Partager">
+            <Share2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </motion.div>
@@ -875,15 +967,18 @@ function MediaTile({
 }
 
 function MediaGrid({
-  items, favCounts, myFavs, reactions, user, onOpen, onToggleFav, emptyLabel,
+  items, favCounts, myFavs, reactions, commentCounts, user, onOpen, onToggleFav, onShare, onComment, emptyLabel,
 }: {
   items: AlbumItem[];
   favCounts: Record<string, number>;
   myFavs: Set<string>;
   reactions: Record<string, { counts: ReactionCounts; userReactions: UserReactions }>;
+  commentCounts: Record<string, number>;
   user: User | null;
   onOpen: (index: number) => void;
   onToggleFav: (item: AlbumItem) => void;
+  onShare: (item: AlbumItem) => void;
+  onComment: (item: AlbumItem) => void;
   emptyLabel: string;
 }) {
   if (items.length === 0) {
@@ -904,8 +999,11 @@ function MediaGrid({
           favCount={favCounts[item.id] || 0}
           isFav={myFavs.has(item.id)}
           reactionCounts={reactions[item.id]?.counts ?? {}}
+          commentsCount={commentCounts[item.id] || 0}
           onOpen={() => onOpen(idx)}
           onToggleFav={() => onToggleFav(item)}
+          onShare={() => onShare(item)}
+          onComment={() => onComment(item)}
         />
       ))}
     </div>
@@ -986,17 +1084,20 @@ function EventsGrid({
 }
 
 function EventDetailView({
-  eventKind, items, favCounts, myFavs, reactions, user, onBack, onOpen, onToggleFav, onAdd,
+  eventKind, items, favCounts, myFavs, reactions, commentCounts, user, onBack, onOpen, onToggleFav, onShare, onComment, onAdd,
 }: {
   eventKind: AlbumEventKind;
   items: AlbumItem[];
   favCounts: Record<string, number>;
   myFavs: Set<string>;
   reactions: Record<string, { counts: ReactionCounts; userReactions: UserReactions }>;
+  commentCounts: Record<string, number>;
   user: User | null;
   onBack: () => void;
   onOpen: (index: number) => void;
   onToggleFav: (item: AlbumItem) => void;
+  onShare: (item: AlbumItem) => void;
+  onComment: (item: AlbumItem) => void;
   onAdd: (mode: "image" | "video") => void;
 }) {
   const photoCount = items.filter((i) => i.media_type === "image").length;
@@ -1027,8 +1128,8 @@ function EventDetailView({
         </p>
       </div>
       <MediaGrid items={items}
-        favCounts={favCounts} myFavs={myFavs} reactions={reactions} user={user}
-        onOpen={onOpen} onToggleFav={onToggleFav}
+        favCounts={favCounts} myFavs={myFavs} reactions={reactions} commentCounts={commentCounts} user={user}
+        onOpen={onOpen} onToggleFav={onToggleFav} onShare={onShare} onComment={onComment}
         emptyLabel="Aucun média dans cet événement. Ajoute-en avec le bouton +."
       />
     </div>

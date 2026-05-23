@@ -755,6 +755,41 @@ export type Database = {
           },
         ]
       }
+      album_photo_comments: {
+        Row: {
+          author_name: string | null
+          content: string
+          created_at: string
+          id: string
+          photo_id: string
+          user_id: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          photo_id: string
+          user_id?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          photo_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_photo_comments_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_page_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       album_photo_reactions: {
         Row: {
           created_at: string
@@ -1154,6 +1189,8 @@ export type Database = {
           id: string
           image_url: string
           media_type: string
+          memory_audio_duration: number | null
+          memory_audio_url: string | null
           memory_text: string | null
           uploader_id: string
           uploader_name: string | null
@@ -1169,6 +1206,8 @@ export type Database = {
           id?: string
           image_url: string
           media_type?: string
+          memory_audio_duration?: number | null
+          memory_audio_url?: string | null
           memory_text?: string | null
           uploader_id: string
           uploader_name?: string | null
@@ -1184,6 +1223,8 @@ export type Database = {
           id?: string
           image_url?: string
           media_type?: string
+          memory_audio_duration?: number | null
+          memory_audio_url?: string | null
           memory_text?: string | null
           uploader_id?: string
           uploader_name?: string | null
