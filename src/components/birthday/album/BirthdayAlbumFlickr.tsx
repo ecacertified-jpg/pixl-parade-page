@@ -139,7 +139,7 @@ export function BirthdayAlbumFlickr({
     if (items.length === 0) return;
     const ids = items.map((i) => i.id);
 
-    const [rRes, fRes] = await Promise.all([
+    const [rRes, fRes, cRes] = await Promise.all([
       supabase
         .from("album_photo_reactions")
         .select("photo_id, user_id, reaction_type")
@@ -147,6 +147,10 @@ export function BirthdayAlbumFlickr({
       supabase
         .from("birthday_page_photo_favorites")
         .select("photo_id, user_id")
+        .in("photo_id", ids),
+      supabase
+        .from("album_photo_comments")
+        .select("photo_id")
         .in("photo_id", ids),
     ]);
 
@@ -166,6 +170,12 @@ export function BirthdayAlbumFlickr({
     }
     setFavCounts(fc);
     setMyFavs(mine);
+
+    const cc: Record<string, number> = {};
+    for (const row of cRes.data ?? []) {
+      cc[row.photo_id] = (cc[row.photo_id] || 0) + 1;
+    }
+    setCommentCounts(cc);
   }, [items, user]);
 
   useEffect(() => { loadAux(); }, [loadAux]);
@@ -391,7 +401,7 @@ export function BirthdayAlbumFlickr({
     }
   };
 
-  const handleSendMemory = async () => {
+  const handleSendMemoryText = async () => {
     if (requireAuth()) return;
     if (!memoryText.trim()) return;
     setSendingMemory(true);
@@ -411,13 +421,70 @@ export function BirthdayAlbumFlickr({
       if (error) throw error;
       onItemAdded(data as AlbumItem);
       setMemoryText("");
-      setShowMemoryForm(false);
+      setMemorySheet(null);
       toast.success("Souvenir partagé ! 💖");
     } catch {
       toast.error("Erreur lors de l'envoi du souvenir");
     } finally {
       setSendingMemory(false);
     }
+  };
+
+  const handleSendMemoryAudio = async (blob: Blob, durationSec: number, mime: string) => {
+    if (requireAuth()) return;
+    setSendingMemory(true);
+    try {
+      const ext = mime.includes("mp4") ? "m4a" : mime.includes("ogg") ? "ogg" : "webm";
+      const path = `${pageId}/audio-${user!.id}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("birthday-page-photos")
+        .upload(path, blob, { contentType: mime });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("birthday-page-photos").getPublicUrl(path);
+      const name = await getProfileName();
+      const { data, error } = await supabase
+        .from("birthday_page_photos")
+        .insert({
+          birthday_page_id: pageId,
+          uploader_id: user!.id,
+          uploader_name: name,
+          image_url: "",
+          media_type: "memory",
+          memory_audio_url: urlData.publicUrl,
+          memory_audio_duration: Math.max(1, Math.round(durationSec)),
+        })
+        .select(ALBUM_COLS).single();
+      if (error) throw error;
+      onItemAdded(data as AlbumItem);
+      setMemorySheet(null);
+      toast.success("Souvenir audio partagé ! 🎙️");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erreur lors de l'envoi du souvenir");
+    } finally {
+      setSendingMemory(false);
+    }
+  };
+
+  const handleShareItem = (item: AlbumItem) => {
+    const t = item.media_type === "memory"
+      ? `Souvenir avec ${firstName}`
+      : item.media_type === "video" ? `Vidéo souvenir de ${firstName}` : `Photo souvenir de ${firstName}`;
+    shareAlbumItem({ slug, itemId: item.id, title: t });
+  };
+
+  const openCommentsOn = (item: AlbumItem) => {
+    if (item.media_type === "memory") {
+      setOpenMemoryId(item.id);
+      return;
+    }
+    const ids = (mainTab === "favorites" ? favoriteItems : galleryItems).map((i) => i.id);
+    const list = ids.includes(item.id) ? ids : items.map((i) => i.id);
+    const idx = list.indexOf(item.id);
+    setLightboxIds(list);
+    setLightboxIndex(Math.max(0, idx));
+    setLightboxShowComments(true);
+    recordView(item.id);
   };
 
   // Delete
