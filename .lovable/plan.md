@@ -1,67 +1,46 @@
 
-# Mur de messages "cartes" sur la page d'anniversaire
+# Corrections du mur de messages
 
-Remplacer le formulaire texte actuel par un mur de cartes auquel inscrits et visiteurs peuvent contribuer via un bouton **« Nouveau post »** qui ouvre un éditeur multi-média (GIFs GIPHY, emoji, cartes JDV, image, vocal 15s, YouTube, texte animé), avec filtre IA automatique.
+## 1. Bug "Edge Function returned a non-2xx" à la publication
+Cause confirmée dans les logs : `userClient.auth.getClaims is not a function` (méthode inexistante dans `@supabase/supabase-js@2.45`).
 
-## Expérience utilisateur
+**Fix** dans `supabase/functions/post-birthday-message/index.ts` :
+- Remplacer le bloc `getClaims(token)` par `supabase.auth.getUser(token)` (méthode standard).
+- Simplifier : un seul client admin suffit, on appelle `admin.auth.getUser(token)` pour valider le JWT visiteur connecté.
 
-**Mur de messages** (remplace l'actuel)
-- Header : `❤️ Messages d'anniversaire (N)` + bouton **« Nouveau post »** bien visible
-- Recherche + tri (récent / ancien / coup de cœur)
-- Cartes empilées en colonne mobile-first : avatar + nom + horodatage FR, média principal, texte, ❤️ + bouton signaler
-- Propriétaire de la page + admins : bouton supprimer
+## 2. "Aucune carte disponible"
+La table `birthday_card_templates` est vide (0 ligne).
 
-**Modal « Créer ma carte »** avec onglets swipables
-1. GIFs (recherche GIPHY)
-2. Emoji
-3. Cartes & Mèmes JDV (bibliothèque admin)
-4. Stickers animés
-5. Texte animé (GIPHY)
-6. YouTube (embed iframe)
-7. Upload image (max 5 Mo, compressée)
+**Action** : migration qui insère ~8 cartes de base (joyeux, tendre, humour, solennel × 2) avec `image_url` pointant vers des illustrations existantes / placeholders Unsplash, `category` aligné sur le ton.
+- Champs : `id`, `category`, `title`, `image_url`, `is_active=true`, `sort_order`.
+- (La table et son RLS public read existent déjà.)
 
-Sous les onglets : zone texte (500 car, emoji), sélecteur de ton (Joyeux / Tendre / Humour / Solennel) + **« Suggérer un message ✨ »** (Lovable AI gemini-3-flash-preview), checkbox vocal 15s (MediaRecorder), champs visiteur Prénom + Téléphone WhatsApp si non connecté.
+## 3. Onglet "Stickers" tronqué + couleurs des onglets peu visibles
+Sur viewport 758 px le `ScrollArea` rend l'onglet "Stickers" partiellement coupé et l'utilisateur ne voit pas qu'il peut scroller.
 
-**Visiteurs non inscrits** : pas de mur d'auth, identification minimale Prénom + téléphone validé (réutilise `PhoneInput`). Téléphone hashé (SHA-256 + salt) côté DB, jamais affiché. Après publication : CTA discret « Crée ton compte JDV ».
+**Fix UI** dans `NewPostModal.tsx` (zone Tabs) :
+- Garder le scroll horizontal mais : `TabsList` en `flex w-max gap-1.5 bg-secondary/60 p-1`, ajouter padding-right pour qu'on devine le dernier onglet.
+- Ajouter un fade gradient à droite (`bg-gradient-to-l from-background`) pour signaler le scroll.
+- Couleurs onglets : 
+  - inactif → `bg-secondary text-foreground/70`
+  - actif → `data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-soft`
+- Pilules de ton (Joyeux/Tendre/…) : actif → même dégradé primary→accent + shadow ; inactif → `bg-secondary/70 border-primary/20`.
+- Bouton "Suggérer ✨" : `variant="outline"` + `border-primary/40 text-primary hover:bg-primary/10`.
+- Bouton "Enregistrer" (micro) : `border-accent/50 text-accent-foreground bg-accent/10 hover:bg-accent/20`.
+- Bouton "Publier" : déjà dégradé, on ajoute `shadow-soft hover:opacity-95`.
+- Bouton "Nouveau post" du `MessageWall` : ajouter `shadow-soft` et hover plus contrasté.
 
-**Modération** : avant insert, edge function classe `safe | borderline | unsafe` via Lovable AI. `safe` publié, `borderline` visible avec flag (masquable par le célébré), `unsafe` rejeté. Signalement → file admin existante.
-
-## Détails techniques
-
-**Migration DB**
-- Étendre `birthday_wishes_messages` (pas dupliquer) : `media_type`, `media_url`, `media_metadata` jsonb, `audio_url`, `card_template_id`, `visitor_first_name`, `visitor_phone_hash`, `visitor_phone_country`, `tone`, `moderation_status` (défaut `safe`), `moderation_reason`, `reactions_count`, `is_hidden`
-- Nouvelle table `birthday_card_templates` (id, category, title, image_url, is_active, display_order, country)
-- Bucket Storage `birthday-message-media` (public read, write via edge function)
-- RLS : SELECT public où `is_hidden=false AND moderation_status<>'unsafe'`, INSERT via edge function uniquement, UPDATE/DELETE propriétaire+admins ; templates lisibles si actifs, écritures admin
-
-**Edge functions** (verify_jwt=false, validation Zod, modération IA inline, hash téléphone)
-- `post-birthday-message` — créer un message (upload audio le cas échéant)
-- `suggest-birthday-message` — générer texte selon ton+prénom+occasion
-- `giphy-search` — proxy GIPHY (garde la clé côté serveur), cache 5 min
-
-**Frontend**
-- `src/components/birthday/messages/` : `MessageWall.tsx`, `MessageCard.tsx`, `NewPostModal.tsx`, sous-onglets (`GiphyTab`, `EmojiTab`, `CardsTab`, `AnimatedTextTab`, `YoutubeTab`, `ImageUploadTab`), `VoiceRecorder.tsx`, `VisitorIdentityFields.tsx`, `ToneSelector.tsx`
-- Hooks : `useBirthdayMessages.ts` (fetch + realtime + insert), `useGiphy.ts`
-- Admin : `src/pages/Admin/AdminBirthdayCardTemplates.tsx` (CRUD bibliothèque cartes)
-- Branchement dans `BirthdayPage.tsx` (remplace le bloc actuel)
-
-**Libs à ajouter** : `emoji-picker-react`
-
-**Secrets** : `GIPHY_API_KEY` et `VISITOR_PHONE_SALT` ✅ déjà configurés
-
-**Langue** : 100% FR (UI, prompts IA, catégories)
+## 4. Vérification
+- Re-déployer `post-birthday-message` (auto).
+- Tester : publier en mode visiteur → message inséré, toast succès.
+- Vérifier que l'onglet Stickers s'affiche entièrement après scroll, fade visible.
+- Vérifier que l'onglet Cartes affiche les 8 templates seedés.
 
 ## Hors scope
-- Réactions multiples (uniquement ❤️ pour v1)
-- Threads / réponses
-- Notification WhatsApp au célébré à chaque message
-- Export PDF du mur
+- Pas de nouvel onglet, pas de logique métier ajoutée.
+- Pas de refonte des cartes message (`MessageCard.tsx`).
 
-## Ordre d'exécution
-1. Migration DB (table étendue + templates + bucket + RLS)
-2. Edge functions (`post-birthday-message`, `suggest-birthday-message`, `giphy-search`)
-3. Hooks (`useBirthdayMessages`, `useGiphy`) + composants visiteur/ton/vocal
-4. Modal `NewPostModal` + 7 onglets
-5. Refonte rendu mur (`MessageWall` + `MessageCard`) et branchement `BirthdayPage`
-6. Page admin bibliothèque de cartes
-7. QA navigateur (visiteur, inscrit, GIPHY, vocal, modération)
+## Détails techniques
+- Aucune modification de schéma, juste un `INSERT` data dans `birthday_card_templates`.
+- Pas de nouvelle dépendance.
+- Tokens HSL déjà définis (`--primary`, `--accent`, `--secondary`) → utilisés via classes Tailwind sémantiques, conforme au design system.

@@ -112,13 +112,10 @@ serve(async (req) => {
     let senderName: string | null = null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
       const token = authHeader.replace("Bearer ", "");
-      const { data: claims } = await userClient.auth.getClaims(token);
-      if (claims?.claims?.sub) {
-        senderId = claims.claims.sub as string;
+      const { data: userData } = await admin.auth.getUser(token);
+      if (userData?.user?.id) {
+        senderId = userData.user.id;
         const { data: profile } = await admin
           .from("profiles")
           .select("first_name, last_name")
