@@ -1,43 +1,29 @@
-## Problèmes identifiés
+## Objectif
+Activer automatiquement le son du carrousel vidéo de couverture quand la page est ouverte le jour J de l'anniversaire ou pendant une fête calendaire active — pour l'utilisateur propriétaire comme pour tout visiteur.
 
-**1. Upload de la photo de profil échoue**
-La console révèle : `StorageApiError: mime type image/svg+xml is not supported`. Le bucket `avatars` n'accepte que les formats raster, mais l'input accepte `image/*` (donc SVG). De plus le message d'erreur générique ne dit pas pourquoi.
+## Comportement
 
-**2. Chevauchement des boutons sur la cover**
-- `🎬 Vidéos` est rendu via `overlay` en `absolute top-[-3rem] right-3` (donc en bas à droite de la vidéo).
-- La pilule `Activer le son` est en `absolute bottom-24 right-3` dans `CoverVideoCarousel`.
-- Sur mobile (758×628 et plus petit), les deux se superposent visiblement.
+- **Par défaut (jours ordinaires)** : muet au chargement (autoplay mobile), l'utilisateur clique pour activer.
+- **Jour J de l'anniversaire** (`isBirthdayToday`) OU **fête calendaire active** (au moins une vidéo `calendar_event` dans la playlist correspond à aujourd'hui ±1 jour) : son activé automatiquement au chargement, sans clic.
+- L'utilisateur garde la main : s'il coupe le son manuellement, on respecte son choix pour le reste de la session (on n'écrase pas sa décision à chaque vidéo suivante).
+- La préférence localStorage (`birthday-cover-muted`) n'est mise à jour que sur action explicite de l'utilisateur — l'auto-unmute du jour J ne pollue pas la préférence globale.
+- Si le navigateur bloque l'autoplay avec son (politique mobile stricte), on retombe gracieusement sur muet + le hint "Activer le son" déjà existant.
 
 ## Modifications
 
-### A. `src/pages/BirthdayPage.tsx`
-1. **Input avatar** : restreindre `accept` à `image/png,image/jpeg,image/jpg,image/webp` (pas de SVG/GIF).
-2. **`handleAvatarUpload`** :
-   - Avant upload, vérifier `file.type` ; si non supporté → toast clair : « Format non supporté. Utilise JPG, PNG ou WebP. »
-   - Garder un message d'erreur d'upload plus informatif (afficher `err.message` quand dispo).
-3. **Bouton `🎬 Vidéos`** : le déplacer hors de l'overlay bas (qui le force en `top-[-3rem]`) et le rendre en overlay haut, à **gauche** des contrôles son/agrandir, pour éviter toute collision :
-   - Position : `absolute top-3 left-3 z-20` (au même niveau que la barre de progression mais à gauche).
-   - Style compact icône+label : `h-9 rounded-full bg-black/45 backdrop-blur text-white px-3 text-xs gap-1` cohérent avec les boutons rond son/expand.
-   - Sur mobile (`<sm`) : afficher uniquement l'icône 🎬 ; sur `sm+` : icône + « Vidéos ».
+### `src/components/birthday/CoverVideoCarousel.tsx`
+- Ajouter un flag `isSpecialDay` calculé depuis la playlist : `true` si la playlist contient au moins un item dont `schedule_kind` est `birthday_*` ou `calendar_event` actif aujourd'hui.
+- Ajouter un ref `userOverrodeMute` (bool) initialisé à `false`, passé à `true` dès que l'utilisateur clique sur le bouton son.
+- Au montage et quand `isSpecialDay` devient vrai, si `!userOverrodeMute`, forcer `setMuted(false)` sans toucher au localStorage.
+- Sur lecture vidéo : tenter `play()` non-muté ; si la promesse rejette (autoplay bloqué), repasser à `muted = true` et garder le hint visible.
+- `toggleMute` marque `userOverrodeMute = true` et écrit dans localStorage comme aujourd'hui.
 
-### B. `src/components/birthday/CoverVideoCarousel.tsx`
-4. **Pilule « Activer le son »** : la repositionner pour ne plus toucher la zone de l'overlay bas (avatar/titre) et rester sous les contrôles haut-droite :
-   - Passer de `bottom-24 right-3` à `top-16 right-3` (juste sous les boutons rond son/expand), z-20.
-   - Auto-masquage après 4 s via un `useEffect` (timer) pour qu'elle ne gêne pas durablement.
-5. Garder les contrôles haut-droite tels quels (son + agrandir), inchangés.
+### `src/utils/coverVideoSchedule.ts`
+- Exposer un petit helper `isSpecialDayPlaylist(playlist, birthday, now)` qui retourne `true` si :
+  - `isBirthdayToday(birthday, now)`, OU
+  - au moins une vidéo de la playlist a `schedule_kind === "calendar_event"` ET `isCalendarEventActive(month, day, now)`.
 
-### Récap visuel cible
-```
-┌──────────────────────────────────────┐
-│ ▰▰▰▰▰▰  (progress)                   │
-│ [🎬 Vidéos]            [🔊] [⛶]      │  ← haut
-│                        [Activer son] │  ← juste sous, auto-hide
-│                                      │
-│                                      │
-│  (Avatar+📷)  Prénom · 30 ans        │  ← bas, plus rien au-dessus
-└──────────────────────────────────────┘
-```
-
-## Hors scope
-- Aucun changement de schéma DB / RLS (le bucket `avatars` est correctement configuré).
-- Aucun changement aux fonctionnalités souvenirs/commentaires.
+### Détails techniques
+- Aucun changement de schéma DB, aucune migration.
+- Aucune modification de la logique de construction de playlist (`buildPlaylist` reste identique).
+- Aucun impact sur les autres pages utilisant `CoverVideoCarousel`.
