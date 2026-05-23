@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
   PartyPopper, Heart, Gift, Send, Share2, MessageCircle,
-  Sparkles, Loader2, ArrowLeft
+  Sparkles, Loader2, ArrowLeft, Camera as CameraIcon
 } from "lucide-react";
 import { BirthdayAlbumFlickr } from "@/components/birthday/album/BirthdayAlbumFlickr";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
