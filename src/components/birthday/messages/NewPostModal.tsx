@@ -217,18 +217,29 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
-          <div className="px-5">
+          <div className="px-5 relative">
             <ScrollArea className="w-full whitespace-nowrap">
-              <TabsList className="inline-flex w-auto">
-                <TabsTrigger value="gif">🎞️ GIFs</TabsTrigger>
-                <TabsTrigger value="emoji">😀 Emoji</TabsTrigger>
-                <TabsTrigger value="card">💌 Cartes</TabsTrigger>
-                <TabsTrigger value="sticker">🌟 Stickers</TabsTrigger>
-                <TabsTrigger value="animated_text">✨ Texte animé</TabsTrigger>
-                <TabsTrigger value="youtube"><YoutubeIcon className="h-3.5 w-3.5 mr-1" /> YouTube</TabsTrigger>
-                <TabsTrigger value="image"><Upload className="h-3.5 w-3.5 mr-1" /> Photo</TabsTrigger>
+              <TabsList className="inline-flex w-max gap-1.5 bg-secondary/60 p-1 pr-10 h-auto">
+                {[
+                  { v: "gif", l: "🎞️ GIFs" },
+                  { v: "emoji", l: "😀 Emoji" },
+                  { v: "card", l: "💌 Cartes" },
+                  { v: "sticker", l: "🌟 Stickers" },
+                  { v: "animated_text", l: "✨ Texte animé" },
+                  { v: "youtube", l: "▶️ YouTube" },
+                  { v: "image", l: "📷 Photo" },
+                ].map(t => (
+                  <TabsTrigger
+                    key={t.v}
+                    value={t.v}
+                    className="text-xs font-medium rounded-full px-3 py-1.5 text-foreground/70 hover:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-soft transition"
+                  >
+                    {t.l}
+                  </TabsTrigger>
+                ))}
               </TabsList>
             </ScrollArea>
+            <div className="pointer-events-none absolute right-5 top-0 bottom-0 w-10 bg-gradient-to-l from-background to-transparent" />
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 pt-3 pb-2 min-h-0">
@@ -297,13 +308,14 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
                 key={t.value}
                 type="button"
                 onClick={() => setTone(t.value)}
-                className={`text-xs px-2.5 py-1 rounded-full border transition ${tone === t.value ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
+                className={`text-xs px-3 py-1 rounded-full border transition ${tone === t.value ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-soft" : "bg-secondary/70 border-primary/20 hover:bg-secondary"}`}
               >
                 {t.emoji} {t.label}
               </button>
             ))}
             <Button
-              type="button" variant="outline" size="sm" className="ml-auto"
+              type="button" variant="outline" size="sm"
+              className="ml-auto border-primary/40 text-primary hover:bg-primary/10"
               onClick={handleSuggest} disabled={suggesting}
             >
               {suggesting ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
@@ -349,7 +361,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
                 </>
               )}
               {!recording && !audioBlob && (
-                <Button size="sm" variant="outline" onClick={startRecord}>
+                <Button size="sm" variant="outline" onClick={startRecord} className="border-accent/50 text-accent-foreground bg-accent/10 hover:bg-accent/20">
                   <Mic className="h-3.5 w-3.5 mr-1" /> Enregistrer
                 </Button>
               )}
@@ -387,7 +399,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
             Annuler
           </Button>
           <Button
-            className="flex-1 bg-gradient-to-r from-primary to-accent text-primary-foreground"
+            className="flex-1 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-soft hover:opacity-95"
             onClick={handlePublish}
             disabled={publishing}
           >
