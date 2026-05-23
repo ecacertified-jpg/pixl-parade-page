@@ -112,6 +112,7 @@ export function BirthdayAlbumFlickr({
 
   // Memory form
   const [memorySheet, setMemorySheet] = useState<null | { mode: "text" | "audio" }>(null);
+  const [memoryMode, setMemoryMode] = useState<"text" | "audio">("text");
   const [memoryText, setMemoryText] = useState("");
   const [sendingMemory, setSendingMemory] = useState(false);
   const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
@@ -787,6 +788,108 @@ export function BirthdayAlbumFlickr({
         </SheetContent>
       </Sheet>
 
+      {/* === Memory Sheet (texte / audio) === */}
+      <Sheet
+        open={!!memorySheet}
+        onOpenChange={(v) => {
+          if (!v) { setMemorySheet(null); setMemoryText(""); }
+        }}
+      >
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Ajouter un souvenir</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex gap-1 p-1 bg-muted rounded-full w-fit mx-auto">
+              <button
+                onClick={() => setMemoryMode("text")}
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1",
+                  memoryMode === "text" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <Quote className="h-3.5 w-3.5" /> Écrit
+              </button>
+              <button
+                onClick={() => setMemoryMode("audio")}
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1",
+                  memoryMode === "audio" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <Mic className="h-3.5 w-3.5" /> Audio
+              </button>
+            </div>
+
+            {memoryMode === "text" ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={memoryText}
+                  onChange={(e) => setMemoryText(e.target.value)}
+                  placeholder={`Raconte un souvenir avec ${firstName}…`}
+                  rows={5}
+                  maxLength={1500}
+                  className="resize-none"
+                />
+                <Button
+                  className="w-full"
+                  disabled={!memoryText.trim() || sendingMemory}
+                  onClick={handleSendMemoryText}
+                >
+                  {sendingMemory ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                  Partager le souvenir
+                </Button>
+              </div>
+            ) : (
+              <MemoryRecorder sending={sendingMemory} onSend={handleSendMemoryAudio} />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* === Memory detail dialog === */}
+      <MemoryDetailDialog
+        open={!!openMemoryId}
+        onOpenChange={(v) => !v && setOpenMemoryId(null)}
+        item={(() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          if (!m) return null;
+          return {
+            id: m.id,
+            uploader_id: m.uploader_id ?? null,
+            uploader_name: m.uploader_name,
+            memory_text: m.memory_text,
+            memory_audio_url: m.memory_audio_url ?? null,
+            memory_audio_duration: m.memory_audio_duration ?? null,
+            created_at: m.created_at,
+          };
+        })()}
+        user={user}
+        pageOwnerUserId={pageOwnerUserId}
+        favCount={openMemoryId ? (favCounts[openMemoryId] || 0) : 0}
+        isFav={openMemoryId ? myFavs.has(openMemoryId) : false}
+        reactionCounts={openMemoryId ? (reactions[openMemoryId]?.counts ?? {}) : {}}
+        userReactions={openMemoryId ? (reactions[openMemoryId]?.userReactions ?? {}) : {}}
+        canDelete={(() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          return m ? canManage(m) : false;
+        })()}
+        onToggleFav={() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          if (m) toggleFavorite(m);
+        }}
+        onShare={() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          if (m) handleShareItem(m);
+        }}
+        onDelete={() => {
+          const m = items.find((i) => i.id === openMemoryId);
+          if (m) { setDeletingItem(m); setOpenMemoryId(null); }
+        }}
+        onReactionToggle={handleReactionToggle}
+        onRequireAuth={() => requireAuth()}
+      />
+
       {/* === Lightbox === */}
       <AnimatePresence>
         {currentLightboxItem && lightboxIds && (
@@ -852,10 +955,24 @@ export function BirthdayAlbumFlickr({
                   <Star className={cn("h-5 w-5", myFavs.has(currentLightboxItem.id) ? "fill-yellow-400 text-yellow-400" : "text-white")} />
                   <span>{favCounts[currentLightboxItem.id] || 0}</span>
                 </button>
-                <div className="flex items-center gap-1.5 text-sm text-white/70">
+                <button
+                  onClick={() => setLightboxShowComments((v) => !v)}
+                  className={cn(
+                    "flex items-center gap-1.5 text-sm",
+                    lightboxShowComments ? "text-white" : "text-white/70 hover:text-white",
+                  )}
+                  aria-label="Commentaires"
+                >
                   <MessageCircle className="h-5 w-5" />
-                  <span>{Object.values(reactions[currentLightboxItem.id]?.counts ?? {}).reduce((s, n) => s + n, 0)}</span>
-                </div>
+                  <span>{commentCounts[currentLightboxItem.id] || 0}</span>
+                </button>
+                <button
+                  onClick={() => handleShareItem(currentLightboxItem)}
+                  className="flex items-center gap-1.5 text-sm text-white/70 hover:text-white"
+                  aria-label="Partager"
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
                 <a href={currentLightboxItem.video_url || currentLightboxItem.image_url} target="_blank" rel="noreferrer"
                   className="flex items-center gap-1.5 text-sm">
                   <Download className="h-5 w-5" />
@@ -871,6 +988,19 @@ export function BirthdayAlbumFlickr({
               />
               {currentLightboxItem.uploader_name && (
                 <p className="text-xs text-white/60 mt-2">— {currentLightboxItem.uploader_name}</p>
+              )}
+              {lightboxShowComments && (
+                <div className="mt-3 max-h-[40vh] overflow-y-auto rounded-lg bg-white/5 p-3 border border-white/10">
+                  <PhotoCommentsPanel
+                    photoId={currentLightboxItem.id}
+                    user={user}
+                    pageOwnerUserId={pageOwnerUserId}
+                    authorName={null}
+                    onRequireAuth={() => requireAuth()}
+                    variant="dark"
+                    autoFocus
+                  />
+                </div>
               )}
             </div>
           </motion.div>

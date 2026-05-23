@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
   PartyPopper, Heart, Gift, Send, Share2, MessageCircle,
-  Sparkles, Loader2, ArrowLeft
+  Sparkles, Loader2, ArrowLeft, Camera as CameraIcon
 } from "lucide-react";
 import { BirthdayAlbumFlickr } from "@/components/birthday/album/BirthdayAlbumFlickr";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
@@ -91,6 +91,8 @@ const BirthdayPage = () => {
   const [showVideosManager, setShowVideosManager] = useState(false);
 
   const confettiTriggered = useRef(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Get profile info for the birthday person
   const [birthdayPerson, setBirthdayPerson] = useState<{ first_name: string; avatar_url: string | null; birthday: string | null }>({ first_name: '', avatar_url: null, birthday: null });
@@ -274,6 +276,46 @@ const BirthdayPage = () => {
   };
 
   const handleSendMessage = async () => {
+    return _handleSendMessage();
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !page || user.id !== page.user_id) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image trop lourde (max 5 Mo)");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/cover-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const newUrl = urlData.publicUrl;
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: newUrl })
+        .eq("user_id", user.id);
+      if (profErr) throw profErr;
+      setBirthdayPerson((prev) => ({ ...prev, avatar_url: newUrl }));
+      supabase.functions
+        .invoke("purge-birthday-og-cache", { body: { slug: page.slug } })
+        .catch(() => {});
+      toast.success("Photo de profil mise à jour ✨");
+    } catch (err) {
+      console.error(err);
+      toast.error("Impossible de mettre à jour la photo");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const _handleSendMessage = async () => {
     if (!user) {
       navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
       return;
@@ -379,19 +421,45 @@ const BirthdayPage = () => {
                 </Button>
               )}
               <div className="flex items-end gap-3">
-                <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
-                  {birthdayPerson.avatar_url ? (
-                    <img
-                      src={birthdayPerson.avatar_url}
-                      alt={firstName}
-                      className="h-full w-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <AvatarFallback className="bg-primary/20 text-primary font-poppins font-bold text-lg">
-                      {firstName.charAt(0).toUpperCase()}
-                    </AvatarFallback>
+                <div className="relative">
+                  <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
+                    {birthdayPerson.avatar_url ? (
+                      <img
+                        src={birthdayPerson.avatar_url}
+                        alt={firstName}
+                        className="h-full w-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-primary/20 text-primary font-poppins font-bold text-lg">
+                        {firstName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  {user?.id === page?.user_id && (
+                    <>
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                        className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary text-primary-foreground border-2 border-white shadow-soft flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-60"
+                        aria-label="Modifier la photo de profil"
+                      >
+                        {uploadingAvatar ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CameraIcon className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </>
                   )}
-                </Avatar>
+                </div>
                 <div className="flex-1 min-w-0 pb-1">
                   <motion.h1
                     initial={{ opacity: 0, x: -10 }}
