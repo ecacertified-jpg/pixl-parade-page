@@ -282,6 +282,12 @@ const BirthdayPage = () => {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user || !page || user.id !== page.user_id) return;
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Format non supporté. Utilise JPG, PNG ou WebP.");
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image trop lourde (max 5 Mo)");
       return;
@@ -306,9 +312,9 @@ const BirthdayPage = () => {
         .invoke("purge-birthday-og-cache", { body: { slug: page.slug } })
         .catch(() => {});
       toast.success("Photo de profil mise à jour ✨");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Impossible de mettre à jour la photo");
+      toast.error(err?.message ? `Impossible de mettre à jour la photo: ${err.message}` : "Impossible de mettre à jour la photo");
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";
@@ -410,16 +416,6 @@ const BirthdayPage = () => {
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
             <div className="absolute inset-x-0 bottom-0 z-10 p-4 md:p-6">
-              {user?.id === page?.user_id && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setShowVideosManager(true)}
-                  className="absolute top-[-3rem] right-3 bg-white/90 text-foreground hover:bg-white gap-1 shadow-card"
-                >
-                  🎬 Vidéos
-                </Button>
-              )}
               <div className="flex items-end gap-3">
                 <div className="relative">
                   <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
@@ -440,7 +436,7 @@ const BirthdayPage = () => {
                       <input
                         ref={avatarInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
                         className="hidden"
                         onChange={handleAvatarUpload}
                       />
@@ -482,7 +478,19 @@ const BirthdayPage = () => {
               </div>
             </div>
           }
-        />
+        >
+          {user?.id === page?.user_id && (
+            <button
+              type="button"
+              onClick={() => setShowVideosManager(true)}
+              className="absolute top-6 left-3 z-20 h-9 rounded-full bg-black/45 backdrop-blur text-white px-3 text-xs font-medium flex items-center gap-1.5 hover:bg-black/65 transition-colors shadow-card"
+              aria-label="Personnaliser les vidéos de couverture"
+            >
+              <span aria-hidden>🎬</span>
+              <span className="hidden sm:inline">Vidéos</span>
+            </button>
+          )}
+        </CoverVideoCarousel>
       </motion.div>
 
       {page && user?.id === page.user_id && (

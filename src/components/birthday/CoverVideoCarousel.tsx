@@ -40,6 +40,18 @@ export function CoverVideoCarousel({
   const fallbackTimerRef = useRef<number | null>(null);
 
   const current: CoverVideoItem | undefined = playlist[index];
+  const [showUnmuteHint, setShowUnmuteHint] = useState(true);
+
+  // Auto-hide the unmute hint after 4s; re-show when current video changes while muted.
+  useEffect(() => {
+    if (!muted) {
+      setShowUnmuteHint(false);
+      return;
+    }
+    setShowUnmuteHint(true);
+    const t = window.setTimeout(() => setShowUnmuteHint(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [muted, current?.id]);
 
   // Keep index in range when playlist changes
   useEffect(() => {
@@ -155,12 +167,12 @@ export function CoverVideoCarousel({
           </button>
         </div>
 
-        {/* Tap-to-unmute hint (only when muted) */}
-        {muted && (
+        {/* Tap-to-unmute hint (only when muted, auto-hides) */}
+        {muted && showUnmuteHint && (
           <button
             type="button"
             onClick={toggleMute}
-            className="absolute bottom-24 right-3 z-20 px-3 py-1.5 rounded-full bg-white/90 text-foreground text-xs font-medium shadow-card flex items-center gap-1.5 hover:bg-white"
+            className="absolute top-[4.25rem] right-3 z-20 px-3 py-1.5 rounded-full bg-white/90 text-foreground text-xs font-medium shadow-card flex items-center gap-1.5 hover:bg-white animate-in fade-in slide-in-from-top-1"
           >
             <Volume2 className="h-3.5 w-3.5" /> Activer le son
           </button>
