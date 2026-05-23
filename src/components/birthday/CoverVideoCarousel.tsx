@@ -38,6 +38,8 @@ export function CoverVideoCarousel({
   const [expanded, setExpanded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fallbackTimerRef = useRef<number | null>(null);
+
+  const current: CoverVideoItem | undefined = playlist[index];
   const [showUnmuteHint, setShowUnmuteHint] = useState(true);
 
   // Auto-hide the unmute hint after 4s; re-show when current video changes while muted.
@@ -50,8 +52,6 @@ export function CoverVideoCarousel({
     const t = window.setTimeout(() => setShowUnmuteHint(false), 4000);
     return () => window.clearTimeout(t);
   }, [muted, current?.id]);
-
-  const current: CoverVideoItem | undefined = playlist[index];
 
   // Keep index in range when playlist changes
   useEffect(() => {
