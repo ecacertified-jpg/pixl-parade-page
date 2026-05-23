@@ -421,19 +421,45 @@ const BirthdayPage = () => {
                 </Button>
               )}
               <div className="flex items-end gap-3">
-                <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
-                  {birthdayPerson.avatar_url ? (
-                    <img
-                      src={birthdayPerson.avatar_url}
-                      alt={firstName}
-                      className="h-full w-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <AvatarFallback className="bg-primary/20 text-primary font-poppins font-bold text-lg">
-                      {firstName.charAt(0).toUpperCase()}
-                    </AvatarFallback>
+                <div className="relative">
+                  <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
+                    {birthdayPerson.avatar_url ? (
+                      <img
+                        src={birthdayPerson.avatar_url}
+                        alt={firstName}
+                        className="h-full w-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-primary/20 text-primary font-poppins font-bold text-lg">
+                        {firstName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  {user?.id === page?.user_id && (
+                    <>
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                        className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary text-primary-foreground border-2 border-white shadow-soft flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-60"
+                        aria-label="Modifier la photo de profil"
+                      >
+                        {uploadingAvatar ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CameraIcon className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </>
                   )}
-                </Avatar>
+                </div>
                 <div className="flex-1 min-w-0 pb-1">
                   <motion.h1
                     initial={{ opacity: 0, x: -10 }}
