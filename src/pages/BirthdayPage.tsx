@@ -446,7 +446,7 @@ const BirthdayPage = () => {
                       <input
                         ref={avatarInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
                         className="hidden"
                         onChange={handleAvatarUpload}
                       />
