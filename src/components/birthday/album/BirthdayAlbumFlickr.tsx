@@ -11,7 +11,7 @@ import {
   Camera, Video, BookOpen, ImagePlus, Play, X, Loader2,
   Send, Quote, MoreVertical, Trash2, Lock,
   ChevronLeft, ChevronRight, Share2, Star, MessageCircle,
-  Search, ArrowLeft, Heart, Download, Plus,
+  Search, ArrowLeft, Heart, Download, Plus, Mic, Pencil,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
@@ -31,6 +31,11 @@ import {
   getEventEmoji,
 } from "@/data/album-event-kinds";
 import { cn } from "@/lib/utils";
+import { shareAlbumItem } from "@/utils/shareAlbumItem";
+import { PhotoCommentsPanel } from "./PhotoCommentsPanel";
+import { MemoryRecorder } from "./MemoryRecorder";
+import { MemoryCard } from "./MemoryCard";
+import { MemoryDetailDialog } from "./MemoryDetailDialog";
 
 export interface AlbumItem {
   id: string;
@@ -45,6 +50,8 @@ export interface AlbumItem {
   memory_text: string | null;
   event_kind: string | null;
   view_count: number;
+  memory_audio_url?: string | null;
+  memory_audio_duration?: number | null;
 }
 
 interface Props {
@@ -64,7 +71,7 @@ interface Props {
 type MainTab = "gallery" | "events" | "memories" | "favorites";
 type MediaFilter = "all" | "image" | "video";
 
-const ALBUM_COLS = "id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text, event_kind, view_count";
+const ALBUM_COLS = "id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text, event_kind, view_count, memory_audio_url, memory_audio_duration";
 
 function pluralize(n: number, s: string, p?: string) {
   return `${n} ${n > 1 ? (p ?? s + "s") : s}`;
