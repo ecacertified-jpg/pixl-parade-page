@@ -478,7 +478,7 @@ function CardTemplates({ onSelect, selectedId }: {
   return (
     <div className="space-y-2">
       {cats.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur py-1 flex gap-1.5 flex-wrap">
           {cats.map(c => (
             <button
               key={c} type="button"
@@ -495,7 +495,7 @@ function CardTemplates({ onSelect, selectedId }: {
           Aucune carte disponible pour le moment.
         </p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[55vh] overflow-y-auto pr-1">
           {filtered.map(t => (
             <button
               key={t.id} type="button"
