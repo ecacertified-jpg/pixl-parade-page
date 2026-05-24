@@ -62,7 +62,7 @@ export function MessageWall({ pageId, slug, firstName, pageOwnerUserId }: Props)
         </Button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 -mr-1">
         {loading && (
           <div className="flex justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
