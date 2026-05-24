@@ -28,13 +28,15 @@ export function MessageWall({ pageId, slug, firstName, pageOwnerUserId }: Props)
 
   return (
     <Card className="p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <Heart className="h-5 w-5 text-heart" />
-        <h2 className="font-bold font-poppins">Messages d'anniversaire</h2>
-        <span className="text-xs text-muted-foreground">({total})</span>
+      <div className="mb-3 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Heart className="h-5 w-5 text-heart shrink-0" />
+          <h2 className="font-bold font-poppins truncate">Messages d'anniversaire</h2>
+          <span className="text-xs text-muted-foreground shrink-0">({total})</span>
+        </div>
         <Button
           size="sm"
-          className="ml-auto bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-soft hover:opacity-95"
+          className="w-full sm:w-auto sm:ml-auto bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-soft hover:opacity-95"
           onClick={() => setModalOpen(true)}
         >
           <Plus className="h-4 w-4 mr-1.5" /> Nouveau post
