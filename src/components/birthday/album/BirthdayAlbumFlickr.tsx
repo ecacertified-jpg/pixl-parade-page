@@ -653,6 +653,7 @@ export function BirthdayAlbumFlickr({
 
       {/* === Body === */}
       {mainTab === "gallery" && (
+        <div className="max-h-[60vh] overflow-y-auto pr-1 -mr-1">
         <MediaGrid items={galleryItems}
           favCounts={favCounts} myFavs={myFavs}
           reactions={reactions} commentCounts={commentCounts} user={user}
@@ -662,6 +663,7 @@ export function BirthdayAlbumFlickr({
           onComment={openCommentsOn}
           emptyLabel="Aucun média pour le moment."
         />
+        </div>
       )}
 
       {mainTab === "favorites" && (
@@ -672,6 +674,7 @@ export function BirthdayAlbumFlickr({
             <Button size="sm" onClick={() => requireAuth()}>Se connecter</Button>
           </div>
         ) : (
+          <div className="max-h-[60vh] overflow-y-auto pr-1 -mr-1">
           <MediaGrid items={favoriteItems}
             favCounts={favCounts} myFavs={myFavs}
             reactions={reactions} commentCounts={commentCounts} user={user}
@@ -681,6 +684,7 @@ export function BirthdayAlbumFlickr({
             onComment={openCommentsOn}
             emptyLabel="Aucun favori pour le moment. Touche ★ sur un média pour le sauvegarder."
           />
+          </div>
         )
       )}
 
@@ -698,7 +702,7 @@ export function BirthdayAlbumFlickr({
               <p className="text-sm text-muted-foreground">Aucun souvenir partagé pour le moment.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1 -mr-1">
               {memoryItems.map((m) => (
                 <MemoryCard
                   key={m.id}
@@ -728,15 +732,18 @@ export function BirthdayAlbumFlickr({
       )}
 
       {mainTab === "events" && !selectedEvent && (
+        <div className="max-h-[60vh] overflow-y-auto pr-1 -mr-1">
         <EventsGrid
           eventsGrouped={eventsGrouped}
           mediaFilter={mediaFilter}
           onOpenEvent={(k) => setSelectedEvent(k)}
           onAddTo={(k, mode) => openUploadSheet(mode, k)}
         />
+        </div>
       )}
 
       {mainTab === "events" && selectedEvent && (
+        <div className="max-h-[60vh] overflow-y-auto pr-1 -mr-1">
         <EventDetailView
           eventKind={selectedEvent}
           items={eventDetailItems}
@@ -749,6 +756,7 @@ export function BirthdayAlbumFlickr({
           onComment={openCommentsOn}
           onAdd={(mode) => openUploadSheet(mode, selectedEvent)}
         />
+        </div>
       )}
 
       {/* === Upload Sheet === */}
