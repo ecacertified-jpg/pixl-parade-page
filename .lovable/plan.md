@@ -1,46 +1,42 @@
+## Objectif
+Rendre la carte « Messages d'anniversaire » visuellement harmonieuse et corriger les soucis de scroll dans le modal « Créer ma carte ».
 
-# Corrections du mur de messages
+## 1. Header harmonisé de `MessageWall.tsx`
+Aligner sur le style du header « Cadeau collectif » : titre sur une seule ligne avec icône à gauche, compteur discret, bouton CTA à droite qui ne casse pas le titre.
 
-## 1. Bug "Edge Function returned a non-2xx" à la publication
-Cause confirmée dans les logs : `userClient.auth.getClaims is not a function` (méthode inexistante dans `@supabase/supabase-js@2.45`).
+- Restructurer le header en deux lignes sur mobile pour éviter le retour à la ligne du titre :
+  - Ligne 1 : `Heart` + titre `Messages d'anniversaire` (font-poppins, semibold) + badge `(0)` en pill discrète
+  - Ligne 2 : bouton « + Nouveau post » pleine largeur sur mobile, auto sur desktop (`w-full sm:w-auto sm:ml-auto`)
+- Le bouton ne se chevauche plus avec le titre, et le titre n'est plus coupé en 2 morceaux désalignés.
+- La barre recherche + tri reste en dessous, inchangée fonctionnellement.
 
-**Fix** dans `supabase/functions/post-birthday-message/index.ts` :
-- Remplacer le bloc `getClaims(token)` par `supabase.auth.getUser(token)` (méthode standard).
-- Simplifier : un seul client admin suffit, on appelle `admin.auth.getUser(token)` pour valider le JWT visiteur connecté.
+## 2. Onglets scrollables du `NewPostModal.tsx` (Stickers, YouTube, etc.)
+Le `ScrollArea` actuel autour du `TabsList` ne scrolle pas horizontalement sur mobile car `whitespace-nowrap` seul ne déclenche pas la scrollbar et le fade gradient masque la zone scrollable.
 
-## 2. "Aucune carte disponible"
-La table `birthday_card_templates` est vide (0 ligne).
+- Remplacer le `ScrollArea` par un conteneur natif `overflow-x-auto` avec `scrollbar-thin` masquée et `-webkit-overflow-scrolling: touch`, qui fonctionne de manière fiable sur mobile.
+- Ajouter `flex-nowrap` + `min-w-max` sur `TabsList`.
+- Garder le fade gradient à droite **uniquement** comme indicateur visuel (pointer-events-none).
+- Ajouter un petit chevron `→` discret animé à droite pour suggérer le scroll au premier rendu, qui disparaît après scroll.
 
-**Action** : migration qui insère ~8 cartes de base (joyeux, tendre, humour, solennel × 2) avec `image_url` pointant vers des illustrations existantes / placeholders Unsplash, `category` aligné sur le ton.
-- Champs : `id`, `category`, `title`, `image_url`, `is_active=true`, `sort_order`.
-- (La table et son RLS public read existent déjà.)
+Résultat : l'utilisateur fait glisser horizontalement et voit Stickers, Texte animé, YouTube, Photo.
 
-## 3. Onglet "Stickers" tronqué + couleurs des onglets peu visibles
-Sur viewport 758 px le `ScrollArea` rend l'onglet "Stickers" partiellement coupé et l'utilisateur ne voit pas qu'il peut scroller.
+## 3. Cartes de vœux scrollables verticalement (onglet « Cartes »)
+Actuellement la liste de cartes (`CardTemplates`) s'étend et fait grandir le contenu du modal, ce qui pousse la zone hors écran.
 
-**Fix UI** dans `NewPostModal.tsx` (zone Tabs) :
-- Garder le scroll horizontal mais : `TabsList` en `flex w-max gap-1.5 bg-secondary/60 p-1`, ajouter padding-right pour qu'on devine le dernier onglet.
-- Ajouter un fade gradient à droite (`bg-gradient-to-l from-background`) pour signaler le scroll.
-- Couleurs onglets : 
-  - inactif → `bg-secondary text-foreground/70`
-  - actif → `data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-soft`
-- Pilules de ton (Joyeux/Tendre/…) : actif → même dégradé primary→accent + shadow ; inactif → `bg-secondary/70 border-primary/20`.
-- Bouton "Suggérer ✨" : `variant="outline"` + `border-primary/40 text-primary hover:bg-primary/10`.
-- Bouton "Enregistrer" (micro) : `border-accent/50 text-accent-foreground bg-accent/10 hover:bg-accent/20`.
-- Bouton "Publier" : déjà dégradé, on ajoute `shadow-soft hover:opacity-95`.
-- Bouton "Nouveau post" du `MessageWall` : ajouter `shadow-soft` et hover plus contrasté.
-
-## 4. Vérification
-- Re-déployer `post-birthday-message` (auto).
-- Tester : publier en mode visiteur → message inséré, toast succès.
-- Vérifier que l'onglet Stickers s'affiche entièrement après scroll, fade visible.
-- Vérifier que l'onglet Cartes affiche les 8 templates seedés.
-
-## Hors scope
-- Pas de nouvel onglet, pas de logique métier ajoutée.
-- Pas de refonte des cartes message (`MessageCard.tsx`).
+- Donner au conteneur des cartes une **hauteur maximale fixe** (`max-h-[55vh]`) et un `overflow-y-auto` interne, de sorte que le scroll des cartes se fasse à l'intérieur sans agrandir la `<Card>` Messages d'anniversaire ni le modal.
+- Conserver la grille `grid-cols-2 sm:grid-cols-3` et le filtre catégories au-dessus (sticky en haut du scroll interne).
+- Appliquer la même approche aux autres pickers grille (GIFs, Stickers, Texte animé) : `max-h-[50vh] overflow-y-auto` pour éviter que les grilles longues poussent les onglets et le bouton Publier hors-écran.
 
 ## Détails techniques
-- Aucune modification de schéma, juste un `INSERT` data dans `birthday_card_templates`.
-- Pas de nouvelle dépendance.
-- Tokens HSL déjà définis (`--primary`, `--accent`, `--secondary`) → utilisés via classes Tailwind sémantiques, conforme au design system.
+
+- Fichier `src/components/birthday/messages/MessageWall.tsx` : restructurer le bloc `<div className="flex items-center gap-2 mb-3">` en deux rangées flex, classes responsive Tailwind.
+- Fichier `src/components/birthday/messages/NewPostModal.tsx` :
+  - Remplacer `<ScrollArea>` ligne 221 par `<div className="overflow-x-auto no-scrollbar -mx-1 px-1">` + utilitaire CSS `no-scrollbar` (ajouter dans `src/index.css` si absent).
+  - `TabsList` : ajouter `flex-nowrap min-w-max`.
+  - Dans `CardTemplates` : envelopper la grille dans `<div className="max-h-[55vh] overflow-y-auto pr-1">` ; rendre la barre catégories sticky `sticky top-0 bg-background/95 backdrop-blur z-10 py-1`.
+  - Dans `GiphyGrid` : envelopper la grille dans `<div className="max-h-[50vh] overflow-y-auto pr-1">`.
+
+## Hors scope
+- Pas de changement de logique de modération, d'upload ou de publication.
+- Pas de modification du edge function `post-birthday-message`.
+- Pas de modification du schéma `birthday_card_templates`.
