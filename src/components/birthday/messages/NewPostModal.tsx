@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ImagePlus, Smile, Sparkles, Mic, Square, Play, Trash2, Upload, Loader2, Send,
   Wand2, Youtube as YoutubeIcon, Type,
@@ -218,8 +217,8 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
 
         <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
           <div className="px-5 relative">
-            <ScrollArea className="w-full whitespace-nowrap">
-              <TabsList className="inline-flex w-max gap-1.5 bg-secondary/60 p-1 pr-10 h-auto">
+            <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+              <TabsList className="inline-flex flex-nowrap min-w-max gap-1.5 bg-secondary/60 p-1 pr-10 h-auto">
                 {[
                   { v: "gif", l: "🎞️ GIFs" },
                   { v: "emoji", l: "😀 Emoji" },
@@ -238,7 +237,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
                   </TabsTrigger>
                 ))}
               </TabsList>
-            </ScrollArea>
+            </div>
             <div className="pointer-events-none absolute right-5 top-0 bottom-0 w-10 bg-gradient-to-l from-background to-transparent" />
           </div>
 
