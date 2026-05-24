@@ -430,7 +430,7 @@ function GiphyGrid({ type, onSelect, selectedUrl, placeholder }: {
       {loading ? (
         <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : (
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5 max-h-[50vh] overflow-y-auto pr-1">
           {items.map(it => (
             <button
               key={it.id}
