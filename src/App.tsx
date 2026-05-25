@@ -11,6 +11,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
 import { CountryProvider } from "@/contexts/CountryContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PublicRoute } from "@/components/PublicRoute";
+import { AuthGateProvider } from "@/contexts/AuthGateContext";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { NotificationSoundProvider } from "@/components/NotificationSoundProvider";
 import { AdminRoute } from "./components/AdminRoute";
@@ -187,6 +189,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <GoogleAnalytics />
+            <AuthGateProvider>
             <AnimatedRoutes>
             <Route path="/" element={<Landing />} />
             <Route path="/privacy-policy" element={<L><PrivacyPolicy /></L>} />
@@ -241,17 +244,17 @@ const App = () => (
             <Route path="/business-waitlist" element={<Navigate to="/business-auth" replace />} />
             <Route path="/devenir-prestataire" element={<Navigate to="/business-auth" replace />} />
             <Route path="/admin-auth" element={<L><AdminAuth /></L>} />
-            <Route path="/home" element={<ProtectedRoute><L><Home /></L></ProtectedRoute>} />
-            <Route path="/index" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Index /></AnimatedPageTransition></L></ProtectedRoute>} />
+            <Route path="/home" element={<PublicRoute><L><Home /></L></PublicRoute>} />
+            <Route path="/index" element={<PublicRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Index /></AnimatedPageTransition></L></PublicRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Dashboard /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/publications" element={<PublicRoute><L><Publications /></L></PublicRoute>} />
             <Route path="/business-account" element={<ProtectedRoute><L><BusinessAccount /></L></ProtectedRoute>} />
             <Route path="/business/setup" element={<ProtectedRoute><L><BusinessSetup /></L></ProtectedRoute>} />
             <Route path="/business-dashboard" element={<ProtectedRoute><L><BusinessDashboard /></L></ProtectedRoute>} />
-            <Route path="/shop" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Shop /></AnimatedPageTransition></L></ProtectedRoute>} />
-            <Route path="/category/:slug" element={<ProtectedRoute><L><CategoryPage /></L></ProtectedRoute>} />
-            <Route path="/explore-map" element={<ProtectedRoute><L><ExploreMap /></L></ProtectedRoute>} />
-            <Route path="/boutique/:businessId" element={<ProtectedRoute><L><VendorShop /></L></ProtectedRoute>} />
+            <Route path="/shop" element={<PublicRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Shop /></AnimatedPageTransition></L></PublicRoute>} />
+            <Route path="/category/:slug" element={<PublicRoute><L><CategoryPage /></L></PublicRoute>} />
+            <Route path="/explore-map" element={<PublicRoute><L><ExploreMap /></L></PublicRoute>} />
+            <Route path="/boutique/:businessId" element={<PublicRoute><L><VendorShop /></L></PublicRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><L><Favorites /></L></ProtectedRoute>} />
             <Route path="/followed-shops" element={<ProtectedRoute><L><FollowedShops /></L></ProtectedRoute>} />
             <Route path="/gifts" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Gifts /></AnimatedPageTransition></L></ProtectedRoute>} />
@@ -262,10 +265,10 @@ const App = () => (
             <Route path="/collective-order-confirmation" element={<ProtectedRoute><L><CollectiveOrderConfirmation /></L></ProtectedRoute>} />
             <Route path="/order-confirmation" element={<ProtectedRoute><L><OrderConfirmation /></L></ProtectedRoute>} />
             <Route path="/notification-settings" element={<ProtectedRoute><L><NotificationSettings /></L></ProtectedRoute>} />
-            <Route path="/community" element={<ProtectedRoute><L><Community /></L></ProtectedRoute>} />
+            <Route path="/community" element={<PublicRoute><L><Community /></L></PublicRoute>} />
             <Route path="/reciprocity-profile" element={<ProtectedRoute><L><ReciprocityProfile /></L></ProtectedRoute>} />
-            <Route path="/profile/:userId" element={<ProtectedRoute><L><UserProfile /></L></ProtectedRoute>} />
-            <Route path="/u/:userId/pages" element={<ProtectedRoute><L><UserPagesPage /></L></ProtectedRoute>} />
+            <Route path="/profile/:userId" element={<PublicRoute><L><UserProfile /></L></PublicRoute>} />
+            <Route path="/u/:userId/pages" element={<PublicRoute><L><UserPagesPage /></L></PublicRoute>} />
             <Route path="/invitations" element={<ProtectedRoute><L><Invitations /></L></ProtectedRoute>} />
             <Route path="/referral-codes" element={<ProtectedRoute><L><ReferralCodes /></L></ProtectedRoute>} />
             <Route path="/profile-settings" element={<ProtectedRoute><L><ProfileSettings /></L></ProtectedRoute>} />
@@ -330,6 +333,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </AnimatedRoutes>
+          </AuthGateProvider>
             <AIChatWidget />
           </BrowserRouter>
           </TooltipProvider>
