@@ -47,6 +47,30 @@ export const getRedirectPath = async (user: User): Promise<string> => {
 };
 
 export const handleSmartRedirect = async (user: User, navigate: (path: string) => void) => {
+  // 1) Honor a pending intent saved by the AuthGate modal (highest priority)
+  try {
+    const raw = sessionStorage.getItem('jdv_pending_intent');
+    if (raw) {
+      const parsed = JSON.parse(raw) as { returnTo?: string };
+      sessionStorage.removeItem('jdv_pending_intent');
+      if (parsed?.returnTo && parsed.returnTo !== '/auth') {
+        navigate(parsed.returnTo);
+        return;
+      }
+    }
+  } catch {}
+
+  // 2) Honor a returnTo query param if present in the current URL
+  try {
+    const url = new URL(window.location.href);
+    const returnTo = url.searchParams.get('returnTo');
+    if (returnTo && returnTo !== '/auth' && returnTo.startsWith('/')) {
+      navigate(returnTo);
+      return;
+    }
+  } catch {}
+
+  // 3) Fallback to existing smart routing (business vs dashboard)
   const path = await getRedirectPath(user);
   navigate(path);
 };
