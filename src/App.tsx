@@ -244,7 +244,7 @@ const App = () => (
             <Route path="/home" element={<ProtectedRoute><L><Home /></L></ProtectedRoute>} />
             <Route path="/index" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Index /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Dashboard /></AnimatedPageTransition></L></ProtectedRoute>} />
-            <Route path="/publications" element={<ProtectedRoute><L><Publications /></L></ProtectedRoute>} />
+            <Route path="/publications" element={<PublicRoute><L><Publications /></L></PublicRoute>} />
             <Route path="/business-account" element={<ProtectedRoute><L><BusinessAccount /></L></ProtectedRoute>} />
             <Route path="/business/setup" element={<ProtectedRoute><L><BusinessSetup /></L></ProtectedRoute>} />
             <Route path="/business-dashboard" element={<ProtectedRoute><L><BusinessDashboard /></L></ProtectedRoute>} />
