@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useAuthGate } from "@/contexts/AuthGateContext";
 
 const REACTION_EMOJIS: { type: string; emoji: string }[] = [
   { type: "heart", emoji: "❤️" },
@@ -37,10 +38,14 @@ export function AlbumItemReactions({
   compact = false,
 }: AlbumItemReactionsProps) {
   const [animating, setAnimating] = useState<string | null>(null);
+  const { openAuthGate } = useAuthGate();
 
   const handleClick = async (e: React.MouseEvent, type: string) => {
     e.stopPropagation();
-    if (!userId) return;
+    if (!userId) {
+      openAuthGate("react");
+      return;
+    }
 
     const isActive = userReactions[type];
     setAnimating(type);
@@ -100,7 +105,7 @@ export function AlbumItemReactions({
                 : "bg-muted/60 hover:bg-muted",
               !userId && "opacity-50 cursor-default"
             )}
-            disabled={!userId}
+            disabled={false}
           >
             <span className={compact ? "text-[10px]" : "text-xs"}>{emoji}</span>
             {count > 0 && (
