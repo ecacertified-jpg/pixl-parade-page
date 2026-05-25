@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { memo, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthGate } from "@/contexts/AuthGateContext";
+import { Button } from "@/components/ui/button";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { NotificationPanel } from "@/components/NotificationPanel";
@@ -57,6 +59,7 @@ const Home = () => {
   const queryClient = useQueryClient();
   const { isActiveBusinessAccount } = useBusinessAccount();
   const { itemCount } = useCart();
+  const { openAuthGate, requireAuth } = useAuthGate();
   const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
 
   // Prefetch dashboard data so it's instant when user navigates
@@ -83,16 +86,31 @@ const Home = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
+            <div
+              className="relative cursor-pointer"
+              onClick={requireAuth("open_cart", () => navigate("/cart"))}
+            >
               <ShoppingCart className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
-              {itemCount > 0 && (
+              {user && itemCount > 0 && (
                 <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {itemCount}
                 </div>
               )}
             </div>
-            <NotificationPanel />
-            {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
+            {user ? (
+              <>
+                <NotificationPanel />
+                {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
+              </>
+            ) : (
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-primary to-accent text-primary-foreground h-9"
+                onClick={() => openAuthGate("open_profile")}
+              >
+                S'inscrire
+              </Button>
+            )}
           </div>
         </div>
       </header>
