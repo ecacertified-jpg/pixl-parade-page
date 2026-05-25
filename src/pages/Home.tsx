@@ -115,8 +115,8 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Global Friends Circle Reminder */}
-      <FriendsCircleReminderCard compact />
+      {/* Global Friends Circle Reminder (signed-in only) */}
+      {user && <FriendsCircleReminderCard compact />}
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
