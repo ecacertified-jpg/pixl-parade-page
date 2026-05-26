@@ -96,7 +96,7 @@ const BirthdayPage = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Get profile info for the birthday person
-  const [birthdayPerson, setBirthdayPerson] = useState<{ first_name: string; avatar_url: string | null; birthday: string | null }>({ first_name: '', avatar_url: null, birthday: null });
+  const [birthdayPerson, setBirthdayPerson] = useState<{ first_name: string; last_name: string; avatar_url: string | null; birthday: string | null }>({ first_name: '', last_name: '', avatar_url: null, birthday: null });
 
   // Compute age for SEO
   const age = useMemo(() => {
