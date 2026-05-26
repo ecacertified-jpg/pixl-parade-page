@@ -217,14 +217,30 @@ const BirthdayPage = () => {
 
       setPage(resolvedPage);
 
-      // Load profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name, avatar_url, birthday')
+      // Load profile via public_profiles view so visitors (not signed in)
+      // can also see the celebrant's name and photo on the shared page.
+      const { data: pubProfile } = await supabase
+        .from('public_profiles')
+        .select('first_name, last_name, avatar_url')
         .eq('user_id', pageData.user_id)
-        .single();
+        .maybeSingle();
 
-      if (profile) setBirthdayPerson(profile as any);
+      // Birthday is only readable on the private profiles table (auth required);
+      // it's used for age display, so a null fallback for visitors is fine.
+      const { data: privProfile } = await supabase
+        .from('profiles')
+        .select('birthday')
+        .eq('user_id', pageData.user_id)
+        .maybeSingle();
+
+      if (pubProfile || privProfile) {
+        setBirthdayPerson({
+          first_name: (pubProfile as any)?.first_name || '',
+          last_name: (pubProfile as any)?.last_name || '',
+          avatar_url: (pubProfile as any)?.avatar_url || null,
+          birthday: (privProfile as any)?.birthday || null,
+        } as any);
+      }
 
       // Load messages
       const { data: msgs } = await supabase
