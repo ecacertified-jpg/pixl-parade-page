@@ -93,14 +93,15 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
       (birthdayRes.data || []).forEach(bp => creatorIds.add(bp.user_id));
       (eventRes.data || []).forEach(ep => creatorIds.add(ep.creator_id));
 
-      // Fetch profiles in a separate query (robust - won't break if RLS restricts some)
+      // Fetch profiles via the `public_profiles` view so anonymous visitors
+      // can also see the creator's name and avatar on shared pages.
       const profileMap = new Map<string, { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null }>();
       if (creatorIds.size > 0) {
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('public_profiles')
           .select('user_id, first_name, last_name, avatar_url')
           .in('user_id', Array.from(creatorIds));
-        (profiles || []).forEach(p => profileMap.set(p.user_id, p));
+        (profiles || []).forEach((p: any) => profileMap.set(p.user_id, p));
       }
 
       // Fetch gift promise counts grouped by page
