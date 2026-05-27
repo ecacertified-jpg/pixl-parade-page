@@ -14,6 +14,7 @@ import { ShopForCollectiveGiftModal } from '@/components/ShopForCollectiveGiftMo
 import { SearchExistingFundsModal } from '@/components/SearchExistingFundsModal';
 import { SendBirthdayMessageModal } from '@/components/SendBirthdayMessageModal';
 import { SendGratitudeModal } from '@/components/SendGratitudeModal';
+import { OnboardingExperience } from '@/components/OnboardingExperience';
 import { useUpcomingBirthdays } from '@/hooks/useUpcomingBirthdays';
 import { Badge } from '@/components/ui/badge';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -30,6 +31,8 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
   const [isSearchFundsModalOpen, setIsSearchFundsModalOpen] = useState(false);
   const [isBirthdayModalOpen, setIsBirthdayModalOpen] = useState(false);
   const [isGratitudeModalOpen, setIsGratitudeModalOpen] = useState(false);
+  const [isCreatePageOpen, setIsCreatePageOpen] = useState(false);
+  const [createPageStep, setCreatePageStep] = useState(1);
   const { birthdays } = useUpcomingBirthdays(7);
   const { context } = useUserContext();
 
@@ -43,14 +46,15 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
 
   const menuItems = [
     {
-      icon: PartyPopper,
-      label: 'Publier une célébration',
-      description: 'Partagez un moment joyeux',
-      color: 'text-secondary',
-      action: () => handleAction(() => {
-        setPostDrawerInitialMode('media');
-        setIsPostDrawerOpen(true);
-      }),
+      icon: Cake,
+      label: "Créer ma page d'anniversaire",
+      description: 'Toutes les étapes pour publier ta page',
+      color: 'text-primary',
+      action: () =>
+        handleAction(() => {
+          setCreatePageStep(1);
+          setIsCreatePageOpen(true);
+        }),
     },
     {
       icon: Cake,
@@ -176,6 +180,15 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
           />
         )}
       </AnimatePresence>
+
+      {/* Create my birthday page — full multi-step wizard inside a modal */}
+      <OnboardingExperience
+        open={isCreatePageOpen}
+        onComplete={() => setIsCreatePageOpen(false)}
+        currentStep={createPageStep}
+        onSetStep={setCreatePageStep}
+        firstIncompleteStep={1}
+      />
     </>
   );
 }
