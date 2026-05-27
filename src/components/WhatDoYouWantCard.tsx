@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ValueModal } from "@/components/ValueModal";
 import { CelebrateMenu } from "@/components/CelebrateMenu";
+import { FriendsFundsModal } from "@/components/FriendsFundsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpcomingBirthdays } from "@/hooks/useUpcomingBirthdays";
 import { useCelebrationFeedback } from "@/hooks/useCelebrationFeedback";
@@ -21,6 +22,7 @@ export function WhatDoYouWantCard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showValueModal, setShowValueModal] = useState(false);
+  const [showFriendsFunds, setShowFriendsFunds] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
   const { birthdays } = useUpcomingBirthdays(7);
@@ -101,13 +103,9 @@ export function WhatDoYouWantCard() {
       });
     }
 
-    const dontShow = localStorage.getItem('jdv_value_modal_dont_show');
-    
-    if (dontShow === 'true') {
-      navigate("/shop");
-    } else {
-      setShowValueModal(true);
-    }
+    // Show the modal listing funds created by the user's friends so they can
+    // immediately pick one to contribute to.
+    setShowFriendsFunds(true);
   };
 
   return (
@@ -287,6 +285,10 @@ export function WhatDoYouWantCard() {
       </div>
 
       <ValueModal isOpen={showValueModal} onClose={() => setShowValueModal(false)} />
+      <FriendsFundsModal
+        isOpen={showFriendsFunds}
+        onClose={() => setShowFriendsFunds(false)}
+      />
     </Card>
   );
 }
