@@ -1,103 +1,81 @@
+# Préserver l'action utilisateur après auth
 
-# Accès visiteur "Hybride Freemium" pour JDV
+## Constat
 
-## Objectif
-Permettre à un visiteur non connecté de **naviguer librement** dans toute l'app (home, feed, pages anniversaire, cagnottes, boutiques, profils publics, album, messages) et de ne déclencher une **modale d'inscription contextuelle** que sur une **action engageante** (réagir, commenter, contribuer, ajouter contact, créer page, commander, ouvrir panier/notifs/profil). Après inscription/connexion, **l'action initiale est rejouée** automatiquement sur la même page.
+Non, ce n'est pas le comportement attendu. La logique de retour existe (`AuthGateContext` enregistre `jdv_pending_intent` + `localStorage.returnUrl`, `ProtectedRoute` enregistre `returnUrl`, `handleSmartRedirect` les honore), **mais plusieurs chemins de `src/pages/Auth.tsx` court-circuitent cette logique et redirigent en dur vers `/dashboard`** :
 
-## Périmètre
+- `Auth.tsx:839` — vérification OTP réussie (signin & signup) → `navigate('/dashboard?onboarding=true' | '/dashboard')`
+- `Auth.tsx:1245` — inscription email réussie → `navigate('/dashboard?onboarding=true')`
+- Ces deux chemins ne lisent que `searchParams.get('redirect')` et ignorent :
+  - le param URL `returnTo` (utilisé par `AuthGateContext`)
+  - le `sessionStorage.jdv_pending_intent`
+  - le `localStorage.returnUrl`
 
-### Pages ouvertes en lecture aux visiteurs
-Toutes les routes actuellement protégées par `ProtectedRoute` deviennent accessibles **sauf** celles intrinsèquement personnelles :
+Résultat : un visiteur qui clique "Écrire un message" / "Uploader une photo" sur une page d'anniversaire est envoyé sur la modale d'auth → après OTP/email, il atterrit sur `/dashboard` et perd la page d'origine.
 
-**Ouvertes (lecture)** : `/home`, `/index`, `/shop`, `/category/:slug`, `/boutique/:businessId`, `/explore-map`, `/community`, `/publications`, `/profile/:userId`, `/u/:userId/pages`, `/gift-ideas/:contactId` (déjà publiques : `/birthday/:slug`, `/event/:slug`, `/fund/...`).
+## Proposition
 
-**Restent strictement protégées (données perso/admin)** : `/dashboard`, `/cart`, `/checkout`, `/collective-checkout`, `/orders`, `/order-confirmation`, `/favorites`, `/followed-shops`, `/preferences`, `/profile-settings`, `/notification-settings`, `/reciprocity-profile`, `/invitations`, `/referral-codes`, `/account-linking`, `/wishlist-catalog`, `/business-*`, `/event/create`, toutes les routes `/admin/*`.
+Unifier **un seul utilitaire de redirection post-auth** et l'appeler depuis tous les points de succès d'auth. Conformément au choix produit déjà acté ("rejouer l'action et rester sur la page"), on ramène l'utilisateur sur l'URL d'origine ; il n'a qu'à recliquer sur le bouton (la modale d'auth ne ressurgira plus puisqu'il est connecté).
 
-### Actions qui déclenchent la modale (sur pages ouvertes)
-- Réactions (❤️ 😂 etc.), commentaires, ajouts favoris
-- Contribution à une cagnotte, création de cagnotte/page/événement
-- Ajout au panier, "offrir"
-- Suivre un profil/boutique, demande d'ami
-- Upload média (album, messages, posts)
-- Clic sur icônes header : notifications, panier, profil dropdown
-- Clic sur entrées du bottom nav menant aux routes protégées
+### 1. Étendre `src/utils/authRedirect.ts`
 
-## Architecture technique
+Ajouter `resolvePostAuthPath(user, searchParams)` qui résout dans cet ordre :
 
-### 1. Nouveau composant `PublicRoute`
-Wrapper léger qui rend `children` sans contrôle d'auth, mais qui :
-- Sauvegarde `last_visited_route` (comme `ProtectedRoute`)
-- Lance `usePresenceTracker` seulement si `user` existe
+1. `searchParams.get('returnTo')` (si commence par `/` et ≠ `/auth`)
+2. `sessionStorage.jdv_pending_intent.returnTo` (puis purge)
+3. `localStorage.returnUrl` (puis purge)
+4. `searchParams.get('redirect')` (compat existante, y compris cas `create-fund` avec `occasion` / `beneficiaryName`)
+5. `localStorage.last_visited_route` si ≠ `/`, `/auth`
+6. `getRedirectPath(user)` (business vs `/dashboard`)
 
-### 2. Hook `useAuthGate`
-```ts
-const { requireAuth } = useAuthGate();
-// usage : onClick={requireAuth('react_to_message', () => doReact(id))}
-```
-- Si `user` existe → exécute le callback immédiatement
-- Sinon → ouvre `AuthGateModal` avec un `intent` sérialisable et stocke le callback dans un ref/registry en mémoire + l'intent en `sessionStorage` (clé `pending_intent`) pour résister au reload post-OAuth
-- Throttling : pour les micro-actions (réactions), si l'utilisateur a refusé dans la même session, n'affiche la modale qu'une fois toutes les 5 actions
+Pour les nouveaux utilisateurs (`isNewUser`), si le path résolu n'a pas déjà `onboarding=true` et ne vise pas `/dashboard`, **ne pas forcer** l'onboarding : l'utilisateur a une intention concrète, on l'y ramène. L'onboarding obligatoire reste déclenché par `useOnboarding` une fois sur la page (overlay), ce qui préserve le parcours obligatoire sans perdre le contexte.
 
-### 3. Composant `AuthGateModal`
-- Titre contextualisé selon l'`intent` (table de libellés : `contribute_fund`, `react_post`, `add_to_cart`, `open_cart`, `follow_business`, etc.)
-- Sous-titre : nom de la cible si dispo ("…pour souhaiter à Aminata")
-- Toggle Connexion / Inscription intégré (réutilise composants de `/auth`)
-- Bouton "Continuer à explorer" (ferme la modale, action ignorée)
-- Lien WhatsApp support déjà actif sur pages publiques
+### 2. Brancher partout dans `src/pages/Auth.tsx`
 
-### 4. Provider `AuthGateProvider`
-Monté dans `App.tsx` au-dessus des routes, expose `requireAuth`, contient l'état de la modale et le registry des callbacks en attente.
+Remplacer les `navigate('/dashboard…')` en dur des chemins suivants par `resolvePostAuthPath` :
 
-### 5. Rejouage post-auth
-Dans `AuthContext` (ou un effet dans `AuthGateProvider`) :
-- À chaque transition `SIGNED_IN` (via `onAuthStateChange`), lire `sessionStorage.pending_intent`
-- Résoudre l'action : soit re-déclencher le callback s'il est encore en mémoire, soit naviguer vers l'URL canonique de l'intent (ex: `intent=contribute_fund&fundId=xxx` → ouvre directement la sheet de contribution sur la page courante)
-- Nettoyer `pending_intent`
+- ligne ~839 (vérif OTP SMS — signin/signup)
+- ligne ~1245 (signup email)
+- bloc `useEffect` ligne ~302 (déjà partiellement correct, à harmoniser pour utiliser la même fonction et lire aussi `returnTo` URL param)
 
-### 6. Adaptations UI conditionnelles
-Sur les pages ouvertes, quand `!user` :
-- `ProfileDropdown` → bouton "Se connecter / S'inscrire" qui ouvre la modale
-- `NotificationPanel` → icône cliquable qui ouvre la modale (intent `open_notifications`)
-- `ShoppingCart` header → modale intent `open_cart`
-- `BottomNavigation` items personnels → modale intent correspondant
-- `FriendsCircleReminderCard` masquée
-- `WelcomeSection` adaptée ("Bienvenue ! Crée ton compte pour…")
+### 3. Côté composants d'action (visiteur)
 
-### 7. SEO et données publiques
-- Vérifier que les RLS des tables affichées sur les pages désormais publiques autorisent bien la lecture anonyme nécessaire (`public_profiles`, `business_public_info`, `collective_funds_public`, messages d'anniversaire actifs — déjà OK selon les memories).
-- Pour `Shop` / `Home` : s'assurer que les requêtes tolèrent `user = null` (sinon adapter les hooks pour utiliser des vues publiques).
+Vérifier que **toutes** les actions visiteur passent par `useAuthGate().requireAuth(...)` (qui pose déjà `returnTo = location.pathname + location.search`). Auditer rapidement :
 
-## Découpage technique
+- upload photo/vidéo album anniversaire
+- écrire un message / souhait
+- réagir / commenter (déjà fait)
+- contribuer à une cagnotte
+- ajouter au panier
 
-```text
-1. PublicRoute + AuthGateProvider + AuthGateModal + useAuthGate (foundation)
-2. App.tsx : remplacer ProtectedRoute → PublicRoute sur les routes "ouvertes"
-3. Adaptation des composants header (ProfileDropdown, Notif, Cart, BottomNav)
-4. Câblage requireAuth sur :
-   a. Réactions / commentaires (AlbumItemReactions, message wall, posts)
-   b. Cagnottes : contribuer, créer, suivre
-   c. Album : upload, favoris, partage
-   d. Boutique : ajout panier, suivre, favoris
-   e. Profils : follow, demande d'ami
-5. Rejouage post-auth (sessionStorage + onAuthStateChange)
-6. Audit RLS / hooks pour tolérance user=null
-7. QA : parcours visiteur sur home, /birthday/:slug, /shop, /boutique/:id
-```
+Pour chaque bouton "action personnelle" sur une page publique encore branché directement sur `navigate('/auth')`, le remplacer par `requireAuth(intent, action, { returnTo })`.
+
+### 4. Côté "Connexion" / "S'inscrire" depuis le header public
+
+Quand l'utilisateur clique manuellement sur "Connexion" ou "S'inscrire" depuis le header d'une page publique (ex. page anniversaire visitée), passer `returnTo=<url courante>` dans l'URL `/auth?...`. Cela couvre le cas où l'utilisateur ne clique pas sur une action mais veut juste se connecter avant d'agir.
 
 ## Détails techniques
 
-**Pas de migration DB nécessaire** dans un premier temps : la majorité des données affichées en lecture passent déjà par des vues publiques ou des RLS compatibles anon. Un audit ciblé sera fait à l'étape 6.
-
-**Compatibilité onboarding** : après inscription via la modale, on n'envoie PAS dans le flow onboarding 6 étapes — on rejoue l'intent et on reste sur la page. L'onboarding sera proposé via la prochaine visite de `/home` ou un toast non bloquant ("Termine ton profil pour débloquer X"). Cela contredit la règle actuelle "onboarding 6 étapes forcé" — à confirmer par le user (voir question ouverte ci-dessous).
-
-**Storage clé** : `sessionStorage.pending_intent = { type, payload, returnUrl }`
-
-**Memory à mettre à jour** : créer `mem://auth/visitor-access-and-auth-gate` documentant ce contrat.
-
-## Question ouverte à trancher après approbation
-L'onboarding forcé 6 étapes (mem `onboarding-experience-and-logic`) doit-il rester obligatoire après inscription via la modale, ou être adouci (proposé mais skippable) pour préserver l'intention initiale du visiteur ? Ma reco : **skippable** dans ce contexte, sinon le rejouage d'intent est neutralisé par 6 écrans.
+```text
+[Page publique]
+  └─ action visiteur (upload/écrire/…) 
+       └─ AuthGate ouvre modale
+             └─ navigate('/auth?tab=signup&returnTo=<currentUrl>&intent=…')
+                   └─ pose sessionStorage.jdv_pending_intent + localStorage.returnUrl
+                         └─ après OTP/email/Google → resolvePostAuthPath()
+                               └─ navigate(<currentUrl>)
+                                     └─ user revient sur la page, peut re-cliquer
+```
 
 ## Hors périmètre
-- Refonte de la landing
-- Changements de design des modales / pages existantes
-- Modifications backend autres que d'éventuels ajustements RLS minimes détectés à l'étape 6
+
+- Pas de re-déclenchement automatique de l'action (choix produit déjà acté : "rejouer l'action et rester sur la page").
+- Pas de modification de la logique d'onboarding obligatoire (`useOnboarding`) : elle reste déclenchée en overlay sur la page de destination.
+- Pas de changement des routes ni du modèle de données.
+
+## Fichiers impactés (estimation)
+
+- `src/utils/authRedirect.ts` — ajout `resolvePostAuthPath`
+- `src/pages/Auth.tsx` — 3 points de redirection unifiés
+- 1–3 composants d'action visiteur si certains shuntent encore `AuthGate` (à confirmer après audit ciblé)
+- éventuellement header public (`Landing`, `BirthdayPage`) pour propager `returnTo` sur "Connexion" / "S'inscrire"
