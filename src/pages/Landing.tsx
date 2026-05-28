@@ -14,6 +14,15 @@ import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { LandingVideoPlayer } from "@/components/LandingVideoPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Cake, Compass } from "lucide-react";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -23,6 +32,7 @@ const Landing = () => {
   const [contactOpen, setContactOpen] = useState(false);
   const [landingVideoUrl, setLandingVideoUrl] = useState<string | null>(null);
   const [birthdayCount, setBirthdayCount] = useState<number | null>(null);
+  const [createBirthdayOpen, setCreateBirthdayOpen] = useState(false);
 
   // Fetch birthday count for social proof
   useEffect(() => {
@@ -131,7 +141,7 @@ const Landing = () => {
                 Inscrivez votre date et recevez enfin les cadeaux que vous aimez
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" onClick={() => navigate("/home")} className="text-lg px-8">
+                <Button size="lg" onClick={() => setCreateBirthdayOpen(true)} className="text-lg px-8">
                   Créer mon anniversaire
                   <Calendar className="ml-2 h-5 w-5" />
                 </Button>
