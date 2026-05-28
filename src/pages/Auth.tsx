@@ -21,7 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
 import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
-import { handleSmartRedirect } from '@/utils/authRedirect';
+import { resolvePostAuthPath } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
 import { type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
@@ -307,34 +307,7 @@ const Auth = () => {
       if (adminRef) {
         processAdminAutoAssign(user.id).catch(console.error);
       }
-
-      const returnUrl = localStorage.getItem('returnUrl');
-      const redirectParam = searchParams.get('redirect');
-
-      if (returnUrl) {
-        localStorage.removeItem('returnUrl');
-        navigate(returnUrl);
-      } else if (redirectParam) {
-        // Transmit occasion & beneficiaryName params for create-fund deep links
-        const occasion = searchParams.get('occasion');
-        const beneficiaryName = searchParams.get('beneficiaryName');
-        if (redirectParam === 'create-fund' && (occasion || beneficiaryName)) {
-          const params = new URLSearchParams();
-          if (occasion) params.set('occasion', occasion);
-          if (beneficiaryName) params.set('beneficiaryName', beneficiaryName);
-          navigate(`/${redirectParam}?${params.toString()}`);
-        } else {
-          navigate(redirectParam);
-        }
-      } else {
-        const lastRoute = localStorage.getItem('last_visited_route');
-        if (lastRoute && lastRoute !== '/' && lastRoute !== '/auth') {
-          localStorage.removeItem('last_visited_route');
-          navigate(lastRoute);
-        } else {
-          handleSmartRedirect(user, navigate);
-        }
-      }
+      resolvePostAuthPath(user).then((path) => navigate(path));
     }
   }, [user, navigate, searchParams]);
 
@@ -826,17 +799,11 @@ const Auth = () => {
         // Auto-assign to admin if admin_ref present
         if (result.user_id) processAdminAutoAssign(result.user_id).catch(console.error);
         if (result.is_new_user) acceptInvitationIfNeeded().catch(console.error);
-        // Priorité au param ?redirect= (invité venant d'un lien partagé)
-        const redirectParam = searchParams.get('redirect');
-        if (redirectParam) {
-          if (result.is_new_user) {
-            const sep = redirectParam.includes('?') ? '&' : '?';
-            navigate(`${redirectParam}${sep}onboarding=true`);
-          } else {
-            navigate(redirectParam);
-          }
-        } else {
-          navigate(result.is_new_user ? '/dashboard?onboarding=true' : '/dashboard');
+        // Honor returnTo / pending intent / returnUrl / redirect / last-visited
+        {
+          const fakeUser = { id: result.user_id } as any;
+          const path = await resolvePostAuthPath(fakeUser, { isNewUser: !!result.is_new_user });
+          navigate(path);
         }
         return;
       }
@@ -1237,13 +1204,8 @@ const Auth = () => {
           });
           processAdminAutoAssign(authData.user.id).catch(console.error);
           acceptInvitationIfNeeded().catch(console.error);
-          const redirectParam = searchParams.get('redirect');
-          if (redirectParam) {
-            const sep = redirectParam.includes('?') ? '&' : '?';
-            navigate(`${redirectParam}${sep}onboarding=true`);
-          } else {
-            navigate('/dashboard?onboarding=true');
-          }
+          const path = await resolvePostAuthPath(authData.user, { isNewUser: true });
+          navigate(path);
         }
       }
     } catch (error: any) {

@@ -47,30 +47,89 @@ export const getRedirectPath = async (user: User): Promise<string> => {
 };
 
 export const handleSmartRedirect = async (user: User, navigate: (path: string) => void) => {
-  // 1) Honor a pending intent saved by the AuthGate modal (highest priority)
+  const path = await resolvePostAuthPath(user);
+  navigate(path);
+};
+
+const isSafePath = (p: string | null | undefined): p is string =>
+  !!p && p.startsWith('/') && p !== '/auth' && !p.startsWith('/auth?') && !p.startsWith('/auth/');
+
+/**
+ * Resolve the post-auth destination, honoring (in priority order):
+ * 1. `?returnTo=` URL param
+ * 2. `jdv_pending_intent.returnTo` (sessionStorage, set by AuthGate)
+ * 3. `returnUrl` (localStorage, set by ProtectedRoute / AuthGate)
+ * 4. `?redirect=` URL param (legacy compat, with create-fund passthrough)
+ * 5. `last_visited_route` (localStorage)
+ * 6. Smart fallback (business account vs `/dashboard`)
+ *
+ * When `isNewUser` is true and the resolved path is the dashboard fallback,
+ * appends `?onboarding=true` so the onboarding overlay triggers. For any
+ * other resolved path, we DO NOT force onboarding into the URL — the
+ * `useOnboarding` hook will still raise the modal as an overlay so the
+ * user keeps their original context.
+ */
+export const resolvePostAuthPath = async (
+  user: User,
+  opts?: { isNewUser?: boolean }
+): Promise<string> => {
+  // 1) ?returnTo= URL param
+  try {
+    const url = new URL(window.location.href);
+    const returnTo = url.searchParams.get('returnTo');
+    if (isSafePath(returnTo)) return returnTo;
+  } catch {}
+
+  // 2) AuthGate pending intent
   try {
     const raw = sessionStorage.getItem('jdv_pending_intent');
     if (raw) {
       const parsed = JSON.parse(raw) as { returnTo?: string };
       sessionStorage.removeItem('jdv_pending_intent');
-      if (parsed?.returnTo && parsed.returnTo !== '/auth') {
-        navigate(parsed.returnTo);
-        return;
-      }
+      if (isSafePath(parsed?.returnTo)) return parsed!.returnTo!;
     }
   } catch {}
 
-  // 2) Honor a returnTo query param if present in the current URL
+  // 3) localStorage returnUrl
+  try {
+    const returnUrl = localStorage.getItem('returnUrl');
+    if (isSafePath(returnUrl)) {
+      localStorage.removeItem('returnUrl');
+      return returnUrl;
+    }
+  } catch {}
+
+  // 4) ?redirect= legacy param
   try {
     const url = new URL(window.location.href);
-    const returnTo = url.searchParams.get('returnTo');
-    if (returnTo && returnTo !== '/auth' && returnTo.startsWith('/')) {
-      navigate(returnTo);
-      return;
+    const redirectParam = url.searchParams.get('redirect');
+    if (redirectParam) {
+      const occasion = url.searchParams.get('occasion');
+      const beneficiaryName = url.searchParams.get('beneficiaryName');
+      if (redirectParam === 'create-fund' && (occasion || beneficiaryName)) {
+        const params = new URLSearchParams();
+        if (occasion) params.set('occasion', occasion);
+        if (beneficiaryName) params.set('beneficiaryName', beneficiaryName);
+        return `/create-fund?${params.toString()}`;
+      }
+      const safe = redirectParam.startsWith('/') ? redirectParam : `/${redirectParam}`;
+      if (isSafePath(safe)) return safe;
     }
   } catch {}
 
-  // 3) Fallback to existing smart routing (business vs dashboard)
+  // 5) last_visited_route
+  try {
+    const last = localStorage.getItem('last_visited_route');
+    if (isSafePath(last) && last !== '/') {
+      localStorage.removeItem('last_visited_route');
+      return last;
+    }
+  } catch {}
+
+  // 6) Smart fallback (business vs dashboard)
   const path = await getRedirectPath(user);
-  navigate(path);
+  if (opts?.isNewUser && path === '/dashboard') {
+    return '/dashboard?onboarding=true';
+  }
+  return path;
 };
