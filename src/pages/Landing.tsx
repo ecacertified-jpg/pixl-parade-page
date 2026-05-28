@@ -14,6 +14,15 @@ import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { LandingVideoPlayer } from "@/components/LandingVideoPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Cake, Compass } from "lucide-react";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -23,6 +32,7 @@ const Landing = () => {
   const [contactOpen, setContactOpen] = useState(false);
   const [landingVideoUrl, setLandingVideoUrl] = useState<string | null>(null);
   const [birthdayCount, setBirthdayCount] = useState<number | null>(null);
+  const [createBirthdayOpen, setCreateBirthdayOpen] = useState(false);
 
   // Fetch birthday count for social proof
   useEffect(() => {
@@ -86,6 +96,45 @@ const Landing = () => {
     <SEOHead {...SEO_CONFIGS.landing} />
     <SurveyModal externalOpen={surveyOpen} onExternalOpenChange={setSurveyOpen} />
     <ContactModal open={contactOpen} onOpenChange={setContactOpen} />
+    <Dialog open={createBirthdayOpen} onOpenChange={setCreateBirthdayOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="mx-auto h-12 w-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/30 flex items-center justify-center mb-2">
+            <Cake className="h-6 w-6 text-primary" />
+          </div>
+          <DialogTitle className="text-center font-poppins">
+            Créer ma page d'anniversaire
+          </DialogTitle>
+          <DialogDescription className="text-center">
+            Inscris-toi pour lancer ta page, ou explore d'abord la plateforme.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex flex-col sm:flex-col gap-2 mt-2">
+          <Button
+            className="w-full bg-gradient-to-r from-primary to-accent"
+            onClick={() => {
+              setCreateBirthdayOpen(false);
+              try { localStorage.setItem("returnUrl", "/home?onboarding=true"); } catch {}
+              navigate("/auth?tab=signup&intent=create_birthday_page&returnTo=%2Fhome%3Fonboarding%3Dtrue");
+            }}
+          >
+            <Cake className="h-4 w-4 mr-2" />
+            Créer maintenant
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setCreateBirthdayOpen(false);
+              navigate("/home");
+            }}
+          >
+            <Compass className="h-4 w-4 mr-2" />
+            Découvrir d'abord
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
@@ -131,7 +180,7 @@ const Landing = () => {
                 Inscrivez votre date et recevez enfin les cadeaux que vous aimez
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" onClick={() => navigate("/home")} className="text-lg px-8">
+                <Button size="lg" onClick={() => setCreateBirthdayOpen(true)} className="text-lg px-8">
                   Créer mon anniversaire
                   <Calendar className="ml-2 h-5 w-5" />
                 </Button>
