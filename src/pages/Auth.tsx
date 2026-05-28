@@ -21,7 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
 import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
-import { handleSmartRedirect } from '@/utils/authRedirect';
+import { handleSmartRedirect, resolvePostAuthPath } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
 import { type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
@@ -307,34 +307,7 @@ const Auth = () => {
       if (adminRef) {
         processAdminAutoAssign(user.id).catch(console.error);
       }
-
-      const returnUrl = localStorage.getItem('returnUrl');
-      const redirectParam = searchParams.get('redirect');
-
-      if (returnUrl) {
-        localStorage.removeItem('returnUrl');
-        navigate(returnUrl);
-      } else if (redirectParam) {
-        // Transmit occasion & beneficiaryName params for create-fund deep links
-        const occasion = searchParams.get('occasion');
-        const beneficiaryName = searchParams.get('beneficiaryName');
-        if (redirectParam === 'create-fund' && (occasion || beneficiaryName)) {
-          const params = new URLSearchParams();
-          if (occasion) params.set('occasion', occasion);
-          if (beneficiaryName) params.set('beneficiaryName', beneficiaryName);
-          navigate(`/${redirectParam}?${params.toString()}`);
-        } else {
-          navigate(redirectParam);
-        }
-      } else {
-        const lastRoute = localStorage.getItem('last_visited_route');
-        if (lastRoute && lastRoute !== '/' && lastRoute !== '/auth') {
-          localStorage.removeItem('last_visited_route');
-          navigate(lastRoute);
-        } else {
-          handleSmartRedirect(user, navigate);
-        }
-      }
+      resolvePostAuthPath(user).then((path) => navigate(path));
     }
   }, [user, navigate, searchParams]);
 
