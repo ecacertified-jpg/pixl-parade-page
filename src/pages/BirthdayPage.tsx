@@ -77,6 +77,7 @@ const BirthdayPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const fromFeed = (location.state as any)?.fromFeed === true;
+  const authReturnTo = `${location.pathname}${location.search}`;
 
   const [page, setPage] = useState<BirthdayPageData | null>(null);
   const [messages, setMessages] = useState<WishMessage[]>([]);
@@ -332,7 +333,7 @@ const BirthdayPage = () => {
 
   const _handleSendMessage = async () => {
     if (!user) {
-      navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
+      navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=post_message&invited=true`);
       return;
     }
     if (!newMessage.trim() || !page) return;
@@ -558,7 +559,7 @@ const BirthdayPage = () => {
                   className="w-full"
                   onClick={() => {
                     if (!user) {
-                      navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
+                      navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=create_fund&invited=true`);
                       return;
                     }
                     setShowWishlistPicker(true);
