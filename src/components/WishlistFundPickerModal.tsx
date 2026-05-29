@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Gift, Heart, Loader2, ShoppingBag } from 'lucide-react';
 import {
@@ -51,6 +51,7 @@ export function WishlistFundPickerModal({
   beneficiaryAvatarUrl,
 }: WishlistFundPickerModalProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { favorites: ownFavorites, loading: ownLoading } = useFavorites();
   const { data: ownExternalFavorites = [], isLoading: ownExternalLoading } = useExternalFavorites();
   const { addItem } = useCart();
@@ -138,7 +139,7 @@ export function WishlistFundPickerModal({
     // do NOT route through the single-buyer checkout.
     if (isExternalBeneficiary && beneficiaryUserId) {
       if (!user) {
-        toast.error('Connectez-vous pour créer une cagnotte');
+        navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}&intent=create_fund`);
         return;
       }
       setCreatingFundFor(fav.id);
