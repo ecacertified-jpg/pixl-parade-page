@@ -195,7 +195,8 @@ export function BirthdayAlbumFlickr({
 
   const toggleFavorite = async (item: AlbumItem) => {
     if (!user) {
-      navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
+      const returnTo = `${location.pathname}${location.search}`;
+      navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(returnTo)}&intent=favorite&invited=true`);
       return;
     }
     const isFav = myFavs.has(item.id);
