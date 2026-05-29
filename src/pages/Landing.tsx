@@ -33,6 +33,8 @@ const Landing = () => {
   const [landingVideoUrl, setLandingVideoUrl] = useState<string | null>(null);
   const [birthdayCount, setBirthdayCount] = useState<number | null>(null);
   const [createBirthdayOpen, setCreateBirthdayOpen] = useState(false);
+  const authReturnTo = encodeURIComponent('/home');
+  const birthdaySignupReturnTo = encodeURIComponent('/home?onboarding=true');
 
   // Fetch birthday count for social proof
   useEffect(() => {
@@ -115,7 +117,7 @@ const Landing = () => {
             onClick={() => {
               setCreateBirthdayOpen(false);
               try { localStorage.setItem("returnUrl", "/home?onboarding=true"); } catch {}
-              navigate("/auth?tab=signup&intent=create_birthday_page&returnTo=%2Fhome%3Fonboarding%3Dtrue");
+              navigate(`/auth?tab=signup&intent=create_birthday_page&returnTo=${birthdaySignupReturnTo}`);
             }}
           >
             <Cake className="h-4 w-4 mr-2" />
@@ -145,7 +147,7 @@ const Landing = () => {
             </div>
             <div className="flex items-center gap-2">
               <CountrySelector variant="compact" />
-              <Button variant="ghost" onClick={() => navigate("/auth?tab=signin")}>
+              <Button variant="ghost" onClick={() => navigate(`/auth?tab=signin&returnTo=${authReturnTo}`)}>
                 Connexion
               </Button>
               <Button variant="default" onClick={() => navigate("/home")}>
@@ -309,7 +311,7 @@ const Landing = () => {
               Rejoignez des centaines d'utilisateurs qui partagent déjà des moments de bonheur sur JOIE DE VIVRE
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="text-lg px-8">
+              <Button size="lg" onClick={() => navigate(`/auth?tab=signup&returnTo=${authReturnTo}`)} className="text-lg px-8">
                 Créer mon compte
                 <Heart className="ml-2 h-5 w-5" />
               </Button>
@@ -337,7 +339,7 @@ const Landing = () => {
             <div>
               <h3 className="font-semibold text-foreground mb-3">Plateforme</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="/auth?tab=signup&discovery=true" className="hover:text-foreground transition-colors">Célébrer</a></li>
+                <li><a href={`/auth?tab=signup&discovery=true&returnTo=${authReturnTo}`} className="hover:text-foreground transition-colors">Célébrer</a></li>
                 <li><a href="/business-auth" className="hover:text-foreground transition-colors">Espace Vendeur</a></li>
               </ul>
             </div>

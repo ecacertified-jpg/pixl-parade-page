@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +34,7 @@ type TabType = "all" | "image" | "video" | "memory";
 
 export function EventAlbum({ eventPageId, slug, title, user, items, onItemAdded }: EventAlbumProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,7 +55,8 @@ export function EventAlbum({ eventPageId, slug, title, user, items, onItemAdded 
 
   const requireAuth = () => {
     if (!user) {
-      navigate(`/auth?redirect=${encodeURIComponent(`/event/${slug}`)}&invited=true`);
+      const returnTo = `${location.pathname}${location.search}`;
+      navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(returnTo)}&intent=upload_media&invited=true`);
       return true;
     }
     return false;

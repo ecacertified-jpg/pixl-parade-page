@@ -41,6 +41,7 @@ const EventPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const fromFeed = (location.state as any)?.fromFeed === true;
+  const authReturnTo = `${location.pathname}${location.search}`;
 
   const [page, setPage] = useState<EventPageData | null>(null);
   const [messages, setMessages] = useState<WishMessage[]>([]);
@@ -113,7 +114,7 @@ const EventPage = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!user) { navigate(`/auth?redirect=${encodeURIComponent(`/event/${slug}`)}&invited=true`); return; }
+    if (!user) { navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=post_message&invited=true`); return; }
     if (!newMessage.trim() || !page) return;
     setSendingMessage(true);
     try {
@@ -188,7 +189,7 @@ const EventPage = () => {
                   <span className="font-semibold text-primary">{fund.current_amount.toLocaleString('fr-FR')} XOF</span>
                   <span className="text-muted-foreground">/ {fund.target_amount.toLocaleString('fr-FR')} XOF</span>
                 </div>
-                <Button className="w-full" onClick={() => { if (!user) { navigate(`/auth?redirect=/event/${slug}&invited=true`); return; } navigate(`/f/${fund.id}`); }}>
+                <Button className="w-full" onClick={() => { if (!user) { navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=contribute_fund&invited=true`); return; } navigate(`/f/${fund.id}`); }}>
                   <Gift className="h-4 w-4 mr-2" /> Participer au cadeau
                 </Button>
               </>
@@ -196,7 +197,7 @@ const EventPage = () => {
               <div className="text-center py-4 space-y-3">
                 <div className="text-4xl">🎁</div>
                 <p className="text-sm text-muted-foreground font-nunito">Réunissez-vous pour offrir un cadeau collectif !</p>
-                <Button className="w-full" onClick={() => { if (!user) { navigate(`/auth?redirect=/event/${slug}&invited=true`); return; } navigate('/gifts'); }}>
+                <Button className="w-full" onClick={() => { if (!user) { navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=create_fund&invited=true`); return; } navigate('/gifts'); }}>
                   <Gift className="h-4 w-4 mr-2" /> Créer une cagnotte
                 </Button>
               </div>
@@ -221,7 +222,7 @@ const EventPage = () => {
                   </Button>
                 </div>
               ) : (
-                <Button variant="outline" className="w-full border-dashed" onClick={() => navigate(`/auth?redirect=/event/${slug}&invited=true`)}>
+                <Button variant="outline" className="w-full border-dashed" onClick={() => navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=post_message&invited=true`)}>
                   <MessageCircle className="h-4 w-4 mr-2" /> Créer un compte pour écrire un message
                 </Button>
               )}

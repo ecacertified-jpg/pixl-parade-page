@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,6 +97,7 @@ export function BirthdayAlbumFlickr({
   socialSharePhotoId = null, onSocialSharePhotoChanged,
 }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -194,7 +195,8 @@ export function BirthdayAlbumFlickr({
 
   const toggleFavorite = async (item: AlbumItem) => {
     if (!user) {
-      navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
+      const returnTo = `${location.pathname}${location.search}`;
+      navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(returnTo)}&intent=favorite&invited=true`);
       return;
     }
     const isFav = myFavs.has(item.id);
@@ -285,7 +287,8 @@ export function BirthdayAlbumFlickr({
 
   const requireAuth = () => {
     if (!user) {
-      navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
+      const returnTo = `${location.pathname}${location.search}`;
+      navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(returnTo)}&intent=upload_media&invited=true`);
       return true;
     }
     return false;
