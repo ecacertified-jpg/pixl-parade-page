@@ -287,7 +287,8 @@ export default function AdminCoverVideos() {
                       <p className="font-medium text-sm truncate">{r.title}</p>
                       <p className="text-xs text-muted-foreground">
                         {SCHEDULE_KIND_LABELS[r.schedule_kind as CoverVideoScheduleKind]}
-                        {r.calendar_month ? ` · ${r.calendar_day}/${r.calendar_month}` : ""}
+                        {r.event_label ? ` · ${r.event_label}` : ""}
+                        {r.calendar_month ? ` (${r.calendar_day}/${r.calendar_month})` : ""}
                       </p>
                     </div>
                     <button
