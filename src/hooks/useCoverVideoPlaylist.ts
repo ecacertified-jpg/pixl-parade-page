@@ -30,7 +30,7 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cover_video_library")
-        .select("id, title, video_url, poster_url, schedule_kind, calendar_month, calendar_day, priority")
+        .select("id, title, video_url, poster_url, schedule_kind, calendar_month, calendar_day, priority, event_key, event_label")
         .eq("is_active", true)
         .order("priority", { ascending: true });
       if (error) throw error;
@@ -43,6 +43,8 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
         calendar_month: r.calendar_month,
         calendar_day: r.calendar_day,
         priority: r.priority,
+        event_key: (r as any).event_key ?? null,
+        event_label: (r as any).event_label ?? null,
         source: "library",
       }));
     },
@@ -55,7 +57,7 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("birthday_page_cover_videos")
-        .select("id, video_url, poster_url, schedule_kind, display_order")
+        .select("id, video_url, poster_url, schedule_kind, display_order, calendar_month, calendar_day, event_key, event_label")
         .eq("birthday_page_id", birthdayPageId!)
         .eq("is_active", true)
         .order("display_order", { ascending: true });
@@ -66,6 +68,10 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
         poster_url: r.poster_url,
         schedule_kind: r.schedule_kind as CoverVideoItem["schedule_kind"],
         display_order: r.display_order,
+        calendar_month: (r as any).calendar_month ?? null,
+        calendar_day: (r as any).calendar_day ?? null,
+        event_key: (r as any).event_key ?? null,
+        event_label: (r as any).event_label ?? null,
         source: "user",
       }));
     },
