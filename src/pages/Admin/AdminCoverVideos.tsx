@@ -199,13 +199,54 @@ export default function AdminCoverVideos() {
             </div>
             {kind === "calendar_event" && (
               <>
+                <div className="md:col-span-2">
+                  <Label>Nom de la fête</Label>
+                  <Select
+                    value={eventKey}
+                    onValueChange={(v) => {
+                      setEventKey(v);
+                      const p = findEventPreset(v);
+                      if (p?.month && p?.day) {
+                        setMonth(String(p.month));
+                        setDay(String(p.day));
+                      } else {
+                        setMonth("");
+                        setDay("");
+                      }
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Choisis une fête…" /></SelectTrigger>
+                    <SelectContent>
+                      {CALENDAR_EVENT_PRESETS.map((p) => (
+                        <SelectItem key={p.key} value={p.key}>
+                          {p.label}
+                          {p.month && p.day ? ` · ${p.day}/${p.month}` : " (date à préciser)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <Label>Mois (1-12)</Label>
-                  <Input type="number" min={1} max={12} value={month} onChange={(e) => setMonth(e.target.value)} />
+                  <Input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={month}
+                    onChange={(e) => setMonth(e.target.value)}
+                    disabled={!!findEventPreset(eventKey)?.month}
+                  />
                 </div>
                 <div>
                   <Label>Jour (1-31)</Label>
-                  <Input type="number" min={1} max={31} value={day} onChange={(e) => setDay(e.target.value)} />
+                  <Input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={day}
+                    onChange={(e) => setDay(e.target.value)}
+                    disabled={!!findEventPreset(eventKey)?.day}
+                  />
                 </div>
               </>
             )}
