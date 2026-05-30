@@ -1,81 +1,97 @@
-# Préserver l'action utilisateur après auth
+# Plan — Personnalisation des vidéos de couverture
 
-## Constat
+## 1. Priorité anniversaire vs fête calendaire
 
-Non, ce n'est pas le comportement attendu. La logique de retour existe (`AuthGateContext` enregistre `jdv_pending_intent` + `localStorage.returnUrl`, `ProtectedRoute` enregistre `returnUrl`, `handleSmartRedirect` les honore), **mais plusieurs chemins de `src/pages/Auth.tsx` court-circuitent cette logique et redirigent en dur vers `/dashboard`** :
+**`src/utils/coverVideoSchedule.ts`** — Dans `buildPlaylist`, si `isBirthdayToday(birthday)` est vrai, on **ignore** les vidéos `calendar_event` du jour (au lieu de les ajouter). L'anniversaire prend toute la place ; les vidéos de fête calendaire reviennent les autres jours.
 
-- `Auth.tsx:839` — vérification OTP réussie (signin & signup) → `navigate('/dashboard?onboarding=true' | '/dashboard')`
-- `Auth.tsx:1245` — inscription email réussie → `navigate('/dashboard?onboarding=true')`
-- Ces deux chemins ne lisent que `searchParams.get('redirect')` et ignorent :
-  - le param URL `returnTo` (utilisé par `AuthGateContext`)
-  - le `sessionStorage.jdv_pending_intent`
-  - le `localStorage.returnUrl`
+## 2. Compression auto > 25 Mo & trim > 30 s
 
-Résultat : un visiteur qui clique "Écrire un message" / "Uploader une photo" sur une page d'anniversaire est envoyé sur la modale d'auth → après OTP/email, il atterrit sur `/dashboard` et perd la page d'origine.
+Nouvelle fonction `prepareCoverVideoForUpload(file)` dans `src/utils/videoCompressor.ts` (ou utilitaire dédié `prepareCoverVideo.ts`) :
 
-## Proposition
+1. Lit la durée via `getVideoMetadata`.
+2. Si `duration > 30s` → appelle `trimVideo(file, 0, 30)` (FFmpeg.wasm déjà présent).
+3. Si `taille > 25 Mo` après trim → appelle le compresseur existant (`videoCompressor.ts`) en preset agressif (CRF ~30, 720p max, audio 96k) jusqu'à passer sous 25 Mo (1 passe suffit).
+4. Retourne le `File` final + métriques (taille initiale/finale, durée).
 
-Unifier **un seul utilitaire de redirection post-auth** et l'appeler depuis tous les points de succès d'auth. Conformément au choix produit déjà acté ("rejouer l'action et rester sur la page"), on ramène l'utilisateur sur l'URL d'origine ; il n'a qu'à recliquer sur le bouton (la modale d'auth ne ressurgira plus puisqu'il est connecté).
+**`CoverVideosManagerSheet.tsx`** — Remplace les `toast.error("trop lourd/long")` par cet appel avec une barre de progression (toast loader). Plafond dur conservé (par ex 200 Mo source) pour éviter les abus.
 
-### 1. Étendre `src/utils/authRedirect.ts`
+## 3. Tracking « peu visionnée / pas vue »
 
-Ajouter `resolvePostAuthPath(user, searchParams)` qui résout dans cet ordre :
+Le propriétaire de la page doit savoir quelles vidéos il n'a presque pas regardées. Tracking côté client (page-owner uniquement) :
 
-1. `searchParams.get('returnTo')` (si commence par `/` et ≠ `/auth`)
-2. `sessionStorage.jdv_pending_intent.returnTo` (puis purge)
-3. `localStorage.returnUrl` (puis purge)
-4. `searchParams.get('redirect')` (compat existante, y compris cas `create-fund` avec `occasion` / `beneficiaryName`)
-5. `localStorage.last_visited_route` si ≠ `/`, `/auth`
-6. `getRedirectPath(user)` (business vs `/dashboard`)
+- **Nouvelle table** `birthday_page_cover_video_views` :
+  - `id`, `video_id` (FK `birthday_page_cover_videos`), `owner_id`, `view_count int default 0`, `last_viewed_at`, `created_at`. Unique `(video_id, owner_id)`.
+  - GRANT + RLS : seul `owner_id = auth.uid()` peut lire/écrire ses lignes.
+- **`CoverVideoCarousel`** — quand l'utilisateur courant est le propriétaire de la page (nouveau prop `isOwner: boolean` fourni par `BirthdayPage`), incrémenter la vue après ≥ 50 % de lecture via `supabase.rpc('increment_cover_video_view', { p_video_id })` (fonction `security definer` qui upsert + +1).
+- **`CoverVideosManagerSheet.tsx`** — joindre les compteurs à la liste des vidéos. Pour chaque vidéo, afficher un badge :
+  - `"Jamais vue"` si `view_count = 0`,
+  - `"Peu vue"` si `view_count ≤ 3`.
+  - Trier les vidéos d'un même créneau pour faire remonter en premier les non/peu vues.
+- Ajouter un onglet/section en haut du sheet « À découvrir » qui liste agrégé toutes les vidéos `view_count ≤ 3` (perso + bibliothèque admin pertinente pour cette page), avec mini-player inline pour cliquer-lire.
 
-Pour les nouveaux utilisateurs (`isNewUser`), si le path résolu n'a pas déjà `onboarding=true` et ne vise pas `/dashboard`, **ne pas forcer** l'onboarding : l'utilisateur a une intention concrète, on l'y ramène. L'onboarding obligatoire reste déclenché par `useOnboarding` une fois sur la page (overlay), ce qui préserve le parcours obligatoire sans perdre le contexte.
+## 4. Fêtes calendaires : champ « nom » + « date »
 
-### 2. Brancher partout dans `src/pages/Auth.tsx`
+**`src/data/calendarEvents.ts`** (nouveau) — Catalogue partagé :
 
-Remplacer les `navigate('/dashboard…')` en dur des chemins suivants par `resolvePostAuthPath` :
+```ts
+export interface CalendarEventPreset {
+  key: string;          // "saint_valentin"
+  label: string;        // "Saint Valentin"
+  month?: number;       // 2
+  day?: number;         // 14  (null pour fêtes mobiles → user saisit)
+  movable?: boolean;    // true pour Pâques, Fête des Mères…
+}
+```
 
-- ligne ~839 (vérif OTP SMS — signin/signup)
-- ligne ~1245 (signup email)
-- bloc `useEffect` ligne ~302 (déjà partiellement correct, à harmoniser pour utiliser la même fonction et lire aussi `returnTo` URL param)
+Liste : Saint Valentin (14/02), Pâques (mobile), Noël (25/12), Nouvel An (1/1), Fête des Mères (mobile), Fête des Pères (mobile), Journée Mondiale des Femmes (8/3), Toussaint (1/11), Aïd (mobile), Tabaski (mobile), Ramadan (mobile)…
 
-### 3. Côté composants d'action (visiteur)
+**DB migration** — ajouter `event_key text` et `event_label text` sur :
+- `public.cover_video_library`
+- `public.birthday_page_cover_videos`
 
-Vérifier que **toutes** les actions visiteur passent par `useAuthGate().requireAuth(...)` (qui pose déjà `returnTo = location.pathname + location.search`). Auditer rapidement :
+(rétrocompatibles, nullables ; `calendar_month/day` restent pour la résolution).
 
-- upload photo/vidéo album anniversaire
-- écrire un message / souhait
-- réagir / commenter (déjà fait)
-- contribuer à une cagnotte
-- ajouter au panier
+**`AdminCoverVideos.tsx`** — Quand `kind === "calendar_event"`, remplacer les inputs bruts par :
+- `Select` des `CalendarEventPreset` (+ option « Autre »).
+- Champ « Date » (Mois/Jour) **pré-rempli** depuis le preset si connu, **éditable** sinon. Pour fêtes mobiles, date obligatoire à saisir chaque année par admin.
+- Insère `event_key`, `event_label`, `calendar_month`, `calendar_day`.
 
-Pour chaque bouton "action personnelle" sur une page publique encore branché directement sur `navigate('/auth')`, le remplacer par `requireAuth(intent, action, { returnTo })`.
+**`CoverVideosManagerSheet.tsx`** — Pour la ligne « Fête calendaire » du propriétaire, mêmes contrôles avant l'upload (un petit popover/inline form au clic sur « Uploader » du créneau fête).
 
-### 4. Côté "Connexion" / "S'inscrire" depuis le header public
-
-Quand l'utilisateur clique manuellement sur "Connexion" ou "S'inscrire" depuis le header d'une page publique (ex. page anniversaire visitée), passer `returnTo=<url courante>` dans l'URL `/auth?...`. Cela couvre le cas où l'utilisateur ne clique pas sur une action mais veut juste se connecter avant d'agir.
+**`coverVideoSchedule.ts`** — `isCalendarEventActive` inchangé (toujours basé sur month/day), mais l'UI affiche `event_label` au lieu du label générique « Fête calendaire ».
 
 ## Détails techniques
 
-```text
-[Page publique]
-  └─ action visiteur (upload/écrire/…) 
-       └─ AuthGate ouvre modale
-             └─ navigate('/auth?tab=signup&returnTo=<currentUrl>&intent=…')
-                   └─ pose sessionStorage.jdv_pending_intent + localStorage.returnUrl
-                         └─ après OTP/email/Google → resolvePostAuthPath()
-                               └─ navigate(<currentUrl>)
-                                     └─ user revient sur la page, peut re-cliquer
-```
+- **RPC compteur de vues** :
+  ```sql
+  CREATE FUNCTION public.increment_cover_video_view(p_video_id uuid)
+  RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+  BEGIN
+    INSERT INTO birthday_page_cover_video_views(video_id, owner_id, view_count, last_viewed_at)
+    VALUES (p_video_id, auth.uid(), 1, now())
+    ON CONFLICT (video_id, owner_id)
+    DO UPDATE SET view_count = birthday_page_cover_video_views.view_count + 1,
+                  last_viewed_at = now();
+  END $$;
+  ```
+- **`isOwner` dans le carousel** : `BirthdayPage` connaît déjà `user.id` et `birthday_pages.user_id`, on transmet le booléen.
+- Pas de changement aux edge functions ni à `birthday-wishes`.
+
+## Fichiers touchés
+
+- `supabase/migrations/<new>.sql` (vues table + grants + RLS + RPC + colonnes `event_key/label`)
+- `src/utils/coverVideoSchedule.ts` (priorité)
+- `src/utils/prepareCoverVideo.ts` (nouveau, trim+compress)
+- `src/utils/videoCompressor.ts` (préset agressif si pas déjà exposé)
+- `src/data/calendarEvents.ts` (nouveau)
+- `src/components/birthday/CoverVideosManagerSheet.tsx`
+- `src/components/birthday/CoverVideoCarousel.tsx`
+- `src/hooks/useCoverVideoPlaylist.ts` (passer `event_label`, jointure compteurs en mode owner)
+- `src/pages/Admin/AdminCoverVideos.tsx`
+- `src/pages/BirthdayPage.tsx` (transmettre `isOwner`)
 
 ## Hors périmètre
 
-- Pas de re-déclenchement automatique de l'action (choix produit déjà acté : "rejouer l'action et rester sur la page").
-- Pas de modification de la logique d'onboarding obligatoire (`useOnboarding`) : elle reste déclenchée en overlay sur la page de destination.
-- Pas de changement des routes ni du modèle de données.
-
-## Fichiers impactés (estimation)
-
-- `src/utils/authRedirect.ts` — ajout `resolvePostAuthPath`
-- `src/pages/Auth.tsx` — 3 points de redirection unifiés
-- 1–3 composants d'action visiteur si certains shuntent encore `AuthGate` (à confirmer après audit ciblé)
-- éventuellement header public (`Landing`, `BirthdayPage`) pour propager `returnTo` sur "Connexion" / "S'inscrire"
+- Pas de calcul automatique des dates de fêtes mobiles (Pâques, Aïd) — l'admin/le user saisit la date pour les fêtes sans date fixe.
+- Pas de notification « tu as une nouvelle vidéo à découvrir » — uniquement l'UI dans le sheet de gestion.
+*** End Patch
