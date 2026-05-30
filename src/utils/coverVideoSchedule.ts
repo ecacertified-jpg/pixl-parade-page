@@ -26,6 +26,8 @@ export interface CoverVideoItem {
   priority?: number | null;
   display_order?: number | null;
   title?: string | null;
+  event_key?: string | null;
+  event_label?: string | null;
   source: "user" | "library";
 }
 
@@ -128,11 +130,13 @@ export function buildPlaylist(
     result.push(...pickFor(currentBirthdayKind(now)));
     // Generic birthday_day videos still play as part of the celebration mix
     result.push(...pickFor("birthday_day"));
+  } else {
+    // Calendar event videos only play when it's NOT the user's birthday — the
+    // birthday celebration always takes priority on the day J.
+    result.push(
+      ...pickFor("calendar_event", (v) => isCalendarEventActive(v.calendar_month, v.calendar_day, now)),
+    );
   }
-
-  result.push(
-    ...pickFor("calendar_event", (v) => isCalendarEventActive(v.calendar_month, v.calendar_day, now)),
-  );
 
   result.push(...pickFor(currentGreetingKind(now)));
 

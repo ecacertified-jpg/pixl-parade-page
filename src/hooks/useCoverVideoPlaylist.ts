@@ -28,13 +28,13 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
     queryKey: ["cover-video-library"],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("cover_video_library")
-        .select("id, title, video_url, poster_url, schedule_kind, calendar_month, calendar_day, priority")
+        .select("id, title, video_url, poster_url, schedule_kind, calendar_month, calendar_day, priority, event_key, event_label")
         .eq("is_active", true)
         .order("priority", { ascending: true });
       if (error) throw error;
-      return (data ?? []).map<CoverVideoItem>((r) => ({
+      return (data ?? []).map((r: any): CoverVideoItem => ({
         id: r.id,
         title: r.title,
         video_url: r.video_url,
@@ -43,6 +43,8 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
         calendar_month: r.calendar_month,
         calendar_day: r.calendar_day,
         priority: r.priority,
+        event_key: r.event_key ?? null,
+        event_label: r.event_label ?? null,
         source: "library",
       }));
     },
@@ -53,19 +55,23 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
     enabled: !!birthdayPageId,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("birthday_page_cover_videos")
-        .select("id, video_url, poster_url, schedule_kind, display_order")
+        .select("id, video_url, poster_url, schedule_kind, display_order, calendar_month, calendar_day, event_key, event_label")
         .eq("birthday_page_id", birthdayPageId!)
         .eq("is_active", true)
         .order("display_order", { ascending: true });
       if (error) throw error;
-      return (data ?? []).map<CoverVideoItem>((r) => ({
+      return (data ?? []).map((r: any): CoverVideoItem => ({
         id: r.id,
         video_url: r.video_url,
         poster_url: r.poster_url,
         schedule_kind: r.schedule_kind as CoverVideoItem["schedule_kind"],
         display_order: r.display_order,
+        calendar_month: r.calendar_month ?? null,
+        calendar_day: r.calendar_day ?? null,
+        event_key: r.event_key ?? null,
+        event_label: r.event_label ?? null,
         source: "user",
       }));
     },

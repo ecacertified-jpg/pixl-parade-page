@@ -23,6 +23,7 @@ import {
 } from "@/utils/coverVideoSchedule";
 import { getVideoMetadata } from "@/utils/videoValidation";
 import { extractSingleThumbnail } from "@/utils/videoThumbnails";
+import { CALENDAR_EVENT_PRESETS, findEventPreset } from "@/data/calendarEvents";
 
 const KINDS: CoverVideoScheduleKind[] = [
   "greeting_morning",
@@ -46,19 +47,20 @@ export default function AdminCoverVideos() {
   const [kind, setKind] = useState<CoverVideoScheduleKind>("greeting_morning");
   const [month, setMonth] = useState<string>("");
   const [day, setDay] = useState<string>("");
+  const [eventKey, setEventKey] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin-cover-video-library"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("cover_video_library")
-        .select("id, title, schedule_kind, video_url, poster_url, calendar_month, calendar_day, is_active, priority, created_at")
+        .select("id, title, schedule_kind, video_url, poster_url, calendar_month, calendar_day, is_active, priority, created_at, event_key, event_label")
         .order("schedule_kind", { ascending: true })
         .order("priority", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as any[];
     },
   });
 
@@ -70,6 +72,25 @@ export default function AdminCoverVideos() {
     if (file.size > MAX_BYTES) {
       toast.error("Vidéo trop lourde (max 60 Mo)");
       return;
+    }
+    let evMonth: number | null = null;
+    let evDay: number | null = null;
+    let evKey: string | null = null;
+    let evLabel: string | null = null;
+    if (kind === "calendar_event") {
+      const preset = findEventPreset(eventKey);
+      if (!preset) {
+        toast.error("Choisis d'abord la fête");
+        return;
+      }
+      evMonth = preset.month ?? (month ? parseInt(month, 10) : null);
+      evDay = preset.day ?? (day ? parseInt(day, 10) : null);
+      if (!evMonth || !evDay) {
+        toast.error("Indique le mois et le jour de la fête");
+        return;
+      }
+      evKey = preset.key;
+      evLabel = preset.label;
     }
     setUploading(true);
     try {
@@ -97,13 +118,15 @@ export default function AdminCoverVideos() {
         /* optional */
       }
 
-      const { error: insErr } = await supabase.from("cover_video_library").insert({
+      const { error: insErr } = await (supabase as any).from("cover_video_library").insert({
         title: title.trim(),
         schedule_kind: kind,
         video_url,
         poster_url,
-        calendar_month: kind === "calendar_event" && month ? parseInt(month, 10) : null,
-        calendar_day: kind === "calendar_event" && day ? parseInt(day, 10) : null,
+        calendar_month: evMonth,
+        calendar_day: evDay,
+        event_key: evKey,
+        event_label: evLabel,
         is_active: true,
         created_by: user.id,
       });
@@ -114,6 +137,7 @@ export default function AdminCoverVideos() {
       setFile(null);
       setMonth("");
       setDay("");
+      setEventKey("");
       qc.invalidateQueries({ queryKey: ["admin-cover-video-library"] });
       qc.invalidateQueries({ queryKey: ["cover-video-library"] });
     } catch (e) {
@@ -175,13 +199,54 @@ export default function AdminCoverVideos() {
             </div>
             {kind === "calendar_event" && (
               <>
+                <div className="md:col-span-2">
+                  <Label>Nom de la fête</Label>
+                  <Select
+                    value={eventKey}
+                    onValueChange={(v) => {
+                      setEventKey(v);
+                      const p = findEventPreset(v);
+                      if (p?.month && p?.day) {
+                        setMonth(String(p.month));
+                        setDay(String(p.day));
+                      } else {
+                        setMonth("");
+                        setDay("");
+                      }
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Choisis une fête…" /></SelectTrigger>
+                    <SelectContent>
+                      {CALENDAR_EVENT_PRESETS.map((p) => (
+                        <SelectItem key={p.key} value={p.key}>
+                          {p.label}
+                          {p.month && p.day ? ` · ${p.day}/${p.month}` : " (date à préciser)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <Label>Mois (1-12)</Label>
-                  <Input type="number" min={1} max={12} value={month} onChange={(e) => setMonth(e.target.value)} />
+                  <Input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={month}
+                    onChange={(e) => setMonth(e.target.value)}
+                    disabled={!!findEventPreset(eventKey)?.month}
+                  />
                 </div>
                 <div>
                   <Label>Jour (1-31)</Label>
-                  <Input type="number" min={1} max={31} value={day} onChange={(e) => setDay(e.target.value)} />
+                  <Input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={day}
+                    onChange={(e) => setDay(e.target.value)}
+                    disabled={!!findEventPreset(eventKey)?.day}
+                  />
                 </div>
               </>
             )}
@@ -222,7 +287,8 @@ export default function AdminCoverVideos() {
                       <p className="font-medium text-sm truncate">{r.title}</p>
                       <p className="text-xs text-muted-foreground">
                         {SCHEDULE_KIND_LABELS[r.schedule_kind as CoverVideoScheduleKind]}
-                        {r.calendar_month ? ` · ${r.calendar_day}/${r.calendar_month}` : ""}
+                        {r.event_label ? ` · ${r.event_label}` : ""}
+                        {r.calendar_month ? ` (${r.calendar_day}/${r.calendar_month})` : ""}
                       </p>
                     </div>
                     <button

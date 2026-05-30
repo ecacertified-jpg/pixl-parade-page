@@ -5,6 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useCoverVideoPlaylist } from "@/hooks/useCoverVideoPlaylist";
 import { isSpecialDayPlaylist, type CoverVideoItem } from "@/utils/coverVideoSchedule";
+import { supabase } from "@/integrations/supabase/client";
 
 const MUTE_STORAGE_KEY = "birthday-cover-muted";
 const MAX_DURATION_MS = 20_000;
@@ -17,6 +18,8 @@ interface Props {
   /** Extra absolute-positioned overlay rendered on top (avatar + name + countdown). */
   overlay?: React.ReactNode;
   children?: React.ReactNode;
+  /** True when the connected user owns this birthday page (drives view tracking). */
+  isOwner?: boolean;
 }
 
 export function CoverVideoCarousel({
@@ -26,6 +29,7 @@ export function CoverVideoCarousel({
   className,
   overlay,
   children,
+  isOwner = false,
 }: Props) {
   const { playlist } = useCoverVideoPlaylist({ birthdayPageId, birthday });
   const [index, setIndex] = useState(0);
@@ -42,6 +46,7 @@ export function CoverVideoCarousel({
 
   const current: CoverVideoItem | undefined = playlist[index];
   const [showUnmuteHint, setShowUnmuteHint] = useState(true);
+  const viewTrackedRef = useRef<Set<string>>(new Set());
 
   const isSpecialDay = isSpecialDayPlaylist(playlist, birthday ?? null);
 
@@ -104,6 +109,20 @@ export function CoverVideoCarousel({
     setIndex((i) => (i + 1) % playlist.length);
   };
 
+  // Track a "view" for the page owner once they pass 50% of the current video.
+  // Only user-uploaded videos are tracked (library videos aren't in the per-page table).
+  const handleTimeUpdate: React.ReactEventHandler<HTMLVideoElement> = (e) => {
+    if (!isOwner || !current || current.source !== "user") return;
+    if (viewTrackedRef.current.has(current.id)) return;
+    const el = e.currentTarget;
+    if (!el.duration || !isFinite(el.duration)) return;
+    if (el.currentTime / el.duration < 0.5) return;
+    viewTrackedRef.current.add(current.id);
+    (supabase as any).rpc("increment_cover_video_view", { p_video_id: current.id }).then(() => {
+      // best-effort, ignore errors
+    });
+  };
+
   const toggleMute = () => {
     userOverrodeMuteRef.current = true;
     setMuted((m) => {
@@ -148,6 +167,7 @@ export function CoverVideoCarousel({
           muted={muted}
           onEnded={handleEnded}
           onError={handleEnded}
+          onTimeUpdate={handleTimeUpdate}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70 pointer-events-none" />

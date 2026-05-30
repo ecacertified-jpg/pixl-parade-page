@@ -1059,11 +1059,51 @@ export type Database = {
         }
         Relationships: []
       }
+      birthday_page_cover_video_views: {
+        Row: {
+          created_at: string
+          id: string
+          last_viewed_at: string | null
+          owner_id: string
+          updated_at: string
+          video_id: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_viewed_at?: string | null
+          owner_id: string
+          updated_at?: string
+          video_id: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_viewed_at?: string | null
+          owner_id?: string
+          updated_at?: string
+          video_id?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_page_cover_video_views_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_page_cover_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       birthday_page_cover_videos: {
         Row: {
           birthday_page_id: string
           created_at: string
           display_order: number
+          event_key: string | null
+          event_label: string | null
           id: string
           is_active: boolean
           poster_url: string | null
@@ -1076,6 +1116,8 @@ export type Database = {
           birthday_page_id: string
           created_at?: string
           display_order?: number
+          event_key?: string | null
+          event_label?: string | null
           id?: string
           is_active?: boolean
           poster_url?: string | null
@@ -1088,6 +1130,8 @@ export type Database = {
           birthday_page_id?: string
           created_at?: string
           display_order?: number
+          event_key?: string | null
+          event_label?: string | null
           id?: string
           is_active?: boolean
           poster_url?: string | null
@@ -3281,6 +3325,8 @@ export type Database = {
           calendar_month: number | null
           created_at: string
           created_by: string | null
+          event_key: string | null
+          event_label: string | null
           id: string
           is_active: boolean
           poster_url: string | null
@@ -3295,6 +3341,8 @@ export type Database = {
           calendar_month?: number | null
           created_at?: string
           created_by?: string | null
+          event_key?: string | null
+          event_label?: string | null
           id?: string
           is_active?: boolean
           poster_url?: string | null
@@ -3309,6 +3357,8 @@ export type Database = {
           calendar_month?: number | null
           created_at?: string
           created_by?: string | null
+          event_key?: string | null
+          event_label?: string | null
           id?: string
           is_active?: boolean
           poster_url?: string | null
@@ -9802,6 +9852,10 @@ export type Database = {
           p_event_type: string
           p_share_id: string
         }
+        Returns: undefined
+      }
+      increment_cover_video_view: {
+        Args: { p_video_id: string }
         Returns: undefined
       }
       increment_delivery_count: {
