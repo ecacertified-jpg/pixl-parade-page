@@ -167,6 +167,7 @@ export function CoverVideoCarousel({
           muted={muted}
           onEnded={handleEnded}
           onError={handleEnded}
+          onTimeUpdate={handleTimeUpdate}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70 pointer-events-none" />
