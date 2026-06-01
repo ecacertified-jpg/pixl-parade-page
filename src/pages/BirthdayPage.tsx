@@ -693,7 +693,13 @@ const BirthdayPage = () => {
             firstName={firstName}
             user={user}
             items={albumItems}
-            onItemAdded={(item) => setAlbumItems(prev => [item, ...prev])}
+            onItemAdded={(item) => {
+              setAlbumItems(prev => [item, ...prev]);
+              if (isOwner && (!item.uploader_id || item.uploader_id === user?.id)) {
+                actionCountRef.current += 1;
+                setTimeout(() => openShareNudge("page_action"), 600);
+              }
+            }}
             pageOwnerUserId={page!.user_id}
             socialSharePhotoId={page!.social_share_photo_id}
             onSocialSharePhotoChanged={(photoId) =>
