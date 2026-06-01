@@ -136,12 +136,12 @@ export const OnboardingExperience = ({
     return () => { cancelled = true; };
   }, [selectedCategories, user]);
 
-  // 8 steps total (0=welcome → 7=publish+share)
-  const DYNAMIC_TOTAL_STEPS = 8;
+  // 7 steps total (0=welcome → 6=publish+share)
+  const DYNAMIC_TOTAL_STEPS = 7;
   const isFriendPurpose = discoveryPurpose === 'friend_birthday';
   const isOtherEvent = discoveryPurpose === 'other_event';
   const [selectedOccasion, setSelectedOccasion] = useState<string>('wedding');
-  const stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Amis', 'Cagnotte', 'Photo', 'Publier'];
+  const stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Cagnotte', 'Photo', 'Publier'];
 
   // ---- Birthday-page-builder synced states ----
   const [pageType, setPageTypeState] = useState<PageType | null>(null);
@@ -300,42 +300,9 @@ export const OnboardingExperience = ({
     }
   }, [open, currentStep, isReturningUser]);
 
-  // Poll completed friend form tokens every 5 seconds while on the "Amis" step (4)
+  // Auto-complete onboarding when the final step (publish + share) is fully done
   useEffect(() => {
-    if (currentStep !== 4 || !user) return;
-
-    setIsLoadingCompletedForms(true);
-    const fetchCompletedCount = async () => {
-      const { count } = await supabase
-        .from('friend_form_tokens')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'completed');
-      setInvitationsSentCount(count || 0);
-      setIsLoadingCompletedForms(false);
-    };
-
-    fetchCompletedCount();
-    const interval = setInterval(fetchCompletedCount, 5000);
-    return () => clearInterval(interval);
-  }, [currentStep, user]);
-
-  // Auto-advance from "Amis" (4) → "Cagnotte" (5) when validated:
-  // either ≥1 friend already associated to the page, or ≥3 invitations completed
-  useEffect(() => {
-    if (currentStep !== 4) return;
-    if (associatedFriendsCount >= 1 || invitationsSentCount >= 3) {
-      confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
-      const timer = setTimeout(() => {
-        onSetStep(5);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [invitationsSentCount, associatedFriendsCount, currentStep, onSetStep]);
-
-  // Auto-complete onboarding when step 7 (publish + share) is fully done
-  useEffect(() => {
-    if (currentStep === 7 && hasBirthdayPage && isPagePublished && shareCount >= 3) {
+    if (currentStep === 6 && hasBirthdayPage && isPagePublished && shareCount >= 3) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
@@ -713,13 +680,9 @@ export const OnboardingExperience = ({
       case 1: return selectedCategories.length >= 1;
       case 2: return favoriteIds.length >= 3;
       case 3: return pageType !== null;
-      // Étape 4 (Amis) : non-bloquante. L'utilisateur peut continuer dès qu'il a
-      // généré/partagé un lien d'invitation. Le compteur "amis remplis" continuera
-      // à se mettre à jour en arrière-plan, mais ne doit pas bloquer l'onboarding.
-      case 4: return associatedFriendsCount >= 1 || invitationsSentCount >= 1 || !!friendFormLink;
-      case 5: return hasFund || fundSkipped;
-      case 6: return firstPhotoCount >= 1;
-      case 7: return hasBirthdayPage && isPagePublished && shareCount >= 3;
+      case 4: return hasFund || fundSkipped;
+      case 5: return firstPhotoCount >= 1;
+      case 6: return hasBirthdayPage && isPagePublished && shareCount >= 3;
       default: return false;
     }
   };
@@ -729,10 +692,9 @@ export const OnboardingExperience = ({
       case 1: return "Choisis au moins une catégorie de cadeau 🎁";
       case 2: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
       case 3: return "Choisis le type de page (toi, un proche, ou un événement) 🏷️";
-      case 4: return "Génère et partage ton lien d'invitation pour continuer 👥";
-      case 5: return "Crée ta cagnotte ou clique sur « Plus tard » 🎁";
-      case 6: return "Ajoute une première photo à ton album 📸";
-      case 7: return "Publie ta page et partage-la avec 3 amis 🚀";
+      case 4: return "Crée ta cagnotte ou clique sur « Plus tard » 🎁";
+      case 5: return "Ajoute une première photo à ton album 📸";
+      case 6: return "Publie ta page et partage-la avec 3 amis 🚀";
       default: return "Complète cette étape pour continuer";
     }
   };
@@ -1097,179 +1059,6 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 4: Invite friends */}
-          {currentStep === 4 && (
-            <motion.div
-              key="circle"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              className="text-center max-w-md mx-auto w-full"
-            >
-              {invitationsSentCount >= 3 ? (
-                // 🎉 Success state
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 200 }}
-                  className="py-8"
-                >
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: 'spring' }}
-                    className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-6 shadow-lg"
-                  >
-                    <PartyPopper className="h-12 w-12 text-white" />
-                  </motion.div>
-                  <h2 className="text-2xl font-poppins font-bold text-foreground mb-3">
-                    Bravo {firstName} ! 🎉
-                  </h2>
-                  <p className="text-lg text-muted-foreground font-nunito mb-4">
-                    Ton cercle d'amis est prêt !<br />
-                    Tu ne manqueras plus aucun anniversaire.
-                  </p>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70 font-nunito"
-                  >
-                    <span className="inline-block h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    Passage à l'étape suivante...
-                  </motion.div>
-                </motion.div>
-              ) : (
-                // Normal state — invite friends
-                <>
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring' }}
-                    className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-5 shadow-lg"
-                  >
-                    <Users className="h-10 w-10 text-white" />
-                  </motion.div>
-
-                  <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                    Ton cercle d'amis, ta force 💪
-                  </h2>
-                  <p className="text-muted-foreground font-nunito mb-3 text-sm leading-relaxed">
-                    Ajoute au moins <span className="font-bold text-primary">3 proches</span> pour ne manquer aucun anniversaire.
-                    Plus ton cercle est grand, plus tu recevras de surprises ! 🎁
-                  </p>
-                  <p className="text-xs text-muted-foreground/80 font-nunito mb-5 italic">
-                    Génère et partage ton lien — tu peux <span className="font-semibold text-primary">continuer immédiatement</span>. On te notifiera quand tes proches rempliront le formulaire. ✨
-                  </p>
-
-                  {/* Progress dots + bar */}
-                  <div className="mb-5">
-                    {isLoadingCompletedForms ? (
-                      <div className="flex items-center justify-center gap-2 py-4">
-                        <span className="inline-block h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        <span className="text-sm text-muted-foreground font-nunito">Chargement...</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-center gap-3 mb-3">
-                          {[0, 1, 2].map((i) => (
-                            <motion.div
-                              key={i}
-                              initial={false}
-                              animate={{
-                                scale: invitationsSentCount > i ? 1.15 : 1,
-                                backgroundColor: invitationsSentCount > i ? 'hsl(142, 76%, 36%)' : 'hsl(var(--muted))',
-                              }}
-                              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-                            >
-                              {invitationsSentCount > i ? (
-                                <Check className="h-4 w-4 text-white" />
-                              ) : (
-                                <Users className="h-4 w-4 text-muted-foreground/40" />
-                              )}
-                            </motion.div>
-                          ))}
-                        </div>
-                        <Progress
-                          value={Math.min((invitationsSentCount / 3) * 100, 100)}
-                          className="h-2.5 mx-auto max-w-[200px]"
-                          indicatorClassName={cn(
-                            'transition-all duration-500',
-                            invitationsSentCount >= 3
-                              ? 'bg-gradient-to-r from-green-400 to-emerald-600'
-                              : 'bg-gradient-to-r from-primary to-accent'
-                          )}
-                        />
-                        <p className="text-sm font-poppins font-semibold mt-2 text-foreground">
-                          {invitationsSentCount}/3 amis ajoutés
-                        </p>
-                        <p className="text-xs text-muted-foreground/70 font-nunito mt-1">
-                          Le compteur augmente uniquement quand ton proche remplit et envoie le formulaire.
-                        </p>
-                      </>
-                    )}
-                  </div>
-
-                  {!friendFormLink ? (
-                    <Button
-                      onClick={handleGenerateFriendFormLink}
-                      disabled={generatingFormLink}
-                      className="gap-2 w-full bg-primary hover:bg-primary/90 mb-4"
-                      size="lg"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      {generatingFormLink ? 'Génération...' : '📨 Générer un lien d\'invitation'}
-                    </Button>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-4 p-4 rounded-xl bg-card border border-primary/20 space-y-3"
-                    >
-                      <p className="text-sm font-nunito text-muted-foreground">
-                        📋 Partagez ce lien avec votre proche :
-                      </p>
-                      <div className="flex gap-2">
-                        <Input
-                          value={friendFormLink}
-                          readOnly
-                          className="flex-1 text-xs bg-muted"
-                        />
-                        <Button onClick={handleCopyFriendFormLink} size="icon" variant="outline" className="shrink-0">
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleShareFriendFormWhatsApp}
-                          variant="outline"
-                          className="gap-2 flex-1 border-green-500/30 text-green-600 hover:bg-green-50"
-                        >
-                          <Share2 className="h-4 w-4" />
-                          WhatsApp
-                        </Button>
-                        <Button
-                          onClick={handleShareFriendFormSMS}
-                          variant="outline"
-                          className="gap-2 flex-1"
-                        >
-                          SMS
-                        </Button>
-                      </div>
-                      <Button
-                        onClick={() => { setFriendFormLink(null); }}
-                        variant="ghost"
-                        className="w-full text-sm text-muted-foreground"
-                      >
-                        Générer un nouveau lien
-                      </Button>
-                    </motion.div>
-                  )}
-                </>
-              )}
-            </motion.div>
-          )}
-
           {/* Step 3: Type de page */}
           {currentStep === 3 && (
             <motion.div
@@ -1324,8 +1113,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 5: Cagnotte */}
-          {currentStep === 5 && (
+          {/* Step 4: Cagnotte */}
+          {currentStep === 4 && (
             <motion.div
               key="fund-step"
               initial={{ opacity: 0, y: 30 }}
@@ -1373,8 +1162,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 6: Première photo */}
-          {currentStep === 6 && (
+          {/* Step 5: Première photo */}
+          {currentStep === 5 && (
             <OnboardingFirstPhotoStep
               birthdayPageId={birthdayPageId}
               birthdayPageSlug={birthdayPageSlug}
@@ -1389,8 +1178,8 @@ export const OnboardingExperience = ({
             />
           )}
 
-          {/* Step 7: Publish + Share (anciennement step 5) */}
-          {currentStep === 7 && (
+          {/* Step 6: Publish + Share */}
+          {currentStep === 6 && (
             <motion.div
               key="birthday-page-full"
               initial={{ opacity: 0, y: 30 }}
