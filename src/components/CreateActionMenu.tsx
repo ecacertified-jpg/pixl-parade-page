@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, Cake } from 'lucide-react';
+import { UserPlus, Cake, PartyPopper } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sheet,
@@ -44,6 +44,14 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
           : `${bpStatus.completedCount} / ${bpStatus.totalCount}`
         : 'Nouveau',
       action: () => handleAction(() => setIsBirthdayBuilderOpen(true)),
+    },
+    {
+      icon: PartyPopper,
+      label: "Créer une page d'événement",
+      description: 'Mariage, diplôme, promotion, baptême…',
+      color: 'text-purple-500',
+      badge: undefined,
+      action: () => handleAction(() => navigate('/event/create')),
     },
     {
       icon: UserPlus,
