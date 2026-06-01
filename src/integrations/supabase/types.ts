@@ -3731,6 +3731,9 @@ export type Database = {
           is_active: boolean
           occasion: string
           slug: string
+          spouse_avatar_url: string | null
+          spouse_first_name: string | null
+          spouse_user_id: string | null
           title: string
           updated_at: string
         }
@@ -3745,6 +3748,9 @@ export type Database = {
           is_active?: boolean
           occasion?: string
           slug: string
+          spouse_avatar_url?: string | null
+          spouse_first_name?: string | null
+          spouse_user_id?: string | null
           title: string
           updated_at?: string
         }
@@ -3759,6 +3765,9 @@ export type Database = {
           is_active?: boolean
           occasion?: string
           slug?: string
+          spouse_avatar_url?: string | null
+          spouse_first_name?: string | null
+          spouse_user_id?: string | null
           title?: string
           updated_at?: string
         }
