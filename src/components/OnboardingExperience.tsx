@@ -136,12 +136,12 @@ export const OnboardingExperience = ({
     return () => { cancelled = true; };
   }, [selectedCategories, user]);
 
-  // 7 steps total (0=welcome → 6=publish+share)
-  const DYNAMIC_TOTAL_STEPS = 7;
+  // 6 steps total (0=welcome → 5=publish+share)
+  const DYNAMIC_TOTAL_STEPS = 6;
   const isFriendPurpose = discoveryPurpose === 'friend_birthday';
   const isOtherEvent = discoveryPurpose === 'other_event';
   const [selectedOccasion, setSelectedOccasion] = useState<string>('wedding');
-  const stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Cagnotte', 'Photo', 'Publier'];
+  const stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Photo', 'Publier'];
 
   // ---- Birthday-page-builder synced states ----
   const [pageType, setPageTypeState] = useState<PageType | null>(null);
