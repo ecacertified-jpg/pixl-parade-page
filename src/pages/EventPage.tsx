@@ -172,31 +172,7 @@ const EventPage = () => {
       const { data: msgs } = await supabase.from('event_wishes_messages').select('id, sender_name, message_text, created_at').eq('event_page_id', pageData.id).order('created_at', { ascending: false });
       if (msgs) setMessages(msgs);
 
-      const { data: pics } = await supabase.from('event_page_photos').select('id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text').eq('event_page_id', pageData.id).order('created_at', { ascending: false });
-
-      // Also load souvenirs from this user's birthday pages so the album
-      // stays in sync across the celebrant's pages.
-      const { data: ownBdayPages } = await supabase
-        .from('birthday_pages')
-        .select('id')
-        .eq('user_id', pageData.creator_id)
-        .eq('is_active', true);
-
-      let bdayPics: any[] = [];
-      if (ownBdayPages && ownBdayPages.length > 0) {
-        const ids = ownBdayPages.map((p: any) => p.id);
-        const { data: bp } = await supabase
-          .from('birthday_page_photos')
-          .select('id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
-          .in('birthday_page_id', ids)
-          .order('created_at', { ascending: false });
-        if (bp) bdayPics = bp;
-      }
-
-      const merged = [...((pics as any[]) || []), ...bdayPics].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-      setAlbumItems(merged as AlbumItem[]);
+      await reloadAlbum(pageData as EventPageData);
 
       if (pageData.fund_id) {
         const { data: fundData } = await supabase.from('collective_funds').select('id, title, target_amount, current_amount, share_token').eq('id', pageData.fund_id).single();
