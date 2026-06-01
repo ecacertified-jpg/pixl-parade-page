@@ -26,6 +26,7 @@ import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 import { buildBirthdayShareUrl } from "@/utils/buildBirthdayShareUrl";
 import { MessageWall } from "@/components/birthday/messages/MessageWall";
+import { OwnerNudgeDialog } from "@/components/birthday/OwnerNudgeDialog";
 
 interface BirthdayPageData {
   id: string;
@@ -38,6 +39,7 @@ interface BirthdayPageData {
   is_active: boolean;
   social_share_photo_id: string | null;
   updated_at?: string | null;
+  published_at?: string | null;
 }
 
 interface WishMessage {
