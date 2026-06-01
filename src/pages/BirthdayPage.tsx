@@ -266,7 +266,45 @@ const BirthdayPage = () => {
         .eq('birthday_page_id', pageData.id)
         .order('created_at', { ascending: false });
 
-      if (pics) setAlbumItems(pics as AlbumItem[]);
+      // Also load album items from this user's event pages, so the
+      // souvenirs created on a wedding / event page show up here too.
+      const { data: ownEventPages } = await supabase
+        .from('event_pages')
+        .select('id, occasion')
+        .eq('creator_id', pageData.user_id)
+        .eq('is_active', true);
+
+      let eventPics: any[] = [];
+      if (ownEventPages && ownEventPages.length > 0) {
+        const ids = ownEventPages.map((p: any) => p.id);
+        const occByPage = new Map(ownEventPages.map((p: any) => [p.id, p.occasion]));
+        const { data: epPics } = await supabase
+          .from('event_page_photos')
+          .select('id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text, event_page_id')
+          .in('event_page_id', ids)
+          .order('created_at', { ascending: false });
+        if (epPics) {
+          eventPics = epPics.map((p: any) => ({
+            id: p.id,
+            uploader_id: p.uploader_id,
+            uploader_name: p.uploader_name,
+            image_url: p.image_url,
+            caption: p.caption,
+            created_at: p.created_at,
+            media_type: p.media_type,
+            video_url: p.video_url,
+            video_thumbnail_url: p.video_thumbnail_url,
+            memory_text: p.memory_text,
+            event_kind: occByPage.get(p.event_page_id) || 'event',
+            view_count: 0,
+          }));
+        }
+      }
+
+      const merged = [...((pics as any[]) || []), ...eventPics].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+      setAlbumItems(merged as AlbumItem[]);
 
       // Load fund
       if (pageData.fund_id) {
