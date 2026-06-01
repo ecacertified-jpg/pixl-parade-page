@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sparkles, Pencil, Plus } from 'lucide-react';
 import { getArtisanRole } from '@/data/celebration-artisan-roles';
+import { getArtisanCounterLabel } from '@/utils/artisanCounter';
 import type { CelebrationArtisan } from '@/types/celebrationArtisan';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
