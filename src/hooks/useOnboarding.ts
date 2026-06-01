@@ -52,38 +52,16 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     return { shouldShow: true, firstIncompleteStep: 3, dbFurthestStep };
   }
 
-  // Step 4: Amis — skip if ≥1 friend associated to page OR ≥3 members in circles OR ≥3 completed friend forms
-  const friendFormCount = friendRes.count || 0;
-  let circleMemberCount = 0;
-  const circleIds = (circlesRes.data || []).map((c: any) => c.id);
-  if (circleIds.length > 0) {
-    const { count } = await supabase
-      .from('friend_circle_members')
-      .select('*', { count: 'exact', head: true })
-      .in('circle_id', circleIds);
-    circleMemberCount = count || 0;
-  }
   const page = (bpRes.data as any) || null;
-  let pageFriendsCount = 0;
-  if (page?.id) {
-    const { count } = await supabase
-      .from('birthday_page_friends')
-      .select('*', { count: 'exact', head: true })
-      .eq('page_id', page.id);
-    pageFriendsCount = count || 0;
-  }
-  if (pageFriendsCount < 1 && friendFormCount < 3 && circleMemberCount < 3) {
-    return { shouldShow: true, firstIncompleteStep: 4, dbFurthestStep };
-  }
 
-  // Step 5: Cagnotte (skippable via flag bp_fund_skipped_${userId})
+  // Step 4: Cagnotte (skippable via flag bp_fund_skipped_${userId})
   const hasFund = (fundRes.count || 0) >= 1;
   const fundSkipped = localStorage.getItem(`bp_fund_skipped_${userId}`) === '1';
   if (!hasFund && !fundSkipped) {
-    return { shouldShow: true, firstIncompleteStep: 5, dbFurthestStep };
+    return { shouldShow: true, firstIncompleteStep: 4, dbFurthestStep };
   }
 
-  // Step 6: Première photo
+  // Step 5: Première photo
   let firstPhotoCount = 0;
   if (page?.id) {
     const { count } = await supabase
@@ -93,10 +71,10 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     firstPhotoCount = count || 0;
   }
   if (firstPhotoCount < 1) {
-    return { shouldShow: true, firstIncompleteStep: 6, dbFurthestStep };
+    return { shouldShow: true, firstIncompleteStep: 5, dbFurthestStep };
   }
 
-  // Step 7: Publier + partager
+  // Step 6: Publier + partager
   const hasPage = !!page;
   const isPublished = !!(page?.published_at);
   const { count: shareCount } = await supabase
@@ -104,7 +82,7 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId);
   if (!hasPage || !isPublished || (shareCount || 0) < 3) {
-    return { shouldShow: true, firstIncompleteStep: 7, dbFurthestStep };
+    return { shouldShow: true, firstIncompleteStep: 6, dbFurthestStep };
   }
 
   // All steps done
