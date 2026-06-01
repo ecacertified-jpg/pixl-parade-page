@@ -112,6 +112,48 @@ const EventPage = () => {
 
   useEffect(() => { if (slug) loadPage(); }, [slug]);
 
+  const reloadAlbum = async (pageData: EventPageData) => {
+    const { data: pics } = await supabase
+      .from('event_page_photos')
+      .select('id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
+      .eq('event_page_id', pageData.id)
+      .order('created_at', { ascending: false });
+
+    const { data: ownBdayPages } = await supabase
+      .from('birthday_pages')
+      .select('id')
+      .eq('user_id', pageData.creator_id)
+      .eq('is_active', true);
+
+    let bdayPics: any[] = [];
+    if (ownBdayPages && ownBdayPages.length > 0) {
+      const ids = ownBdayPages.map((p: any) => p.id);
+      const { data: bp } = await supabase
+        .from('birthday_page_photos')
+        .select('id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
+        .in('birthday_page_id', ids)
+        .order('created_at', { ascending: false });
+      if (bp) bdayPics = bp;
+    }
+
+    const merged = [...((pics as any[]) || []), ...bdayPics].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+    setAlbumItems(merged as AlbumItem[]);
+  };
+
+  useEffect(() => {
+    if (!page) return;
+    let cancelled = false;
+    const trigger = () => { if (!cancelled) reloadAlbum(page); };
+    const channel = supabase
+      .channel(`event-album-${page.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_page_photos', filter: `event_page_id=eq.${page.id}` }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'birthday_page_photos' }, trigger)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(channel); };
+  }, [page?.id, page?.creator_id]);
+
   useEffect(() => {
     if (page && !confettiTriggered.current) {
       confettiTriggered.current = true;
