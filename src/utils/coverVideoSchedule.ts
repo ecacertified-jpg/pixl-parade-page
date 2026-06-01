@@ -109,9 +109,21 @@ export function buildPlaylist(
   libraryVideos: CoverVideoItem[],
   birthday: string | null,
   now = new Date(),
+  viewCounts?: Record<string, number>,
 ): CoverVideoItem[] {
-  const sortFn = (a: CoverVideoItem, b: CoverVideoItem) =>
-    (a.display_order ?? a.priority ?? 0) - (b.display_order ?? b.priority ?? 0);
+  const baseOrder = (v: CoverVideoItem) => v.display_order ?? v.priority ?? 0;
+  const viewBucket = (id: string): number => {
+    if (!viewCounts) return 0;
+    const n = viewCounts[id] ?? 0;
+    if (n === 0) return 0;
+    if (n <= 3) return 1;
+    return 2;
+  };
+  const sortFn = (a: CoverVideoItem, b: CoverVideoItem) => {
+    const bd = viewBucket(a.id) - viewBucket(b.id);
+    if (bd !== 0) return bd;
+    return baseOrder(a) - baseOrder(b);
+  };
 
   const pickFor = (kind: CoverVideoScheduleKind, filter?: (v: CoverVideoItem) => boolean): CoverVideoItem[] => {
     const userPick = userVideos
@@ -126,19 +138,21 @@ export function buildPlaylist(
   const result: CoverVideoItem[] = [];
 
   if (isBirthdayToday(birthday, now)) {
-    // Time-of-day specific birthday videos (morning/afternoon/evening/night)
+    // Birthday wins over everything else — only birthday videos play.
     result.push(...pickFor(currentBirthdayKind(now)));
-    // Generic birthday_day videos still play as part of the celebration mix
     result.push(...pickFor("birthday_day"));
   } else {
-    // Calendar event videos only play when it's NOT the user's birthday — the
-    // birthday celebration always takes priority on the day J.
-    result.push(
-      ...pickFor("calendar_event", (v) => isCalendarEventActive(v.calendar_month, v.calendar_day, now)),
+    // If at least one calendar event is active today, ONLY those videos play.
+    const calendarToday = pickFor("calendar_event", (v) =>
+      isCalendarEventActive(v.calendar_month, v.calendar_day, now),
     );
+    if (calendarToday.length) {
+      result.push(...calendarToday);
+    } else {
+      // Otherwise: only the current time-of-day greeting slot.
+      result.push(...pickFor(currentGreetingKind(now)));
+    }
   }
-
-  result.push(...pickFor(currentGreetingKind(now)));
 
   // Deduplicate by id
   const seen = new Set<string>();
