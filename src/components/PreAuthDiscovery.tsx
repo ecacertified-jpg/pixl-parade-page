@@ -93,18 +93,6 @@ const STEPS: StepDef[] = [
     ],
   },
   {
-    kind: 'quiz',
-    id: 'desire',
-    title: 'Ce qui te ferait le plus plaisir ?',
-    subtitle: 'Choisis ce qui compte le plus 💫',
-    options: [
-      { value: 'messages', label: 'Recevoir des messages de mes proches', icon: <MessageCircle className="h-6 w-6" />, encouragement: "💌 Les mots sont les plus beaux cadeaux — c'est le choix n°1 !" },
-      { value: 'collective_gift', label: 'Un cadeau collectif', icon: <Gift className="h-6 w-6" />, encouragement: '🎁 Ensemble, on offre mieux ! Nos utilisateurs récoltent en moyenne 35 000F' },
-      { value: 'surprise', label: 'Une surprise organisée', icon: <Sparkles className="h-6 w-6" />, encouragement: '🤫 On adore les surprises ! On t\'aide à tout organiser' },
-      { value: 'everything', label: 'Tout ça !', icon: <Crown className="h-6 w-6" />, encouragement: "🔥 Tu as raison de tout vouloir ! C'est fait pour ça" },
-    ],
-  },
-  {
     kind: 'field',
     id: 'city',
     title: 'À quel lieu veux-tu que tes cadeaux soient livrés ?',
@@ -128,7 +116,7 @@ const STEPS: StepDef[] = [
   {
     kind: 'quiz',
     id: 'guest_count',
-    title: 'Combien de proches veux-tu réunir ?',
+    title: 'Avec combien de proches veux-tu partager ta page d\'anniversaire ?',
     subtitle: "Plus on est nombreux, plus c'est festif 🥳",
     options: [
       { value: '5_10', label: '5 à 10 proches', icon: <Users className="h-6 w-6" />, encouragement: "👫 Un cercle intime, c'est toujours émouvant !" },
