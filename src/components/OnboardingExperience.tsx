@@ -1111,57 +1111,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 4: Cagnotte */}
+          {/* Step 4: Première photo */}
           {currentStep === 4 && (
-            <motion.div
-              key="fund-step"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              className="text-center max-w-md mx-auto w-full"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring' }}
-                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-heart to-gift flex items-center justify-center mb-6 shadow-lg"
-              >
-                <Gift className="h-10 w-10 text-white" />
-              </motion.div>
-              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                Crée ta cagnotte 🎁
-              </h2>
-              <p className="text-muted-foreground font-nunito mb-6 text-sm leading-relaxed">
-                {hasFund
-                  ? 'Ta cagnotte est en place ✨'
-                  : 'Une cagnotte permet à tes proches de cotiser ensemble pour ton cadeau de rêve.'}
-              </p>
-
-              {hasFund ? (
-                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 mb-4">
-                  <Check className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-sm font-poppins font-semibold text-foreground">Cagnotte créée !</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Button
-                    onClick={() => setShowFundPickerModal(true)}
-                    className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-2"
-                    size="lg"
-                  >
-                    <Gift className="h-4 w-4" />
-                    Créer ma cagnotte
-                  </Button>
-                  <Button onClick={skipFund} variant="ghost" className="w-full text-sm text-muted-foreground">
-                    Plus tard
-                  </Button>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Step 5: Première photo */}
-          {currentStep === 5 && (
             <OnboardingFirstPhotoStep
               birthdayPageId={birthdayPageId}
               birthdayPageSlug={birthdayPageSlug}
@@ -1176,8 +1127,8 @@ export const OnboardingExperience = ({
             />
           )}
 
-          {/* Step 6: Publish + Share */}
-          {currentStep === 6 && (
+          {/* Step 5: Publish + Share */}
+          {currentStep === 5 && (
             <motion.div
               key="birthday-page-full"
               initial={{ opacity: 0, y: 30 }}
