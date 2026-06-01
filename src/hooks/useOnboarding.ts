@@ -111,8 +111,12 @@ export const useOnboarding = () => {
 
   const [currentStep, setCurrentStepState] = useState<number | null>(null);
 
-  // Never go backwards: use the max of DB-computed step, stored furthest step, and DB persisted furthest step
-  const effectiveCurrentStep = currentStep ?? Math.max(firstIncompleteStep, storedFurthestStep, dbFurthestStep);
+  // Never go backwards: use the max of DB-computed step, stored furthest step, and DB persisted furthest step.
+  // Clamp to the new max step (6) to handle legacy values left from when onboarding had 8 steps.
+  const effectiveCurrentStep = currentStep ?? Math.min(
+    6,
+    Math.max(firstIncompleteStep, storedFurthestStep, dbFurthestStep)
+  );
 
   const setCurrentStep = useCallback((step: number) => {
     setCurrentStepState(step);
