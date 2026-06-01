@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Calendar, UserCheck, UserPlus, Star, Play } from "lucide-react";
 import { FeedCardActions } from "@/components/FeedCardActions";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { FeedPage, FeedMedia } from "@/hooks/usePagesFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { getArtisanCounterLabel } from "@/utils/artisanCounter";
 
 const OCCASION_ICONS: Record<string, string> = {
   Anniversaire: '🎂',
@@ -64,6 +65,7 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
     : 0;
 
   const hasVisual = page.cover_image_url || page.album_preview.length > 0;
+  const artisanLabel = getArtisanCounterLabel(page.artisans_count);
 
   const handleNavigate = () => {
     if (page.type === 'birthday') {
@@ -200,12 +202,8 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
             {new Date(page.event_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         )}
-        {page.artisans_count > 0 && (
-          <p className="text-xs text-muted-foreground mt-0.5">
-            🎉 {page.artisans_count === 1
-              ? 'Organisé avec l\u2019aide d\u2019un prestataire'
-              : `${page.artisans_count} artisans participent à cette célébration`}
-          </p>
+        {artisanLabel && (
+          <p className="text-xs text-muted-foreground mt-0.5">{artisanLabel}</p>
         )}
       </div>
 
