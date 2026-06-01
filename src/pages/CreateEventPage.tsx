@@ -11,6 +11,8 @@ import { motion } from "framer-motion";
 import { Loader2, ArrowLeft, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
+import { CelebrationArtisansPicker } from "@/components/birthday/CelebrationArtisansPicker";
+import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 
 const occasions = [
   { key: 'birthday', emoji: '🎂', label: "Anniversaire d'un proche" },
@@ -38,6 +40,7 @@ const CreateEventPage = () => {
   const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [spouseFirstName, setSpouseFirstName] = useState('');
+  const [artisans, setArtisans] = useState<CelebrationArtisan[]>([]);
   const [creating, setCreating] = useState(false);
 
   const isWedding = occasion.includes('mariage') || occasion === 'wedding';
@@ -60,6 +63,7 @@ const CreateEventPage = () => {
         event_date: eventDate || null,
         is_active: true,
         spouse_first_name: isWedding && spouseFirstName.trim() ? spouseFirstName.trim() : null,
+        celebration_artisans: artisans as any,
       }).select('slug').single();
 
       if (error) throw error;
@@ -152,6 +156,25 @@ const CreateEventPage = () => {
                 <p className="text-xs text-muted-foreground mt-1">Affichera 2 prénoms sur la page de mariage.</p>
               </div>
             )}
+
+            <div className="pt-2 border-t border-border">
+              <CelebrationArtisansPicker
+                initial={artisans}
+                hideSkip
+                onSave={(next) => {
+                  setArtisans(next);
+                  toast.success('Artisans ajoutés à la page');
+                }}
+                continueLabel="Ajouter à la page"
+                title="Qui contribue à rendre cet événement spécial ?"
+              />
+              {artisans.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {artisans.length} artisan{artisans.length > 1 ? 's' : ''} ajouté
+                  {artisans.length > 1 ? 's' : ''} — ils apparaîtront sur la page.
+                </p>
+              )}
+            </div>
 
             <Button className="w-full" size="lg" disabled={!title.trim() || creating} onClick={handleCreate}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}

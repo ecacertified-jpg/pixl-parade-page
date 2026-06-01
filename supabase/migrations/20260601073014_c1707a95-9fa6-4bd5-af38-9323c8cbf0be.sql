@@ -1,0 +1,2 @@
+ALTER TABLE public.birthday_pages ADD COLUMN IF NOT EXISTS celebration_artisans jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.event_pages ADD COLUMN IF NOT EXISTS celebration_artisans jsonb NOT NULL DEFAULT '[]'::jsonb;

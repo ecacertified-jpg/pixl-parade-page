@@ -200,6 +200,13 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
             {new Date(page.event_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         )}
+        {page.artisans_count > 0 && (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            🎉 {page.artisans_count === 1
+              ? 'Organisé avec l\u2019aide d\u2019un prestataire'
+              : `${page.artisans_count} artisans participent à cette célébration`}
+          </p>
+        )}
       </div>
 
       {/* Cover image, album grid, or placeholder */}
