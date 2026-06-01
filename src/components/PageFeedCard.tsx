@@ -65,6 +65,7 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
     : 0;
 
   const hasVisual = page.cover_image_url || page.album_preview.length > 0;
+  const artisanLabel = getArtisanCounterLabel(page.artisans_count);
 
   const handleNavigate = () => {
     if (page.type === 'birthday') {
