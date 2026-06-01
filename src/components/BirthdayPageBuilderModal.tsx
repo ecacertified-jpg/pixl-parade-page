@@ -274,6 +274,7 @@ export function BirthdayPageBuilderModal({
       setArtisans(next);
       setShowArtisansPicker(false);
       toast.success('Artisans enregistrés ✨');
+      window.dispatchEvent(new Event('feed-refresh'));
     } finally {
       setSavingArtisans(false);
     }
