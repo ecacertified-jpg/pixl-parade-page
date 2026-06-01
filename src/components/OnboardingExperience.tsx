@@ -875,7 +875,7 @@ export const OnboardingExperience = ({
               </motion.div>
 
               <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                Quel cadeau te ferait plaisir ? 🎁
+                Tes catégories de cadeaux préférées 🎁
               </h2>
               <p className="text-muted-foreground font-nunito mb-6">
                 Choisis tes catégories préférées
@@ -951,7 +951,7 @@ export const OnboardingExperience = ({
               </motion.div>
 
               <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                Qu'est-ce qui te ferait plaisir ? 🎁
+                Ta liste de souhaits 🎁
               </h2>
               <p className="text-muted-foreground font-nunito mb-2">
                 Choisis des idées cadeaux pour que tes proches sachent quoi t'offrir !

@@ -32,7 +32,7 @@ const steps = [
   {
     id: 'wishlist',
     title: '🎁 Créez votre liste de souhaits',
-    description: 'Dites à vos proches ce qui vous ferait plaisir ! Ils verront votre liste et pourront vous offrir le cadeau parfait.',
+    description: 'Partagez votre liste de souhaits pour que vos proches vous offrent le cadeau parfait.',
     icon: Gift,
     gradient: 'from-heart to-gift',
   },
