@@ -39,6 +39,7 @@ export interface FeedPage {
   fund_id: string | null;
   is_friend: boolean;
   published_via_onboarding?: boolean;
+  artisans_count: number;
 }
 
 export function usePagesFeed(filter: 'all' | 'following' = 'all') {
@@ -69,6 +70,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           .from('birthday_pages')
           .select(`
             id, slug, title, cover_image_url, celebration_year, fund_id, created_at, user_id, published_via_onboarding,
+            celebration_artisans,
             birthday_page_photos!birthday_page_photos_birthday_page_id_fkey ( id, image_url, media_type, video_url, video_thumbnail_url ),
             collective_funds!birthday_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
@@ -80,6 +82,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           .from('event_pages')
           .select(`
             id, slug, title, occasion, cover_image_url, event_date, fund_id, created_at, creator_id,
+            celebration_artisans,
             event_page_photos ( id, image_url, media_type, video_url, video_thumbnail_url ),
             collective_funds!event_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
@@ -176,6 +179,9 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
             fund_id: bp.fund_id || null,
             is_friend: isFriend,
             published_via_onboarding: !!(bp as any).published_via_onboarding,
+            artisans_count: Array.isArray((bp as any).celebration_artisans)
+              ? (bp as any).celebration_artisans.length
+              : 0,
           });
         }
       }
@@ -238,6 +244,9 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
             fund_id: ep.fund_id || null,
             is_friend: isFriend,
             published_via_onboarding: false,
+            artisans_count: Array.isArray((ep as any).celebration_artisans)
+              ? (ep as any).celebration_artisans.length
+              : 0,
           });
         }
       }
