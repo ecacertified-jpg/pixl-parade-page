@@ -69,7 +69,7 @@ export const CelebrationArtisansSection = ({ artisans, editable }: Props) => {
   return (
     <section aria-labelledby="artisans-title" className="px-4 py-3">
       <Card className="rounded-2xl p-4 shadow-soft border-secondary bg-gradient-to-br from-secondary/40 to-background">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-1">
           <Sparkles className="h-4 w-4 text-primary" />
           <h2
             id="artisans-title"
@@ -78,6 +78,9 @@ export const CelebrationArtisansSection = ({ artisans, editable }: Props) => {
             Les artisans de cette célébration
           </h2>
         </div>
+        <p className="text-xs text-muted-foreground font-nunito mb-3">
+          {getArtisanCounterLabel(list.length)}
+        </p>
 
         <ul className="space-y-1.5">
           {list.map((a, i) => {
