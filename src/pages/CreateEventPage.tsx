@@ -15,10 +15,16 @@ import confetti from "canvas-confetti";
 const occasions = [
   { key: 'birthday', emoji: '🎂', label: "Anniversaire d'un proche" },
   { key: 'wedding', emoji: '💍', label: 'Mariage' },
+  { key: 'mariage_traditionnel', emoji: '💍', label: 'Mariage traditionnel' },
+  { key: 'mariage_religieux', emoji: '⛪', label: 'Mariage religieux' },
+  { key: 'mariage_civil', emoji: '📜', label: 'Mariage civil' },
   { key: 'baptism', emoji: '👶', label: 'Baptême' },
   { key: 'engagement', emoji: '💑', label: 'Fiançailles' },
   { key: 'graduation', emoji: '🎓', label: 'Diplôme' },
   { key: 'promotion', emoji: '💼', label: 'Promotion' },
+  { key: 'reussite_academique', emoji: '🎓', label: 'Réussite académique' },
+  { key: 'reussite_scolaire', emoji: '📚', label: 'Réussite scolaire' },
+  { key: 'promotion_pro', emoji: '🏆', label: 'Promotion pro' },
   { key: 'other', emoji: '🎊', label: 'Autre' },
 ];
 
@@ -31,7 +37,10 @@ const CreateEventPage = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [spouseFirstName, setSpouseFirstName] = useState('');
   const [creating, setCreating] = useState(false);
+
+  const isWedding = occasion.includes('mariage') || occasion === 'wedding';
 
   useEffect(() => {
     if (!user) navigate('/auth?redirect=/event/create');
@@ -50,6 +59,7 @@ const CreateEventPage = () => {
         slug,
         event_date: eventDate || null,
         is_active: true,
+        spouse_first_name: isWedding && spouseFirstName.trim() ? spouseFirstName.trim() : null,
       }).select('slug').single();
 
       if (error) throw error;
@@ -129,6 +139,19 @@ const CreateEventPage = () => {
               <label className="text-sm font-medium mb-2 block">Date de l'événement (optionnel)</label>
               <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
             </div>
+
+            {isWedding && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Prénom du/de la conjoint(e) (optionnel)</label>
+                <Input
+                  value={spouseFirstName}
+                  onChange={(e) => setSpouseFirstName(e.target.value)}
+                  placeholder="Ex : Aya"
+                  maxLength={50}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Affichera 2 prénoms sur la page de mariage.</p>
+              </div>
+            )}
 
             <Button className="w-full" size="lg" disabled={!title.trim() || creating} onClick={handleCreate}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}

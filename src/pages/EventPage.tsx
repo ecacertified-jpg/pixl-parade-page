@@ -16,19 +16,30 @@ import { EventAlbum } from "@/components/EventAlbum";
 import { EventPageShareButton } from "@/components/EventPageShareButton";
 import { useEventPageSEO } from "@/hooks/useEventPageSEO";
 import { useSchemaInjector } from "@/components/schema";
+import { FundSelector } from "@/components/birthday/FundSelector";
+import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
+import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 
 const occasionThemes: Record<string, { emoji: string; gradient: string; label: string }> = {
   wedding: { emoji: '💍', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage' },
+  mariage_traditionnel: { emoji: '💍', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage traditionnel' },
+  mariage_religieux: { emoji: '⛪', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage religieux' },
+  mariage_civil: { emoji: '📜', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage civil' },
   baptism: { emoji: '👶', gradient: 'from-sky-200/40 via-blue-100/30 to-sky-100/40', label: 'Baptême' },
   engagement: { emoji: '💑', gradient: 'from-rose-200/40 via-purple-100/30 to-pink-100/40', label: 'Fiançailles' },
   graduation: { emoji: '🎓', gradient: 'from-blue-200/40 via-violet-100/30 to-indigo-100/40', label: 'Diplôme' },
+  reussite_academique: { emoji: '🎓', gradient: 'from-blue-200/40 via-violet-100/30 to-indigo-100/40', label: 'Réussite académique' },
+  reussite_scolaire: { emoji: '📚', gradient: 'from-blue-200/40 via-violet-100/30 to-indigo-100/40', label: 'Réussite scolaire' },
   promotion: { emoji: '💼', gradient: 'from-violet-200/40 via-amber-100/30 to-purple-100/40', label: 'Promotion' },
+  promotion_pro: { emoji: '🏆', gradient: 'from-violet-200/40 via-amber-100/30 to-purple-100/40', label: 'Promotion pro' },
   other: { emoji: '🎊', gradient: 'from-primary/20 via-accent/20 to-secondary/40', label: 'Événement' },
 };
 
 interface EventPageData {
   id: string; creator_id: string; occasion: string; title: string; description: string | null;
   slug: string; cover_image_url: string | null; event_date: string | null; fund_id: string | null; is_active: boolean;
+  spouse_first_name?: string | null;
+  spouse_avatar_url?: string | null;
 }
 
 interface WishMessage { id: string; sender_name: string | null; message_text: string; created_at: string; }
@@ -55,6 +66,22 @@ const EventPage = () => {
   const confettiTriggered = useRef(false);
 
   const theme = useMemo(() => occasionThemes[page?.occasion || 'other'] || occasionThemes.other, [page?.occasion]);
+  const isOwner = !!user?.id && !!page?.creator_id && user.id === page.creator_id;
+  const isWedding = !!page?.occasion && (page.occasion.includes('mariage') || page.occasion === 'wedding');
+
+  const [creatorProfile, setCreatorProfile] = useState<{ first_name: string; avatar_url: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!page?.creator_id) return;
+    (async () => {
+      const { data } = await supabase
+        .from('public_profiles')
+        .select('first_name, avatar_url')
+        .eq('user_id', page.creator_id)
+        .maybeSingle();
+      if (data) setCreatorProfile(data as any);
+    })();
+  }, [page?.creator_id]);
 
   useEventPageSEO({
     title: page?.title || '',
@@ -165,6 +192,33 @@ const EventPage = () => {
           </div>
         )}
         <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
+          {(creatorProfile || page?.spouse_first_name) && (
+            <div className="flex items-center justify-center gap-2 mb-3">
+              {creatorProfile && (
+                <Avatar className="h-14 w-14 ring-2 ring-white/80 shadow-lg">
+                  {creatorProfile.avatar_url && (
+                    <img src={creatorProfile.avatar_url} alt={creatorProfile.first_name || ''} className="h-full w-full object-cover" />
+                  )}
+                  <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                    {(creatorProfile.first_name || '?').charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              {isWedding && page?.spouse_first_name && (
+                <>
+                  <Heart className="h-5 w-5 text-heart drop-shadow" />
+                  <Avatar className="h-14 w-14 ring-2 ring-white/80 shadow-lg">
+                    {page.spouse_avatar_url && (
+                      <img src={page.spouse_avatar_url} alt={page.spouse_first_name} className="h-full w-full object-cover" />
+                    )}
+                    <AvatarFallback className="bg-accent/20 text-accent font-bold">
+                      {page.spouse_first_name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                </>
+              )}
+            </div>
+          )}
           <motion.h1 initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: "spring" }} className="text-3xl md:text-4xl font-bold font-poppins text-foreground drop-shadow-lg">
             {theme.emoji} {page?.title}
           </motion.h1>
@@ -183,6 +237,24 @@ const EventPage = () => {
             </div>
             {fund ? (
               <>
+                {isOwner && page && (
+                  <FundSelector
+                    ownerUserId={page.creator_id}
+                    pageType="event"
+                    pageId={page.id}
+                    currentFundId={fund.id}
+                    onChange={async (newId) => {
+                      if (!newId) return;
+                      const { data: f } = await supabase
+                        .from('collective_funds')
+                        .select('id, title, target_amount, current_amount, share_token')
+                        .eq('id', newId)
+                        .single();
+                      if (f) setFund(f as FundInfo);
+                    }}
+                    onCreateNew={() => navigate('/gifts')}
+                  />
+                )}
                 <p className="text-sm text-muted-foreground mb-3">{fund.title}</p>
                 <div className="mb-2"><Progress value={fund.target_amount > 0 ? (fund.current_amount / fund.target_amount) * 100 : 0} className="h-3" indicatorClassName="bg-gradient-to-r from-primary to-accent" /></div>
                 <div className="flex justify-between text-sm mb-4">
@@ -195,6 +267,24 @@ const EventPage = () => {
               </>
             ) : (
               <div className="text-center py-4 space-y-3">
+                {isOwner && page && (
+                  <FundSelector
+                    ownerUserId={page.creator_id}
+                    pageType="event"
+                    pageId={page.id}
+                    currentFundId={null}
+                    onChange={async (newId) => {
+                      if (!newId) return;
+                      const { data: f } = await supabase
+                        .from('collective_funds')
+                        .select('id, title, target_amount, current_amount, share_token')
+                        .eq('id', newId)
+                        .single();
+                      if (f) setFund(f as FundInfo);
+                    }}
+                    onCreateNew={() => navigate('/gifts')}
+                  />
+                )}
                 <div className="text-4xl">🎁</div>
                 <p className="text-sm text-muted-foreground font-nunito">Réunissez-vous pour offrir un cadeau collectif !</p>
                 <Button className="w-full" onClick={() => { if (!user) { navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=create_fund&invited=true`); return; } navigate('/gifts'); }}>
@@ -253,6 +343,16 @@ const EventPage = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
           <EventAlbum eventPageId={page!.id} slug={slug!} title={page!.title} user={user} items={albumItems} onItemAdded={(item) => setAlbumItems(prev => [item, ...prev])} />
         </motion.div>
+
+        {/* Les autres pages du créateur */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}>
+          <MyOtherPagesSection
+            ownerUserId={page!.creator_id}
+            ownerFirstName={creatorProfile?.first_name || page!.title}
+            currentPageId={page!.id}
+            showAddButton={isOwner}
+          />
+        </motion.div>
       </div>
 
       {/* Floating share */}
@@ -263,6 +363,11 @@ const EventPage = () => {
       </div>
 
       <EventPageShareButton open={showShareMenu} onOpenChange={setShowShareMenu} title={page?.title || ''} pageUrl={pageUrl} occasionEmoji={theme.emoji} />
+
+      {/* Visitor conversion CTA — only for non-authenticated visitors */}
+      {!user && page && (
+        <VisitorConversionCTA refSlug={page.slug} pageKind="event" occasion={page.occasion} />
+      )}
     </div>
   );
 };
