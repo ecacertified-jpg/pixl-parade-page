@@ -672,6 +672,23 @@ const BirthdayPage = () => {
       )}
 
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
+        {page && (
+          <CelebrationArtisansSection
+            artisans={((page as any).celebration_artisans ?? []) as CelebrationArtisan[]}
+            editable={
+              isOwner
+                ? {
+                    pageId: page.id,
+                    table: 'birthday_pages',
+                    onUpdated: (next) =>
+                      setPage((prev) =>
+                        prev ? ({ ...prev, celebration_artisans: next } as any) : prev
+                      ),
+                  }
+                : undefined
+            }
+          />
+        )}
         {/* Cagnotte section — toujours visible */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="p-5 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
