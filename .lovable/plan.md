@@ -1,38 +1,41 @@
-# Plan de correction
+## Problème
 
-## Objectif
-Corriger l’erreur qui apparaît quand Eca lance sa propre cagnotte depuis sa page d’anniversaire.
+Lorsqu'un utilisateur envoie un message dans le chat IA, la fonction edge `ai-chat-assistant` renvoie une erreur 500 « Erreur de base de données » (code DB). Test direct :
 
-## Ce que je vais faire
-1. **Cibler le vrai parcours en erreur**
-   - Vérifier le flux exact : pop-up “Créer ma cagnotte” → liste de souhaits → panier → bouton **“Lancer ma cagnotte”** dans `CollectiveCheckout`.
-   - Confirmer que l’erreur se produit bien au moment de créer l’enregistrement de cagnotte, pas dans un pop-up annexe.
+```
+POST /ai-chat-assistant → 500 {"error":"Erreur de base de données","code":"DB"}
+```
 
-2. **Corriger la cause côté base de données**
-   - Auditer les triggers/fonctions réellement exécutés sur `collective_funds` lors de la création.
-   - Supprimer toute référence restante à `NEW.contributor_id` dans le chemin de création d’une cagnotte.
-   - Conserver le comportement attendu sur `fund_contributions`, où `contributor_id` existe bien.
+## Cause identifiée
 
-3. **Sécuriser le retour côté interface**
-   - Vérifier le message affiché dans `CollectiveCheckout` pour ne plus exposer un message SQL brut à l’utilisateur.
-   - Harmoniser le message avec le vocabulaire produit (“cagnotte” plutôt que “cotisation”) si nécessaire.
+Les tables `public.ai_conversations` et `public.ai_messages` n'ont **aucun GRANT** pour les rôles `anon`, `authenticated` ou `service_role` (vérifié via `information_schema.role_table_grants`). Les politiques RLS existent et sont correctes, mais sans GRANT, PostgREST/Supabase refuse toute opération → l'INSERT dans `ai_conversations` échoue, ce qui déclenche la réponse d'erreur générique côté front (le toast rouge « Une erreur est survenue »).
 
-4. **Valider le parcours complet**
-   - Re-tester la création d’une cagnotte propriétaire depuis la page d’anniversaire.
-   - Vérifier qu’après création, la navigation et les étapes suivantes continuent de fonctionner normalement.
+Les autres champs/colonnes/policies sont OK :
+- RLS autorise `anon` à insérer (`user_id IS NULL AND session_id IS NOT NULL`)
+- RLS autorise `authenticated` à gérer ses propres conversations
+- Le code edge envoie bien `session_id` + `user_id`
 
-## Constat déjà confirmé
-- Le correctif appliqué sur `trigger_badge_check()` existe bien en base.
-- L’erreur visible par l’utilisateur vient du parcours **self-fund** dans `src/pages/CollectiveCheckout.tsx`.
-- Il reste donc très probablement **un autre trigger/fonction actif dans ce flux** qui remonte encore cette référence invalide.
+C'est uniquement la couche de privilèges SQL qui bloque.
 
-## Détails techniques
-- Fichiers déjà identifiés côté frontend :
-  - `src/pages/BirthdayPage.tsx`
-  - `src/components/WishlistFundPickerModal.tsx`
-  - `src/pages/CollectiveCheckout.tsx`
-- Tables / objets base concernés :
-  - `public.collective_funds`
-  - `public.fund_contributions`
-  - triggers liés à `collective_funds`
-- Si la cause est bien en base, je proposerai **une migration ciblée** avant toute autre modif frontend lourde.
+## Correctif
+
+Créer une nouvelle migration ajoutant les GRANTs manquants :
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_conversations TO authenticated;
+GRANT SELECT, INSERT ON public.ai_conversations TO anon;
+GRANT ALL ON public.ai_conversations TO service_role;
+
+GRANT SELECT, INSERT, UPDATE ON public.ai_messages TO authenticated;
+GRANT SELECT, INSERT ON public.ai_messages TO anon;
+GRANT ALL ON public.ai_messages TO service_role;
+```
+
+(Les politiques RLS existantes restent en place et continuent de scoper l'accès par `user_id`/`session_id`.)
+
+## Validation
+
+1. Re-tester l'edge function via curl → doit renvoyer un stream SSE et non plus 500.
+2. Envoyer un message depuis l'UI (connecté + déconnecté) → réponse de l'assistant affichée sans toast d'erreur.
+
+Aucune modification de code applicatif (front, edge function) n'est nécessaire.
