@@ -94,6 +94,16 @@ const BirthdayPage = () => {
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const [showVideosManager, setShowVideosManager] = useState(false);
 
+  // ===== Owner nudge dialogs =====
+  const [showPublishNudge, setShowPublishNudge] = useState(false);
+  const [showFundNudge, setShowFundNudge] = useState(false);
+  const [showShareNudge, setShowShareNudge] = useState(false);
+  const [shareNudgeVariant, setShareNudgeVariant] = useState<"fund_created" | "page_action" | "never_shared">("never_shared");
+  const [publishing, setPublishing] = useState(false);
+  const isOwner = !!user?.id && !!page?.user_id && user.id === page.user_id;
+  const prevFundRef = useRef<string | null>(null);
+  const actionCountRef = useRef(0);
+
   const confettiTriggered = useRef(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
