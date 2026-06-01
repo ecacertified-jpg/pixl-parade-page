@@ -1,58 +1,51 @@
-## Objectif
 
-Recadrer la playlist du carrousel de couverture pour qu'elle reste strictement dans le contexte du moment (créneau horaire / fête calendaire / anniversaire), et faire remonter en priorité les vidéos peu ou jamais vues — uniquement à l'intérieur de leur propre créneau.
+## Onboarding — Suppression étape Cagnotte + Ajout « Voir ma page »
 
-## Règles cibles
+**`src/hooks/useOnboarding.ts`**
+- Supprimer le check Step 4 (Cagnotte). Re-numéroter : Photo passe de 5 → 4, Publier de 6 → 5.
+- `Promise.all` : retirer la requête `collective_funds`.
+- Clamp final : `Math.min(5, …)`.
 
-1. **Hors anniversaire & hors fête calendaire** : la playlist contient **uniquement** les vidéos programmées pour le créneau courant (`greeting_morning` / `_afternoon` / `_evening` / `_night`). Aucune vidéo d'un autre moment de la journée n'est ajoutée, même si elle est peu vue.
-2. **Pendant une fête calendaire active** (et hors anniversaire) : la playlist contient **uniquement** les vidéos `calendar_event` actives ce jour-là (mêmes `event_key`/date). Les vidéos « bonjour/bonsoir » génériques sont retirées. Les vidéos d'autres fêtes ne remontent jamais hors de leur propre fête.
-3. **Le jour de l'anniversaire** : seules les vidéos `birthday_*` jouent (créneau du moment + `birthday_day` génériques). Toutes les vidéos `calendar_event` et `greeting_*` sont ignorées — la priorité anniversaire est absolue.
-4. **Tri intra-créneau (propriétaire uniquement)** : à l'intérieur du même créneau, on remonte d'abord les vidéos `view_count = 0`, puis `view_count ≤ 3`, puis le reste (tri stable par `display_order`/`priority`). Pour un visiteur non-propriétaire, l'ordre reste l'ordre d'origine.
+**`src/components/OnboardingExperience.tsx`**
+- `DYNAMIC_TOTAL_STEPS = 6`.
+- `stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Photo', 'Publier']`.
+- Supprimer entièrement le bloc `currentStep === 4` (Cagnotte) ; renuméroter `5 → 4` (Photo) et `6 → 5` (Publier).
+- Adapter `isStepCompleted` et `stepHintMessage` en conséquence (retirer case 4 cagnotte, décaler).
+- Retirer toute la logique liée : `hasFund`, `fundId`, `creatingFund`, `fundSkipped`, `skipFund`, `showFundPickerModal`, fetch fund, localStorage `bp_fund_skipped_*`.
+- Sous-étape 2 « Publier ma page » de l'étape Publier : quand `isPagePublished === true`, ajouter un bouton secondaire **« Voir ma page »** à droite (lien vers `/birthday/<slug>` via `onComplete()` puis navigation).
 
-## Implémentation
+## Page d'anniversaire — 4 pop-ups propriétaire
 
-### `src/utils/coverVideoSchedule.ts`
+**`src/pages/BirthdayPage.tsx`** — N'afficher les pop-ups que si `isOwner` (i.e. `user?.id === pageData.user_id`). Tous montés via `Dialog` shadcn, fermables, avec un flag `localStorage` pour ne pas spammer (re-shown selon la règle).
 
-Réécriture de `buildPlaylist` :
+### Pop-up 1 — Publier ma page
+- Condition : page existe mais `published_at` est null.
+- Affiché à l'ouverture après chargement, une fois par session (clé `bp_publish_dismissed_<pageId>_session`).
+- Titre : « Publie ta page d'anniversaire 🎂 ». CTA : **Publier ma page** → appelle la même mutation que le builder (`update birthday_pages set published_at = now()`), puis confetti + toast.
 
-```text
-if isBirthdayToday(birthday):
-    items = pickFor(currentBirthdayKind) ∪ pickFor("birthday_day")
-elif any calendar_event active today:
-    items = pickFor("calendar_event", active today only)
-else:
-    items = pickFor(currentGreetingKind)
-return dedupById(items)
-```
+### Pop-up 2 — Créer ma cagnotte
+- Condition : propriétaire ET pas de cagnotte birthday active liée (`pageData.fund_id` null ET aucun `collective_funds` actif occasion=birthday pour ce `user_id`).
+- Affiché à l'ouverture (après pop-up 1 fermé) + max 1×/jour (clé `bp_fund_cta_<pageId>_<yyyy-mm-dd>`).
+- Texte incitatif : « Active ta cagnotte pour que tes amis t'offrent le cadeau de tes rêves ✨ ». CTA : **Créer ma cagnotte** → ouvre `WishlistFundPickerModal` (déjà importé).
 
-- Suppression de la branche actuelle qui ajoute toujours `currentGreetingKind` en fin de liste → c'est elle qui fait apparaître les vidéos hors-contexte.
-- Ajout d'un paramètre optionnel `viewCounts?: Record<string, number>` (clé = `video_id`). Quand fourni, `pickFor` applique un tri secondaire : `bucket(viewCount)` puis ordre d'origine, avec buckets `0 → 1`, `1-3 → 2`, `>3 → 3`.
-- `isSpecialDayPlaylist` reste basé sur le contenu de la playlist retournée (inchangé fonctionnellement).
+### Pop-up 3 — Partager (après création cagnotte)
+- Déclenché par effet : quand le nombre de cagnottes passe de 0 → ≥1 dans la session courante (state local `prevFundCount`), ouvrir le pop-up.
+- CTA : **Partager** → ouvre `BirthdayPageShareButton`/sheet de partage.
 
-### `src/hooks/useCoverVideoPlaylist.ts`
+### Pop-up 4 — Partager (après action sur la page)
+- Déclencheurs : nouvelle photo ou vidéo ajoutée à l'album, ou nouveau message envoyé par le propriétaire. On hooke les callbacks de `BirthdayAlbumFlickr` et `MessageWall` (props existantes type `onItemAdded`) pour incrémenter un compteur `actionsSinceLastShare`. Quand `actionsSinceLastShare >= 1`, ouvrir le pop-up.
+- Texte fortement incitatif : « 🔥 Ton anniversaire devient incroyable ! Partage maintenant pour que tes amis le découvrent et participent. Plus tu partages, plus tu reçois 💝 ».
+- CTA : **Partager** → sheet de partage. Reset compteur.
 
-- Nouveau paramètre `ownerId?: string | null` (transmis par `BirthdayPage` quand `user.id === birthday_pages.user_id`).
-- Quand `ownerId` est défini et égal à l'utilisateur connecté, requête supplémentaire `birthday_page_cover_video_views` → `{ video_id, view_count }` pour cet `owner_id`, transformée en map `viewCounts`.
-- `buildPlaylist(userVideos, library, birthday, now, viewCounts)`.
-- `staleTime` court (30 s) pour que l'incrément RPC se reflète rapidement à la prochaine ouverture.
+### Pop-up 5 — Partage initial (non partagée depuis création)
+- Condition : page publiée + aucune entrée `onboarding_shares` (ou table partage existante) liée à ce `user_id` ET `created_at` page > 0 minutes.
+- Affiché 1×/24h tant que `shareCount === 0` (clé `bp_share_reminder_<pageId>_<yyyy-mm-dd>`).
+- Même UI que pop-up 4 mais texte adapté : « Ta page est en ligne… mais personne ne le sait encore. Partage-la pour recevoir messages et cadeaux 🎁 ».
 
-### `src/components/birthday/CoverVideoCarousel.tsx`
-
-- Passe `isOwner` au hook `useCoverVideoPlaylist` via un nouveau prop pipeline (déjà reçu, juste à propager). Aucune autre modif logique : le tracking RPC existant continue d'alimenter `view_count`.
-
-### `src/pages/BirthdayPage.tsx`
-
-- Aucun changement si `isOwner` est déjà calculé et passé au carousel (cas actuel). Si le hook est aussi appelé en dehors du carousel, lui transmettre `ownerId` également.
+## Composant partagé
+Créer **`src/components/birthday/OwnerNudgeDialog.tsx`** : un `Dialog` paramétrable (titre, description, icône, label CTA, onCta). Réutilisé par les 4 pop-ups. Animations Framer Motion + emoji floating discret.
 
 ## Hors périmètre
-
-- Pas de changement de schéma DB ni de migration.
-- Pas de changement du tracking côté lecture (déjà en place via `increment_cover_video_view`).
-- Pas de modification du `CoverVideosManagerSheet` (la section « À (re)découvrir » reste telle quelle pour le propriétaire dans le sheet de gestion).
-- Pas de changement admin (`AdminCoverVideos.tsx`).
-
-## Fichiers touchés
-
-- `src/utils/coverVideoSchedule.ts` (logique de scoping + tri par vues)
-- `src/hooks/useCoverVideoPlaylist.ts` (fetch `viewCounts`, propagation)
-- `src/components/birthday/CoverVideoCarousel.tsx` (propager `isOwner` au hook)
+- Pas de changement DB ni migration.
+- Pas de modification des pages publiques pour les visiteurs (les pop-ups sont strictement propriétaire).
+- L'étape « Cagnotte » reste accessible plus tard via la page d'anniversaire (pop-up 2) — on ne supprime aucune fonctionnalité de création de cagnotte, juste l'étape forcée pendant l'onboarding.
