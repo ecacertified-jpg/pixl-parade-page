@@ -60,6 +60,8 @@ import { SearchExistingFundsModal } from '@/components/SearchExistingFundsModal'
 import { BirthdayPageShareButton } from '@/components/BirthdayPageShareButton';
 import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
 import { getStoredFriendSelection, setStoredFriendSelection } from '@/hooks/useBirthdayPageBuilderStatus';
+import { CelebrationArtisansPicker } from '@/components/birthday/CelebrationArtisansPicker';
+import type { CelebrationArtisan } from '@/types/celebrationArtisan';
 
 interface BirthdayPageBuilderModalProps {
   open: boolean;
@@ -106,6 +108,9 @@ export function BirthdayPageBuilderModal({
   const [showSearchFunds, setShowSearchFunds] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [showFriendsPicker, setShowFriendsPicker] = useState(false);
+  const [showArtisansPicker, setShowArtisansPicker] = useState(false);
+  const [artisans, setArtisans] = useState<CelebrationArtisan[]>([]);
+  const [savingArtisans, setSavingArtisans] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [skippedFund, setSkippedFund] = useState(false);
   const [showEditFundAmount, setShowEditFundAmount] = useState(false);
@@ -227,6 +232,52 @@ export function BirthdayPageBuilderModal({
       cancelled = true;
     };
   }, [user?.id, open]);
+
+  // Load artisans for the current birthday page
+  useEffect(() => {
+    const pageId = status?.birthdayPageId;
+    if (!pageId || !open) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('birthday_pages')
+        .select('celebration_artisans')
+        .eq('id', pageId)
+        .maybeSingle();
+      if (!cancelled) {
+        const raw = (data as any)?.celebration_artisans;
+        setArtisans(Array.isArray(raw) ? (raw as CelebrationArtisan[]) : []);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status?.birthdayPageId, open]);
+
+  const handleSaveArtisans = async (next: CelebrationArtisan[]) => {
+    const pageId = status?.birthdayPageId;
+    if (!pageId) {
+      toast.info('Publie d\'abord ta page pour enregistrer les artisans');
+      return;
+    }
+    setSavingArtisans(true);
+    try {
+      const { error } = await supabase
+        .from('birthday_pages')
+        .update({ celebration_artisans: next } as any)
+        .eq('id', pageId);
+      if (error) {
+        console.error(error);
+        toast.error('Erreur lors de l\'enregistrement');
+        return;
+      }
+      setArtisans(next);
+      setShowArtisansPicker(false);
+      toast.success('Artisans enregistrés ✨');
+    } finally {
+      setSavingArtisans(false);
+    }
+  };
 
   // Refresh on feed-refresh events (fund creation, share, etc.)
   useEffect(() => {
@@ -620,9 +671,62 @@ export function BirthdayPageBuilderModal({
                     />
                   );
                 })}
+                {/* Optional: Celebration artisans */}
+                <Card className="p-3 border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
+                      <PartyPopper className="h-4 w-4" />
+                    </div>
+                    <span className="font-medium text-sm text-foreground flex-1 min-w-0 truncate">
+                      Artisans de la célébration
+                    </span>
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      Facultatif
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1.5 ml-[42px] line-clamp-2">
+                    {artisans.length > 0
+                      ? `${artisans.length} prestataire${artisans.length > 1 ? 's' : ''} cité${artisans.length > 1 ? 's' : ''} sur ta page`
+                      : 'Cite les pros qui participent (photographe, pâtissier, déco…)'}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant={artisans.length > 0 ? 'outline' : 'default'}
+                    className="w-full mt-2.5 h-9"
+                    onClick={() => {
+                      if (!status?.birthdayPageId) {
+                        toast.info('Publie d\'abord ta page pour ajouter les artisans');
+                        return;
+                      }
+                      setShowArtisansPicker(true);
+                    }}
+                  >
+                    {artisans.length > 0 ? 'Modifier' : 'Ajouter'}
+                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </Card>
               </div>
             )}
           </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* Artisans picker (sub-sheet) */}
+      <Sheet open={showArtisansPicker} onOpenChange={setShowArtisansPicker}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Artisans de la célébration</SheetTitle>
+            <SheetDescription>
+              Étape facultative — citez les prestataires qui participent.
+            </SheetDescription>
+          </SheetHeader>
+          <CelebrationArtisansPicker
+            initial={artisans}
+            onSave={handleSaveArtisans}
+            onSkip={() => setShowArtisansPicker(false)}
+            saving={savingArtisans}
+            continueLabel="Enregistrer"
+          />
         </SheetContent>
       </Sheet>
 
