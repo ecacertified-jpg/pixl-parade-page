@@ -781,6 +781,11 @@ const BirthdayPage = () => {
         age={age}
       />
 
+      {/* Visitor conversion CTA — only for non-authenticated visitors */}
+      {!user && page && (
+        <VisitorConversionCTA refSlug={page.slug} pageKind="birthday" />
+      )}
+
       {page && (
         <WishlistFundPickerModal
           isOpen={showWishlistPicker}
