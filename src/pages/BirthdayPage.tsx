@@ -794,11 +794,16 @@ const BirthdayPage = () => {
                 ? "Plus tu remplis ta page, plus tes amis vont l'adorer. Partage-la maintenant pour qu'ils découvrent tes ajouts et participent eux aussi 🚀"
                 : "Ta page est en ligne mais aucun ami ne l'a vue. Partage-la en 1 clic pour recevoir messages, photos souvenirs et cadeaux 🎁"
             }
-            ctaLabel="Partager"
+            ctaLabel="Copier et partager"
             ctaIcon={Share2}
+            shareUrl={pageUrl}
+            shareText={
+              age
+                ? `🎂🎉 Je fête mes ${age} ans !\n\nRejoins ma page d'anniversaire et fais-moi plaisir en 30 secondes :\n👉 Écris-moi un petit mot\n👉 Ajoute une photo souvenir\n👉 Participe au cadeau collectif\n\nClique ici ⬇️`
+                : `🎂🎉 C'est mon anniversaire !\n\nRejoins ma page et fais-moi plaisir en 30 secondes :\n👉 Écris-moi un petit mot\n👉 Ajoute une photo souvenir\n👉 Participe au cadeau collectif\n\nClique ici ⬇️`
+            }
             onCta={() => {
               setShowShareNudge(false);
-              setShowShareMenu(true);
             }}
           />
         </>
