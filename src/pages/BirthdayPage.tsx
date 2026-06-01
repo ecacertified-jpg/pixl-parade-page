@@ -26,6 +26,7 @@ import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 import { buildBirthdayShareUrl } from "@/utils/buildBirthdayShareUrl";
 import { MessageWall } from "@/components/birthday/messages/MessageWall";
+import { OwnerNudgeDialog } from "@/components/birthday/OwnerNudgeDialog";
 
 interface BirthdayPageData {
   id: string;
@@ -38,6 +39,7 @@ interface BirthdayPageData {
   is_active: boolean;
   social_share_photo_id: string | null;
   updated_at?: string | null;
+  published_at?: string | null;
 }
 
 interface WishMessage {
@@ -91,6 +93,16 @@ const BirthdayPage = () => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const [showVideosManager, setShowVideosManager] = useState(false);
+
+  // ===== Owner nudge dialogs =====
+  const [showPublishNudge, setShowPublishNudge] = useState(false);
+  const [showFundNudge, setShowFundNudge] = useState(false);
+  const [showShareNudge, setShowShareNudge] = useState(false);
+  const [shareNudgeVariant, setShareNudgeVariant] = useState<"fund_created" | "page_action" | "never_shared">("never_shared");
+  const [publishing, setPublishing] = useState(false);
+  const isOwner = !!user?.id && !!page?.user_id && user.id === page.user_id;
+  const prevFundRef = useRef<string | null>(null);
+  const actionCountRef = useRef(0);
 
   const confettiTriggered = useRef(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -378,7 +390,96 @@ const BirthdayPage = () => {
     }
   };
 
+  // ===== Owner publish helper =====
+  const handlePublishFromNudge = async () => {
+    if (!page || publishing) return;
+    setPublishing(true);
+    try {
+      const { error } = await supabase
+        .from("birthday_pages")
+        .update({ published_at: new Date().toISOString() })
+        .eq("id", page.id);
+      if (error) throw error;
+      setPage((prev) => (prev ? { ...prev, published_at: new Date().toISOString() } : prev));
+      setShowPublishNudge(false);
+      confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 }, colors: ["#7A5DC7", "#FAD4E1", "#C084FC", "#F7C948"] });
+      toast.success("🎉 Ta page est publiée !");
+      window.dispatchEvent(new Event("feed-refresh"));
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erreur lors de la publication");
+    } finally {
+      setPublishing(false);
+    }
+  };
 
+  const openShareNudge = (variant: typeof shareNudgeVariant) => {
+    setShareNudgeVariant(variant);
+    setShowShareNudge(true);
+  };
+
+  // 1) Publish nudge — page not published
+  useEffect(() => {
+    if (!isOwner || !page || loading) return;
+    const dismissedKey = `bp_publish_dismissed_${page.id}_session`;
+    if (sessionStorage.getItem(dismissedKey) === "1") return;
+    if (!page.published_at) {
+      const t = setTimeout(() => setShowPublishNudge(true), 800);
+      return () => clearTimeout(t);
+    }
+  }, [isOwner, page, loading]);
+
+  // 2) Fund nudge — no fund yet
+  useEffect(() => {
+    if (!isOwner || !page || loading) return;
+    if (showPublishNudge) return; // wait until publish nudge is gone
+    if (fund) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `bp_fund_cta_${page.id}_${today}`;
+    if (localStorage.getItem(key) === "1") return;
+    const t = setTimeout(() => {
+      setShowFundNudge(true);
+      localStorage.setItem(key, "1");
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [isOwner, page, loading, fund, showPublishNudge]);
+
+  // 3) Share nudge — fund just created (transition null → fund)
+  useEffect(() => {
+    if (!isOwner || !page) return;
+    const prev = prevFundRef.current;
+    const curr = fund?.id ?? null;
+    if (!prev && curr) {
+      // Fund just appeared in this session
+      setTimeout(() => openShareNudge("fund_created"), 500);
+    }
+    prevFundRef.current = curr;
+  }, [fund?.id, isOwner, page]);
+
+  // 5) Share nudge — never shared since creation (once per 24h)
+  useEffect(() => {
+    if (!isOwner || !page || loading) return;
+    if (!page.published_at) return;
+    if (showPublishNudge || showFundNudge) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `bp_share_reminder_${page.id}_${today}`;
+    if (localStorage.getItem(key) === "1") return;
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("onboarding_shares")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", page.user_id);
+      if (cancelled) return;
+      if ((count || 0) === 0) {
+        setTimeout(() => {
+          openShareNudge("never_shared");
+          localStorage.setItem(key, "1");
+        }, 2500);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOwner, page, loading, showPublishNudge, showFundNudge]);
 
   if (loading) {
     return (
@@ -592,7 +693,13 @@ const BirthdayPage = () => {
             firstName={firstName}
             user={user}
             items={albumItems}
-            onItemAdded={(item) => setAlbumItems(prev => [item, ...prev])}
+            onItemAdded={(item) => {
+              setAlbumItems(prev => [item, ...prev]);
+              if (isOwner && (!item.uploader_id || item.uploader_id === user?.id)) {
+                actionCountRef.current += 1;
+                setTimeout(() => openShareNudge("page_action"), 600);
+              }
+            }}
             pageOwnerUserId={page!.user_id}
             socialSharePhotoId={page!.social_share_photo_id}
             onSocialSharePhotoChanged={(photoId) =>
@@ -634,6 +741,67 @@ const BirthdayPage = () => {
           beneficiaryFirstName={firstName}
           beneficiaryAvatarUrl={birthdayPerson.avatar_url || undefined}
         />
+      )}
+
+      {/* Owner nudges */}
+      {isOwner && page && (
+        <>
+          <OwnerNudgeDialog
+            open={showPublishNudge}
+            onOpenChange={(o) => {
+              setShowPublishNudge(o);
+              if (!o) sessionStorage.setItem(`bp_publish_dismissed_${page.id}_session`, "1");
+            }}
+            icon={Sparkles}
+            title="Publie ta page d'anniversaire 🎂"
+            description="Ta page est prête mais encore invisible pour tes amis. Publie-la maintenant pour recevoir messages, photos et cadeaux ✨"
+            ctaLabel={publishing ? "Publication..." : "Publier ma page"}
+            ctaIcon={PartyPopper}
+            onCta={handlePublishFromNudge}
+          />
+
+          <OwnerNudgeDialog
+            open={showFundNudge}
+            onOpenChange={setShowFundNudge}
+            icon={Gift}
+            iconBgClass="bg-gradient-to-br from-heart to-gift"
+            title="Crée ta cagnotte 🎁"
+            description={`Donne à tes amis une façon simple de t'offrir le cadeau de tes rêves. Une cagnotte = tout le monde participe, et toi tu reçois LE cadeau qui te fait vibrer 💝`}
+            ctaLabel="Créer ma cagnotte"
+            ctaIcon={Gift}
+            onCta={() => {
+              setShowFundNudge(false);
+              setShowWishlistPicker(true);
+            }}
+          />
+
+          <OwnerNudgeDialog
+            open={showShareNudge}
+            onOpenChange={setShowShareNudge}
+            icon={Share2}
+            iconBgClass="bg-gradient-to-br from-primary via-accent to-heart"
+            title={
+              shareNudgeVariant === "fund_created"
+                ? "🎉 Cagnotte en ligne ! Partage maintenant"
+                : shareNudgeVariant === "page_action"
+                ? "🔥 Ta page devient incroyable !"
+                : "Personne ne sait que ta page existe..."
+            }
+            description={
+              shareNudgeVariant === "fund_created"
+                ? "Ta cagnotte ne servira à rien si tes amis ne la voient pas ! Partage ta page maintenant pour recevoir les premières contributions 💝"
+                : shareNudgeVariant === "page_action"
+                ? "Plus tu remplis ta page, plus tes amis vont l'adorer. Partage-la maintenant pour qu'ils découvrent tes ajouts et participent eux aussi 🚀"
+                : "Ta page est en ligne mais aucun ami ne l'a vue. Partage-la en 1 clic pour recevoir messages, photos souvenirs et cadeaux 🎁"
+            }
+            ctaLabel="Partager"
+            ctaIcon={Share2}
+            onCta={() => {
+              setShowShareNudge(false);
+              setShowShareMenu(true);
+            }}
+          />
+        </>
       )}
     </div>
   );

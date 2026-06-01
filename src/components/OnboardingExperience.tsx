@@ -136,12 +136,12 @@ export const OnboardingExperience = ({
     return () => { cancelled = true; };
   }, [selectedCategories, user]);
 
-  // 7 steps total (0=welcome → 6=publish+share)
-  const DYNAMIC_TOTAL_STEPS = 7;
+  // 6 steps total (0=welcome → 5=publish+share)
+  const DYNAMIC_TOTAL_STEPS = 6;
   const isFriendPurpose = discoveryPurpose === 'friend_birthday';
   const isOtherEvent = discoveryPurpose === 'other_event';
   const [selectedOccasion, setSelectedOccasion] = useState<string>('wedding');
-  const stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Cagnotte', 'Photo', 'Publier'];
+  const stepLabels = ['Accueil', 'Goûts', 'Souhaits', 'Type', 'Photo', 'Publier'];
 
   // ---- Birthday-page-builder synced states ----
   const [pageType, setPageTypeState] = useState<PageType | null>(null);
@@ -302,7 +302,7 @@ export const OnboardingExperience = ({
 
   // Auto-complete onboarding when the final step (publish + share) is fully done
   useEffect(() => {
-    if (currentStep === 6 && hasBirthdayPage && isPagePublished && shareCount >= 3) {
+    if (currentStep === 5 && hasBirthdayPage && isPagePublished && shareCount >= 3) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
@@ -680,9 +680,8 @@ export const OnboardingExperience = ({
       case 1: return selectedCategories.length >= 1;
       case 2: return favoriteIds.length >= 3;
       case 3: return pageType !== null;
-      case 4: return hasFund || fundSkipped;
-      case 5: return firstPhotoCount >= 1;
-      case 6: return hasBirthdayPage && isPagePublished && shareCount >= 3;
+      case 4: return firstPhotoCount >= 1;
+      case 5: return hasBirthdayPage && isPagePublished && shareCount >= 3;
       default: return false;
     }
   };
@@ -692,9 +691,8 @@ export const OnboardingExperience = ({
       case 1: return "Choisis au moins une catégorie de cadeau 🎁";
       case 2: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
       case 3: return "Choisis le type de page (toi, un proche, ou un événement) 🏷️";
-      case 4: return "Crée ta cagnotte ou clique sur « Plus tard » 🎁";
-      case 5: return "Ajoute une première photo à ton album 📸";
-      case 6: return "Publie ta page et partage-la avec 3 amis 🚀";
+      case 4: return "Ajoute une première photo à ton album 📸";
+      case 5: return "Publie ta page et partage-la avec 3 amis 🚀";
       default: return "Complète cette étape pour continuer";
     }
   };
@@ -1113,57 +1111,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 4: Cagnotte */}
+          {/* Step 4: Première photo */}
           {currentStep === 4 && (
-            <motion.div
-              key="fund-step"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              className="text-center max-w-md mx-auto w-full"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring' }}
-                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-heart to-gift flex items-center justify-center mb-6 shadow-lg"
-              >
-                <Gift className="h-10 w-10 text-white" />
-              </motion.div>
-              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                Crée ta cagnotte 🎁
-              </h2>
-              <p className="text-muted-foreground font-nunito mb-6 text-sm leading-relaxed">
-                {hasFund
-                  ? 'Ta cagnotte est en place ✨'
-                  : 'Une cagnotte permet à tes proches de cotiser ensemble pour ton cadeau de rêve.'}
-              </p>
-
-              {hasFund ? (
-                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 mb-4">
-                  <Check className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-sm font-poppins font-semibold text-foreground">Cagnotte créée !</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Button
-                    onClick={() => setShowFundPickerModal(true)}
-                    className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-2"
-                    size="lg"
-                  >
-                    <Gift className="h-4 w-4" />
-                    Créer ma cagnotte
-                  </Button>
-                  <Button onClick={skipFund} variant="ghost" className="w-full text-sm text-muted-foreground">
-                    Plus tard
-                  </Button>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Step 5: Première photo */}
-          {currentStep === 5 && (
             <OnboardingFirstPhotoStep
               birthdayPageId={birthdayPageId}
               birthdayPageSlug={birthdayPageSlug}
@@ -1178,8 +1127,8 @@ export const OnboardingExperience = ({
             />
           )}
 
-          {/* Step 6: Publish + Share */}
-          {currentStep === 6 && (
+          {/* Step 5: Publish + Share */}
+          {currentStep === 5 && (
             <motion.div
               key="birthday-page-full"
               initial={{ opacity: 0, y: 30 }}
@@ -1347,6 +1296,20 @@ export const OnboardingExperience = ({
                             className="shrink-0 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                           >
                             {publishingNow ? '...' : 'Publier'}
+                          </Button>
+                        )}
+                        {isPagePublished && birthdayPageSlug && (
+                          <Button
+                            onClick={() => {
+                              onComplete();
+                              window.location.href = `/birthday/${birthdayPageSlug}`;
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0 gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Voir ma page
                           </Button>
                         )}
                       </div>

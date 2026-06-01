@@ -17,11 +17,10 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
   }
 
   // Check all steps in parallel
-  const [profileRes, favRes, bpRes, fundRes] = await Promise.all([
+  const [profileRes, favRes, bpRes] = await Promise.all([
     supabase.from('profiles').select('birthday, selected_tastes, onboarding_completed, onboarding_furthest_step').eq('user_id', userId).single(),
     supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('birthday_pages').select('id, slug, published_at, published_via_onboarding').eq('user_id', userId).eq('is_active', true).maybeSingle(),
-    supabase.from('collective_funds').select('id', { count: 'exact', head: true }).eq('creator_id', userId).eq('occasion', 'birthday').eq('status', 'active'),
   ]);
 
   const dbFurthestStep = (profileRes.data as any)?.onboarding_furthest_step ?? 0;
@@ -52,14 +51,7 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
 
   const page = (bpRes.data as any) || null;
 
-  // Step 4: Cagnotte (skippable via flag bp_fund_skipped_${userId})
-  const hasFund = (fundRes.count || 0) >= 1;
-  const fundSkipped = localStorage.getItem(`bp_fund_skipped_${userId}`) === '1';
-  if (!hasFund && !fundSkipped) {
-    return { shouldShow: true, firstIncompleteStep: 4, dbFurthestStep };
-  }
-
-  // Step 5: Première photo
+  // Step 4: Première photo
   let firstPhotoCount = 0;
   if (page?.id) {
     const { count } = await supabase
@@ -69,10 +61,10 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     firstPhotoCount = count || 0;
   }
   if (firstPhotoCount < 1) {
-    return { shouldShow: true, firstIncompleteStep: 5, dbFurthestStep };
+    return { shouldShow: true, firstIncompleteStep: 4, dbFurthestStep };
   }
 
-  // Step 6: Publier + partager
+  // Step 5: Publier + partager
   const hasPage = !!page;
   const isPublished = !!(page?.published_at);
   const { count: shareCount } = await supabase
@@ -80,7 +72,7 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId);
   if (!hasPage || !isPublished || (shareCount || 0) < 3) {
-    return { shouldShow: true, firstIncompleteStep: 6, dbFurthestStep };
+    return { shouldShow: true, firstIncompleteStep: 5, dbFurthestStep };
   }
 
   // All steps done
@@ -112,9 +104,9 @@ export const useOnboarding = () => {
   const [currentStep, setCurrentStepState] = useState<number | null>(null);
 
   // Never go backwards: use the max of DB-computed step, stored furthest step, and DB persisted furthest step.
-  // Clamp to the new max step (6) to handle legacy values left from when onboarding had 8 steps.
+  // Clamp to the new max step (5) to handle legacy values left from when onboarding had more steps.
   const effectiveCurrentStep = currentStep ?? Math.min(
-    6,
+    5,
     Math.max(firstIncompleteStep, storedFurthestStep, dbFurthestStep)
   );
 
