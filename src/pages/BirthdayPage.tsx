@@ -390,7 +390,96 @@ const BirthdayPage = () => {
     }
   };
 
+  // ===== Owner publish helper =====
+  const handlePublishFromNudge = async () => {
+    if (!page || publishing) return;
+    setPublishing(true);
+    try {
+      const { error } = await supabase
+        .from("birthday_pages")
+        .update({ published_at: new Date().toISOString() })
+        .eq("id", page.id);
+      if (error) throw error;
+      setPage((prev) => (prev ? { ...prev, published_at: new Date().toISOString() } : prev));
+      setShowPublishNudge(false);
+      confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 }, colors: ["#7A5DC7", "#FAD4E1", "#C084FC", "#F7C948"] });
+      toast.success("🎉 Ta page est publiée !");
+      window.dispatchEvent(new Event("feed-refresh"));
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erreur lors de la publication");
+    } finally {
+      setPublishing(false);
+    }
+  };
 
+  const openShareNudge = (variant: typeof shareNudgeVariant) => {
+    setShareNudgeVariant(variant);
+    setShowShareNudge(true);
+  };
+
+  // 1) Publish nudge — page not published
+  useEffect(() => {
+    if (!isOwner || !page || loading) return;
+    const dismissedKey = `bp_publish_dismissed_${page.id}_session`;
+    if (sessionStorage.getItem(dismissedKey) === "1") return;
+    if (!page.published_at) {
+      const t = setTimeout(() => setShowPublishNudge(true), 800);
+      return () => clearTimeout(t);
+    }
+  }, [isOwner, page, loading]);
+
+  // 2) Fund nudge — no fund yet
+  useEffect(() => {
+    if (!isOwner || !page || loading) return;
+    if (showPublishNudge) return; // wait until publish nudge is gone
+    if (fund) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `bp_fund_cta_${page.id}_${today}`;
+    if (localStorage.getItem(key) === "1") return;
+    const t = setTimeout(() => {
+      setShowFundNudge(true);
+      localStorage.setItem(key, "1");
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [isOwner, page, loading, fund, showPublishNudge]);
+
+  // 3) Share nudge — fund just created (transition null → fund)
+  useEffect(() => {
+    if (!isOwner || !page) return;
+    const prev = prevFundRef.current;
+    const curr = fund?.id ?? null;
+    if (!prev && curr) {
+      // Fund just appeared in this session
+      setTimeout(() => openShareNudge("fund_created"), 500);
+    }
+    prevFundRef.current = curr;
+  }, [fund?.id, isOwner, page]);
+
+  // 5) Share nudge — never shared since creation (once per 24h)
+  useEffect(() => {
+    if (!isOwner || !page || loading) return;
+    if (!page.published_at) return;
+    if (showPublishNudge || showFundNudge) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `bp_share_reminder_${page.id}_${today}`;
+    if (localStorage.getItem(key) === "1") return;
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("onboarding_shares")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", page.user_id);
+      if (cancelled) return;
+      if ((count || 0) === 0) {
+        setTimeout(() => {
+          openShareNudge("never_shared");
+          localStorage.setItem(key, "1");
+        }, 2500);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOwner, page, loading, showPublishNudge, showFundNudge]);
 
   if (loading) {
     return (
