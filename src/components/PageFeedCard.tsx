@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Calendar, UserCheck, UserPlus, Star, Play } from "lucide-react";
 import { FeedCardActions } from "@/components/FeedCardActions";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { FeedPage, FeedMedia } from "@/hooks/usePagesFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { getArtisanCounterLabel } from "@/utils/artisanCounter";
 
 const OCCASION_ICONS: Record<string, string> = {
   Anniversaire: '🎂',
