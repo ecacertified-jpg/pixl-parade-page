@@ -680,9 +680,8 @@ export const OnboardingExperience = ({
       case 1: return selectedCategories.length >= 1;
       case 2: return favoriteIds.length >= 3;
       case 3: return pageType !== null;
-      case 4: return hasFund || fundSkipped;
-      case 5: return firstPhotoCount >= 1;
-      case 6: return hasBirthdayPage && isPagePublished && shareCount >= 3;
+      case 4: return firstPhotoCount >= 1;
+      case 5: return hasBirthdayPage && isPagePublished && shareCount >= 3;
       default: return false;
     }
   };
@@ -692,9 +691,8 @@ export const OnboardingExperience = ({
       case 1: return "Choisis au moins une catégorie de cadeau 🎁";
       case 2: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
       case 3: return "Choisis le type de page (toi, un proche, ou un événement) 🏷️";
-      case 4: return "Crée ta cagnotte ou clique sur « Plus tard » 🎁";
-      case 5: return "Ajoute une première photo à ton album 📸";
-      case 6: return "Publie ta page et partage-la avec 3 amis 🚀";
+      case 4: return "Ajoute une première photo à ton album 📸";
+      case 5: return "Publie ta page et partage-la avec 3 amis 🚀";
       default: return "Complète cette étape pour continuer";
     }
   };
