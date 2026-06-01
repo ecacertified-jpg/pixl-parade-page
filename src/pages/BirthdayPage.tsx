@@ -27,6 +27,9 @@ import { useSchemaInjector } from "@/components/schema";
 import { buildBirthdayShareUrl } from "@/utils/buildBirthdayShareUrl";
 import { MessageWall } from "@/components/birthday/messages/MessageWall";
 import { OwnerNudgeDialog } from "@/components/birthday/OwnerNudgeDialog";
+import { FundSelector } from "@/components/birthday/FundSelector";
+import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
+import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 
 interface BirthdayPageData {
   id: string;
@@ -624,6 +627,24 @@ const BirthdayPage = () => {
 
             {fund ? (
               <>
+                {isOwner && (
+                  <FundSelector
+                    ownerUserId={page!.user_id}
+                    pageType="birthday"
+                    pageId={page!.id}
+                    currentFundId={fund.id}
+                    onChange={async (newId) => {
+                      if (!newId) return;
+                      const { data: f } = await supabase
+                        .from('collective_funds')
+                        .select('id, title, target_amount, current_amount, share_token')
+                        .eq('id', newId)
+                        .single();
+                      if (f) setFund(f as FundInfo);
+                    }}
+                    onCreateNew={() => setShowWishlistPicker(true)}
+                  />
+                )}
                 <p className="text-sm text-muted-foreground mb-3">{fund.title}</p>
                 <div className="mb-2">
                   <Progress
@@ -653,6 +674,24 @@ const BirthdayPage = () => {
               </>
             ) : (
               <div className="text-center py-4 space-y-3">
+                {isOwner && (
+                  <FundSelector
+                    ownerUserId={page!.user_id}
+                    pageType="birthday"
+                    pageId={page!.id}
+                    currentFundId={null}
+                    onChange={async (newId) => {
+                      if (!newId) return;
+                      const { data: f } = await supabase
+                        .from('collective_funds')
+                        .select('id, title, target_amount, current_amount, share_token')
+                        .eq('id', newId)
+                        .single();
+                      if (f) setFund(f as FundInfo);
+                    }}
+                    onCreateNew={() => setShowWishlistPicker(true)}
+                  />
+                )}
                 <div className="text-4xl">🎁</div>
                 <p className="text-sm text-muted-foreground font-nunito">
                   Réunissez-vous entre amis pour offrir un cadeau mémorable à <span className="font-semibold text-foreground">{firstName}</span> !
@@ -682,6 +721,16 @@ const BirthdayPage = () => {
             slug={slug!}
             firstName={firstName}
             pageOwnerUserId={page!.user_id}
+          />
+        </motion.div>
+
+        {/* Les autres pages du créateur */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}>
+          <MyOtherPagesSection
+            ownerUserId={page!.user_id}
+            ownerFirstName={firstName}
+            currentPageId={page!.id}
+            showAddButton={isOwner}
           />
         </motion.div>
 
