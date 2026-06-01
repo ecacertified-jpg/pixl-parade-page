@@ -30,6 +30,8 @@ import { OwnerNudgeDialog } from "@/components/birthday/OwnerNudgeDialog";
 import { FundSelector } from "@/components/birthday/FundSelector";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
+import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
+import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 
 interface BirthdayPageData {
   id: string;
