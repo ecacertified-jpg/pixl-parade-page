@@ -9,13 +9,14 @@ import {
 interface Params {
   birthdayPageId: string | null | undefined;
   birthday: string | null | undefined;
+  ownerId?: string | null;
 }
 
 /**
  * Returns the ordered playlist of cover videos for a visitor.
  * Re-evaluates when local time crosses an hour boundary.
  */
-export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
+export function useCoverVideoPlaylist({ birthdayPageId, birthday, ownerId }: Params) {
   const [tick, setTick] = useState(0);
 
   // Refresh playlist every 15min in case visitor stays long enough to cross a greeting window
@@ -77,10 +78,26 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday }: Params) {
     },
   });
 
+  const { data: viewCounts = {} } = useQuery({
+    queryKey: ["cover-video-views", ownerId],
+    enabled: !!ownerId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("birthday_page_cover_video_views")
+        .select("video_id, view_count")
+        .eq("owner_id", ownerId!);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const r of data ?? []) map[r.video_id] = r.view_count ?? 0;
+      return map;
+    },
+  });
+
   const playlist = useMemo(
-    () => buildPlaylist(userVideos, library, birthday ?? null),
+    () => buildPlaylist(userVideos, library, birthday ?? null, new Date(), ownerId ? viewCounts : undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [userVideos, library, birthday, tick],
+    [userVideos, library, birthday, tick, ownerId, viewCounts],
   );
 
   return { playlist };

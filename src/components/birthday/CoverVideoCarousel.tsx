@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useCoverVideoPlaylist } from "@/hooks/useCoverVideoPlaylist";
 import { isSpecialDayPlaylist, type CoverVideoItem } from "@/utils/coverVideoSchedule";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MUTE_STORAGE_KEY = "birthday-cover-muted";
 const MAX_DURATION_MS = 20_000;
@@ -31,7 +32,12 @@ export function CoverVideoCarousel({
   children,
   isOwner = false,
 }: Props) {
-  const { playlist } = useCoverVideoPlaylist({ birthdayPageId, birthday });
+  const { user } = useAuth();
+  const { playlist } = useCoverVideoPlaylist({
+    birthdayPageId,
+    birthday,
+    ownerId: isOwner ? user?.id ?? null : null,
+  });
   const [index, setIndex] = useState(0);
   const [muted, setMuted] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
