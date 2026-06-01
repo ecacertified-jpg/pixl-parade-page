@@ -207,7 +207,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[92vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto sm:overflow-hidden sm:flex sm:flex-col p-0">
         <DialogHeader className="px-5 pt-5">
           <DialogTitle className="font-poppins">Créer ma carte ✨</DialogTitle>
           <DialogDescription>
@@ -215,7 +215,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
+        <Tabs value={tab} onValueChange={setTab} className="sm:flex-1 sm:flex sm:flex-col sm:min-h-0">
           <div className="px-5 relative">
             <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
               <TabsList className="inline-flex flex-nowrap min-w-max gap-1.5 bg-secondary/60 p-1 pr-10 h-auto">
@@ -241,7 +241,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
             <div className="pointer-events-none absolute right-5 top-0 bottom-0 w-10 bg-gradient-to-l from-background to-transparent" />
           </div>
 
-          <div className="flex-1 overflow-y-auto px-5 pt-3 pb-2 min-h-0">
+          <div className="sm:flex-1 sm:overflow-y-auto px-5 pt-3 pb-2 sm:min-h-0 min-h-[300px]">
             <TabsContent value="gif" className="mt-0">
               <GiphyGrid type="gif" onSelect={(it) => setSelection({ media_type: "gif", media_url: it.url, media_metadata: { giphy_id: it.id, width: it.width, height: it.height } })} selectedUrl={selection?.media_type === "gif" ? selection.media_url : undefined} />
             </TabsContent>
@@ -393,7 +393,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
           )}
         </div>
 
-        <div className="flex gap-2 p-4 border-t bg-background">
+        <div className="flex gap-2 p-3 sm:p-4 border-t bg-background">
           <Button variant="ghost" className="flex-1" onClick={() => onOpenChange(false)} disabled={publishing}>
             Annuler
           </Button>
