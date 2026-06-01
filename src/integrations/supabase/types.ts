@@ -1324,6 +1324,7 @@ export type Database = {
       }
       birthday_pages: {
         Row: {
+          celebration_artisans: Json
           celebration_year: number
           cover_image_url: string | null
           created_at: string
@@ -1339,6 +1340,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          celebration_artisans?: Json
           celebration_year?: number
           cover_image_url?: string | null
           created_at?: string
@@ -1354,6 +1356,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          celebration_artisans?: Json
           celebration_year?: number
           cover_image_url?: string | null
           created_at?: string
@@ -3721,6 +3724,7 @@ export type Database = {
       }
       event_pages: {
         Row: {
+          celebration_artisans: Json
           cover_image_url: string | null
           created_at: string
           creator_id: string
@@ -3738,6 +3742,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          celebration_artisans?: Json
           cover_image_url?: string | null
           created_at?: string
           creator_id: string
@@ -3755,6 +3760,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          celebration_artisans?: Json
           cover_image_url?: string | null
           created_at?: string
           creator_id?: string
