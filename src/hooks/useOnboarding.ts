@@ -17,13 +17,11 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
   }
 
   // Check all steps in parallel
-  const [profileRes, favRes, friendRes, bpRes, fundRes, circlesRes] = await Promise.all([
+  const [profileRes, favRes, bpRes, fundRes] = await Promise.all([
     supabase.from('profiles').select('birthday, selected_tastes, onboarding_completed, onboarding_furthest_step').eq('user_id', userId).single(),
     supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-    supabase.from('friend_form_tokens').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'completed'),
     supabase.from('birthday_pages').select('id, slug, published_at, published_via_onboarding').eq('user_id', userId).eq('is_active', true).maybeSingle(),
     supabase.from('collective_funds').select('id', { count: 'exact', head: true }).eq('creator_id', userId).eq('occasion', 'birthday').eq('status', 'active'),
-    supabase.from('friend_circles').select('id').eq('user_id', userId),
   ]);
 
   const dbFurthestStep = (profileRes.data as any)?.onboarding_furthest_step ?? 0;
