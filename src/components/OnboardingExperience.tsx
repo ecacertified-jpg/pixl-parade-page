@@ -1113,8 +1113,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 5: Cagnotte */}
-          {currentStep === 5 && (
+          {/* Step 4: Cagnotte */}
+          {currentStep === 4 && (
             <motion.div
               key="fund-step"
               initial={{ opacity: 0, y: 30 }}
@@ -1162,8 +1162,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 6: Première photo */}
-          {currentStep === 6 && (
+          {/* Step 5: Première photo */}
+          {currentStep === 5 && (
             <OnboardingFirstPhotoStep
               birthdayPageId={birthdayPageId}
               birthdayPageSlug={birthdayPageSlug}
@@ -1178,8 +1178,8 @@ export const OnboardingExperience = ({
             />
           )}
 
-          {/* Step 7: Publish + Share (anciennement step 5) */}
-          {currentStep === 7 && (
+          {/* Step 6: Publish + Share */}
+          {currentStep === 6 && (
             <motion.div
               key="birthday-page-full"
               initial={{ opacity: 0, y: 30 }}
