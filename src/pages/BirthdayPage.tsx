@@ -742,6 +742,67 @@ const BirthdayPage = () => {
           beneficiaryAvatarUrl={birthdayPerson.avatar_url || undefined}
         />
       )}
+
+      {/* Owner nudges */}
+      {isOwner && page && (
+        <>
+          <OwnerNudgeDialog
+            open={showPublishNudge}
+            onOpenChange={(o) => {
+              setShowPublishNudge(o);
+              if (!o) sessionStorage.setItem(`bp_publish_dismissed_${page.id}_session`, "1");
+            }}
+            icon={Sparkles}
+            title="Publie ta page d'anniversaire 🎂"
+            description="Ta page est prête mais encore invisible pour tes amis. Publie-la maintenant pour recevoir messages, photos et cadeaux ✨"
+            ctaLabel={publishing ? "Publication..." : "Publier ma page"}
+            ctaIcon={PartyPopper}
+            onCta={handlePublishFromNudge}
+          />
+
+          <OwnerNudgeDialog
+            open={showFundNudge}
+            onOpenChange={setShowFundNudge}
+            icon={Gift}
+            iconBgClass="bg-gradient-to-br from-heart to-gift"
+            title="Crée ta cagnotte 🎁"
+            description={`Donne à tes amis une façon simple de t'offrir le cadeau de tes rêves. Une cagnotte = tout le monde participe, et toi tu reçois LE cadeau qui te fait vibrer 💝`}
+            ctaLabel="Créer ma cagnotte"
+            ctaIcon={Gift}
+            onCta={() => {
+              setShowFundNudge(false);
+              setShowWishlistPicker(true);
+            }}
+          />
+
+          <OwnerNudgeDialog
+            open={showShareNudge}
+            onOpenChange={setShowShareNudge}
+            icon={Share2}
+            iconBgClass="bg-gradient-to-br from-primary via-accent to-heart"
+            title={
+              shareNudgeVariant === "fund_created"
+                ? "🎉 Cagnotte en ligne ! Partage maintenant"
+                : shareNudgeVariant === "page_action"
+                ? "🔥 Ta page devient incroyable !"
+                : "Personne ne sait que ta page existe..."
+            }
+            description={
+              shareNudgeVariant === "fund_created"
+                ? "Ta cagnotte ne servira à rien si tes amis ne la voient pas ! Partage ta page maintenant pour recevoir les premières contributions 💝"
+                : shareNudgeVariant === "page_action"
+                ? "Plus tu remplis ta page, plus tes amis vont l'adorer. Partage-la maintenant pour qu'ils découvrent tes ajouts et participent eux aussi 🚀"
+                : "Ta page est en ligne mais aucun ami ne l'a vue. Partage-la en 1 clic pour recevoir messages, photos souvenirs et cadeaux 🎁"
+            }
+            ctaLabel="Partager"
+            ctaIcon={Share2}
+            onCta={() => {
+              setShowShareNudge(false);
+              setShowShareMenu(true);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 };
