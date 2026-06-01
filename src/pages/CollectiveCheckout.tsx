@@ -230,7 +230,7 @@ export default function CollectiveCheckout() {
         } else {
           toast({
             title: "Erreur de création",
-            description: `Impossible de créer la cotisation: ${fundError.message}`,
+            description: "Impossible de créer ta cagnotte pour le moment. Réessaie dans un instant.",
             variant: "destructive"
           });
         }
