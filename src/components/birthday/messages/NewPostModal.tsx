@@ -393,7 +393,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
           )}
         </div>
 
-        <div className="flex gap-2 p-4 border-t bg-background">
+        <div className="flex gap-2 p-3 sm:p-4 border-t bg-background">
           <Button variant="ghost" className="flex-1" onClick={() => onOpenChange(false)} disabled={publishing}>
             Annuler
           </Button>
