@@ -238,6 +238,8 @@ const App = () => (
             <Route path="/event/create" element={<ProtectedRoute><L><CreateEventPage /></L></ProtectedRoute>} />
             <Route path="/event/:slug" element={<L><EventPage /></L>} />
             <Route path="/evenement/:slug" element={<L><EventPage /></L>} />
+            <Route path="/organisation/accept/:token" element={<L><OrganizerAccept /></L>} />
+            <Route path="/organisation/inviter/:token" element={<L><OrganizerAccept /></L>} />
             <Route path="/join/:code" element={<L><JoinAdmin /></L>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<L><ResetPassword /></L>} />
