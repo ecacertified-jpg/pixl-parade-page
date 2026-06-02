@@ -18,6 +18,7 @@ import { useEventPageSEO } from "@/hooks/useEventPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 import { FundSelector } from "@/components/birthday/FundSelector";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
+import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
