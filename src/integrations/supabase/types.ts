@@ -3672,6 +3672,147 @@ export type Database = {
         }
         Relationships: []
       }
+      event_budget_items: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          label: string | null
+          notes: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          planned_amount: number
+          spent_amount: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          planned_amount?: number
+          spent_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          page_id?: string
+          page_type?: Database["public"]["Enums"]["organization_page_type"]
+          planned_amount?: number
+          spent_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      event_guests: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          note: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          phone: string | null
+          status: Database["public"]["Enums"]["event_guest_status"]
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          note?: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          phone?: string | null
+          status?: Database["public"]["Enums"]["event_guest_status"]
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          note?: string | null
+          page_id?: string
+          page_type?: Database["public"]["Enums"]["organization_page_type"]
+          phone?: string | null
+          status?: Database["public"]["Enums"]["event_guest_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      event_organizers: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          invite_token: string | null
+          invited_by: string | null
+          invited_email: string | null
+          invited_name: string | null
+          invited_phone: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          role: Database["public"]["Enums"]["organizer_role"]
+          status: Database["public"]["Enums"]["organizer_status"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invite_token?: string | null
+          invited_by?: string | null
+          invited_email?: string | null
+          invited_name?: string | null
+          invited_phone?: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          role?: Database["public"]["Enums"]["organizer_role"]
+          status?: Database["public"]["Enums"]["organizer_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invite_token?: string | null
+          invited_by?: string | null
+          invited_email?: string | null
+          invited_name?: string | null
+          invited_phone?: string | null
+          page_id?: string
+          page_type?: Database["public"]["Enums"]["organization_page_type"]
+          role?: Database["public"]["Enums"]["organizer_role"]
+          status?: Database["public"]["Enums"]["organizer_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       event_page_photos: {
         Row: {
           caption: string | null
@@ -3833,6 +3974,101 @@ export type Database = {
           success_rate?: number | null
           total_amount_raised?: number | null
           total_funds_created?: number | null
+        }
+        Relationships: []
+      }
+      event_tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          position: number
+          status: Database["public"]["Enums"]["event_task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          position?: number
+          status?: Database["public"]["Enums"]["event_task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          page_id?: string
+          page_type?: Database["public"]["Enums"]["organization_page_type"]
+          position?: number
+          status?: Database["public"]["Enums"]["event_task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "event_organizers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_vendors: {
+        Row: {
+          business_account_id: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_account_id?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_account_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          page_id?: string
+          page_type?: Database["public"]["Enums"]["organization_page_type"]
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -9447,6 +9683,15 @@ export type Database = {
         Returns: boolean
       }
       can_contribute_to_fund: { Args: { fund_uuid: string }; Returns: boolean }
+      can_manage_page: {
+        Args: {
+          _page_id: string
+          _page_type: Database["public"]["Enums"]["organization_page_type"]
+          _required_role?: Database["public"]["Enums"]["organizer_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       can_see_business_fund_for_friend: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
@@ -9915,6 +10160,14 @@ export type Database = {
         Args: { follower: string; following: string }
         Returns: boolean
       }
+      is_page_owner: {
+        Args: {
+          _page_id: string
+          _page_type: Database["public"]["Enums"]["organization_page_type"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_surprise_contributor: {
         Args: { fund_uuid: string; user_uuid: string }
@@ -10076,6 +10329,11 @@ export type Database = {
         | "birthday_afternoon"
         | "birthday_evening"
         | "birthday_night"
+      event_guest_status: "invited" | "confirmed" | "declined" | "pending"
+      event_task_status: "todo" | "in_progress" | "done"
+      organization_page_type: "birthday" | "event"
+      organizer_role: "admin" | "tasks" | "budget" | "guests" | "vendors"
+      organizer_status: "pending" | "accepted" | "revoked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -10215,6 +10473,11 @@ export const Constants = {
         "birthday_evening",
         "birthday_night",
       ],
+      event_guest_status: ["invited", "confirmed", "declined", "pending"],
+      event_task_status: ["todo", "in_progress", "done"],
+      organization_page_type: ["birthday", "event"],
+      organizer_role: ["admin", "tasks", "budget", "guests", "vendors"],
+      organizer_status: ["pending", "accepted", "revoked"],
     },
   },
 } as const
