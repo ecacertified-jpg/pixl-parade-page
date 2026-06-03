@@ -1,127 +1,125 @@
+## Objectif
 
-# Module Organisation — JDV Compagnon de célébration
+Aligner l'expérience visuelle des pages d'événement (mariage en priorité) sur celle des pages d'anniversaire et corriger deux scories d'affichage (carte "Mes coulisses", bouton "Créer une page d'événement").
 
-Objectif : ajouter un espace privé "Organisation" sur les pages anniversaire et événement, sans toucher à l'expérience publique (vidéo, compte à rebours, cadeau collectif, cartes, album).
+---
 
-## 1. Architecture polymorphe
+## 1. Hero des pages d'événement (vidéo + couple + compte à rebours)
 
-Les 5 nouvelles tables référencent une page via un couple `(page_type, page_id)` plutôt que deux FK distinctes. Cela évite la duplication entre `birthday_pages` et `event_pages` et reste extensible (futurs types).
+### 1.1 Rendre `CoverVideoCarousel` générique
+Aujourd'hui, `CoverVideoCarousel` est branché sur `birthday_pages` (table `birthday_page_cover_videos` + paramètre `birthday`). On va :
 
-- `page_type` : enum `'birthday' | 'event'`
-- Helper SQL `public.can_manage_page(_user_id uuid, _page_type text, _page_id uuid)` (SECURITY DEFINER) : renvoie true si l'utilisateur est propriétaire (`user_id` sur birthday_pages / `creator_id` sur event_pages) OU co-organisateur actif avec un rôle autorisé.
-- Toutes les RLS d'écriture passent par ce helper (zéro `USING (true)`).
+- Ajouter un prop `mode: 'birthday' | 'event'` (défaut `birthday`).
+- Quand `mode === 'event'`, le carousel utilisera :
+  - `event_date` (au lieu de `birthday`) pour décider du "jour spécial",
+  - les vidéos perso de la page d'événement (nouvelle table `event_page_cover_videos`, miroir minimal de la table existante), si on souhaite plus tard laisser le couple uploader ses propres vidéos. Pour le V1 on n'ajoute **pas** la table — uniquement la bibliothèque admin est lue.
 
-## 2. Schéma (5 nouvelles tables + 1 enum)
+### 1.2 Étendre le scheduler vidéo (`utils/coverVideoSchedule.ts`)
+Ajout de nouveaux `schedule_kind` :
 
-```text
-event_organizers          (co-organisateurs hybrides)
- ├─ page_type, page_id
- ├─ user_id (nullable, lien JDV si inscrit)
- ├─ invited_phone, invited_name, invited_email (avant inscription)
- ├─ role: admin | tasks | budget | guests | vendors
- ├─ status: pending | accepted | revoked
- ├─ invite_token, invited_by, accepted_at
+- `wedding_day`
+- `wedding_morning`
+- `wedding_afternoon`
+- `wedding_evening`
+- `wedding_night`
 
-event_tasks               (checklist)
- ├─ page_type, page_id
- ├─ title, description, due_date
- ├─ status: todo | in_progress | done
- ├─ assigned_to (organizer_id, nullable)
- ├─ position (tri manuel)
+Fonctions ajoutées :
+- `isEventToday(event_date, now)` (parsing local YYYY-MM-DD identique à `isBirthdayToday`).
+- `currentWeddingKind(now)` (même fenêtres horaires que les greetings).
+- Évolution de `buildPlaylist` qui prend désormais un paramètre `context: 'birthday' | 'wedding'` et choisit `wedding_*` vs `birthday_*`. Les greetings restent partagés entre les deux contextes.
 
-event_vendors             (prestataires)
- ├─ page_type, page_id
- ├─ category (réutilise CELEBRATION_ARTISAN_ROLES)
- ├─ name, phone, notes
- ├─ business_account_id (nullable, prêt pour V2 marketplace)
+### 1.3 Intégration dans `EventPage.tsx`
+Remplacer le bloc actuel `cover_image_url ? <img /> : <div emoji />` par :
 
-event_budget_items        (budget)
- ├─ page_type, page_id
- ├─ category, label
- ├─ planned_amount, spent_amount
- ├─ currency (défaut XOF)
-
-event_guests              (invités RSVP)
- ├─ page_type, page_id
- ├─ name, phone, contact_id (lien optionnel address book)
- ├─ status: invited | confirmed | declined | pending
- ├─ note
+```
+<CoverVideoCarousel
+  mode="event"
+  birthdayPageId={null}
+  birthday={page.event_date /* utilisé comme target_date */}
+  fallbackImageUrl={page.cover_image_url}
+  className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
+  overlay={<EventHeroOverlay page={page} creatorProfile={creatorProfile} isWedding={isWedding} />}
+/>
 ```
 
-Index sur `(page_type, page_id)` pour chaque table. GRANT explicites pour `authenticated` et `service_role` (aucun accès `anon` : tout est privé).
+`EventHeroOverlay` (nouveau composant local) reproduit la disposition de la page anniversaire :
+- Pour un mariage : deux avatars côte à côte (créateur + conjoint) avec petit cœur, sinon avatar unique du créateur.
+- Titre en blanc : `Mariage de Gnol et Kady` (existant) ou titre simple selon l'occasion.
+- Sous-titre optionnel (description courte / `Beau couple`).
+- En dessous, **un seul** compte à rebours élégant via `EventCountdown` (cf. ci-dessous). On retire le doublon actuel "📅 7 juin 2026" + emoji bouncing pour ne pas surcharger.
 
-## 3. RLS
+### 1.4 Nouveau composant `EventCountdown`
+Basé sur `BirthdayCountdown` mais avec deux affichages selon la proximité :
 
-- SELECT/INSERT/UPDATE/DELETE : `can_manage_page(auth.uid(), page_type, page_id)`
-- `event_organizers` : un invité peut SELECT/UPDATE sa propre ligne via `invite_token` (pour accepter) — politique séparée.
-- Aucun accès public ; l'onglet Organisation n'est rendu côté client que si l'utilisateur figure dans la liste des managers.
+- `diff > 48h` → pastille compacte `Dans 54 jrs` (label dynamique singulier/pluriel).
+- `diff ≤ 48h` (mais > 0) → format complet `02 hrs : 10 min : 45 sec` (mise à jour à la seconde).
+- `diff ≤ 0` → libellé `🎉 C'est aujourd'hui !`.
 
-## 4. Co-organisateurs (hybride)
+Réutilisé côté birthday plus tard si besoin (on garde `BirthdayCountdown` pour ne rien casser).
 
-Flux :
-1. Propriétaire ouvre la modale "Inviter un co-organisateur" → saisit nom + téléphone (+ email optionnel) + rôle.
-2. Insertion `event_organizers` avec `status='pending'` et `invite_token`.
-3. WhatsApp envoyé via edge function `notify-organizer-invite` (template existant ou message libre) → lien `/organisation/accept/:token`.
-4. Page d'acceptation :
-   - Si utilisateur JDV connecté avec phone correspondant → `user_id` liés, status=accepted.
-   - Sinon → onboarding court (réutilise self-fill token flow existant), puis lien.
-5. Une fois accepté, le co-orga voit l'onglet Organisation sur la page.
+---
 
-Rôles et permissions (UI-side + check helper SQL) :
-- `admin` : tout
-- `tasks` : checklist
-- `budget` : budget
-- `guests` : invités
-- `vendors` : prestataires
+## 2. Admin — section "Vidéos de mariage"
 
-## 5. UI
+Dans `src/pages/Admin/AdminCoverVideos.tsx` :
 
-Nouveau dossier `src/components/organization/` :
-- `OrganizationTab.tsx` (entrée principale, sous-onglets festifs)
-- `TasksBoard.tsx` (cartes avec emoji par statut)
-- `VendorsList.tsx` (réutilise `CELEBRATION_ARTISAN_ROLES`, lien vers carnet existant)
-- `BudgetTable.tsx` (totaux pré/dépensé/diff, jauge colorée)
-- `GuestsList.tsx` (compteur + taux de confirmation animé)
-- `OrganizersManager.tsx` (modale d'invitation, liste, rôles)
-- `OrganizationEmptyState.tsx` (illustration douce, ton chaleureux)
+- Ajouter un **onglet** ou un **second bloc** (`<Tabs>` léger) "Anniversaires" / "Mariages". Préférence : tabs pour rester lisible.
+- Tab "Mariages" :
+  - Sélecteur `kind` limité à : `wedding_day`, `wedding_morning`, `wedding_afternoon`, `wedding_evening`, `wedding_night`, plus `calendar_event` partagé.
+  - Form d'upload identique (titre, fichier, génération poster, insertion dans `cover_video_library`).
+  - Liste filtrée sur ces kinds.
+- Tab "Anniversaires" : comportement actuel (filtré sur kinds existants).
+- La table `cover_video_library` n'a **pas** besoin de migration : on s'appuie sur la valeur de `schedule_kind`. Côté DB on ajoute simplement les nouveaux libellés autorisés (si une contrainte CHECK existe — à vérifier ; sinon aucune migration nécessaire). Si un enum/check bloque, créer une migration pour étendre l'enum.
 
-Intégration :
-- `BirthdayPage.tsx` et `EventPage.tsx` : ajout d'un onglet "🎯 Organisation" rendu uniquement si `useCanManagePage(pageType, pageId)` renvoie true.
-- Page d'acceptation : nouvelle route `/organisation/accept/:token` (alias FR `/organisation/inviter/:token`).
+---
 
-Ton & design :
-- Réutilise palette JDV (primary violet, secondary rose, cards `rounded-2xl shadow-soft`), Poppins/Nunito.
-- Vocabulaire émotionnel : "Mes préparatifs", "Mon équipe de cœur", "Mon enveloppe", "Mes invités" plutôt que "tasks/budget/guests".
-- Micro-animations confetti à l'achèvement d'une tâche, jauge budget qui se remplit, badge "🎉 100% confirmés".
-- Mobile-first : sous-onglets en pills horizontales scrollables.
+## 3. Carte "Mes coulisses" — refonte harmonieuse
 
-## 6. Hooks
+Dans `src/components/organization/OrganizationSection.tsx`, le rendu actuel produit un titre cassé sur deux lignes ("Mes / coulisses ✨") + bouton qui pousse la description. Refonte :
 
-- `useOrganizationAccess(pageType, pageId)` → `{ canManage, role, isOwner }`
-- `useEventTasks`, `useEventVendors`, `useEventBudget`, `useEventGuests`, `useEventOrganizers` (CRUD + realtime optionnel)
-- Validation Zod sur tous les formulaires.
+```text
+┌────────────────────────────────────────────┐
+│ ✨  Mes coulisses                          │
+│     Préparatifs · prestataires · budget…   │
+│                                            │
+│                       [ Ouvrir les coulisses ▸ ]
+└────────────────────────────────────────────┘
+```
 
-## 7. Edge functions
+Détails :
+- Layout vertical (titre + sous-titre alignés à gauche), bouton sur sa propre ligne en pleine largeur sur mobile (`w-full sm:w-auto sm:self-end`).
+- Titre sur **une seule ligne** (`text-base font-semibold whitespace-nowrap`), sparkle dans une pastille à gauche.
+- Sous-titre raccourci en une phrase avec séparateurs `·`.
+- Carte un peu plus aérée (`p-5`, `gap-3`, fond gradient inchangé).
 
-- `notify-organizer-invite` : envoi WhatsApp/SMS de l'invitation (réutilise stack notifications existante).
-- `accept-organizer-invite` : valide le token, lie au user, marque accepted.
+Aucune logique métier modifiée — purement présentation.
 
-## 8. Lots de livraison
+---
 
-1. **Migration SQL** (tables + enum + helper + RLS + GRANTs) — soumise via le tool migration.
-2. **Hooks + types + helper d'accès**.
-3. **UI onglet Organisation + 4 sous-modules** (checklist, prestataires, budget, invités).
-4. **Co-organisateurs** : modale, edge functions, page d'acceptation.
-5. **Polish** : animations, vocabulaire, états vides, mémoire projet mise à jour.
+## 4. Bouton "Créer une page d'événement" lisible
 
-## 9. Hors périmètre V1 (à anticiper sans construire)
+Dans `src/components/MyOtherPagesSection.tsx`, l'état vide affiche un bouton dont le label déborde. Corrections :
 
-- Liaison prestataire ↔ profil pro JDV : colonne `business_account_id` déjà prête.
-- Système d'évaluation/réservation : ajouté plus tard, table `vendor_bookings` séparée.
-- Module Souvenirs "après l'événement" : l'album existant couvre déjà cette étape ; les améliorations (timeline, remerciements automatiques) restent à planifier dans un futur module.
+- Ajouter `whitespace-normal text-center leading-snug py-3 h-auto` au `Button variant="outline"`.
+- Raccourcir le label : `Créer une page d'événement` (le détail "mariage, diplôme, promotion…" passe en `<p className="text-xs text-muted-foreground mt-2">` sous le bouton).
+- Conserver le comportement (`navigate('/event/create')`).
 
-## 10. Vérifications avant fin
+---
 
-- Linter Supabase après migration.
-- Test : visiteur classique ne voit PAS l'onglet Organisation.
-- Test : co-orga `tasks` ne peut pas modifier le budget (UI + RLS).
+## Fichiers impactés
+
+- `src/utils/coverVideoSchedule.ts` — nouveaux kinds + `currentWeddingKind` + `buildPlaylist(context)`.
+- `src/hooks/useCoverVideoPlaylist.ts` — ajout du paramètre `context` propagé à `buildPlaylist`.
+- `src/components/birthday/CoverVideoCarousel.tsx` — props `mode`/`context`, passage à `useCoverVideoPlaylist`.
+- `src/components/EventCountdown.tsx` *(nouveau)*.
+- `src/components/event/EventHeroOverlay.tsx` *(nouveau)*.
+- `src/pages/EventPage.tsx` — remplace l'ancien header par le carousel + overlay + countdown.
+- `src/pages/Admin/AdminCoverVideos.tsx` — ajout des tabs Anniversaires/Mariages.
+- `src/components/organization/OrganizationSection.tsx` — refonte de la carte.
+- `src/components/MyOtherPagesSection.tsx` — bouton créer page lisible.
+
+## Hors périmètre
+
+- Upload de vidéos perso par les couples (table `event_page_cover_videos`) → V2 si demandé.
+- Refonte des autres sections (Album souvenir, Messages) — non demandée.
+- Aucune modification des données existantes en base.
