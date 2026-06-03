@@ -22,6 +22,8 @@ import { OrganizationSection } from "@/components/organization/OrganizationSecti
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
+import { CoverVideoCarousel } from "@/components/birthday/CoverVideoCarousel";
+import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
 
 const occasionThemes: Record<string, { emoji: string; gradient: string; label: string }> = {
   wedding: { emoji: '💍', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage' },
@@ -225,50 +227,23 @@ const EventPage = () => {
       )}
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden">
-        {page?.cover_image_url ? (
-          <div className="h-48 md:h-64 w-full">
-            <img src={page.cover_image_url} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-background" />
-          </div>
-        ) : (
-          <div className={`h-48 md:h-64 w-full bg-gradient-to-br ${theme.gradient} flex items-center justify-center`}>
-            <div className="text-6xl md:text-8xl animate-bounce">{theme.emoji}</div>
-          </div>
-        )}
-        <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
-          {(creatorProfile || page?.spouse_first_name) && (
-            <div className="flex items-center justify-center gap-2 mb-3">
-              {creatorProfile && (
-                <Avatar className="h-14 w-14 ring-2 ring-white/80 shadow-lg">
-                  {creatorProfile.avatar_url && (
-                    <img src={creatorProfile.avatar_url} alt={creatorProfile.first_name || ''} className="h-full w-full object-cover" />
-                  )}
-                  <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                    {(creatorProfile.first_name || '?').charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-              )}
-              {isWedding && page?.spouse_first_name && (
-                <>
-                  <Heart className="h-5 w-5 text-heart drop-shadow" />
-                  <Avatar className="h-14 w-14 ring-2 ring-white/80 shadow-lg">
-                    {page.spouse_avatar_url && (
-                      <img src={page.spouse_avatar_url} alt={page.spouse_first_name} className="h-full w-full object-cover" />
-                    )}
-                    <AvatarFallback className="bg-accent/20 text-accent font-bold">
-                      {page.spouse_first_name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                </>
-              )}
-            </div>
-          )}
-          <motion.h1 initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: "spring" }} className="text-3xl md:text-4xl font-bold font-poppins text-foreground drop-shadow-lg">
-            {theme.emoji} {page?.title}
-          </motion.h1>
-          {page?.description && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-muted-foreground mt-2 font-nunito">{page.description}</motion.p>}
-          {page?.event_date && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="text-sm text-muted-foreground mt-1 font-nunito">📅 {new Date(page.event_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</motion.p>}
-        </div>
+        <CoverVideoCarousel
+          birthdayPageId={null}
+          birthday={page?.event_date ?? null}
+          fallbackImageUrl={page?.cover_image_url ?? null}
+          context="wedding"
+          className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
+          overlay={
+            page ? (
+              <EventHeroOverlay
+                page={page}
+                creatorProfile={creatorProfile}
+                isWedding={isWedding}
+                emoji={theme.emoji}
+              />
+            ) : null
+          }
+        />
       </motion.div>
 
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
