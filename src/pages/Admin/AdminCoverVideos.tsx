@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Film, Loader2, Trash2, Upload } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
