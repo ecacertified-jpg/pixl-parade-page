@@ -4,19 +4,21 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   buildPlaylist,
   type CoverVideoItem,
+  type CoverVideoContext,
 } from "@/utils/coverVideoSchedule";
 
 interface Params {
   birthdayPageId: string | null | undefined;
   birthday: string | null | undefined;
   ownerId?: string | null;
+  context?: CoverVideoContext;
 }
 
 /**
  * Returns the ordered playlist of cover videos for a visitor.
  * Re-evaluates when local time crosses an hour boundary.
  */
-export function useCoverVideoPlaylist({ birthdayPageId, birthday, ownerId }: Params) {
+export function useCoverVideoPlaylist({ birthdayPageId, birthday, ownerId, context = "birthday" }: Params) {
   const [tick, setTick] = useState(0);
 
   // Refresh playlist every 15min in case visitor stays long enough to cross a greeting window
@@ -95,9 +97,9 @@ export function useCoverVideoPlaylist({ birthdayPageId, birthday, ownerId }: Par
   });
 
   const playlist = useMemo(
-    () => buildPlaylist(userVideos, library, birthday ?? null, new Date(), ownerId ? viewCounts : undefined),
+    () => buildPlaylist(userVideos, library, birthday ?? null, new Date(), ownerId ? viewCounts : undefined, context),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [userVideos, library, birthday, tick, ownerId, viewCounts],
+    [userVideos, library, birthday, tick, ownerId, viewCounts, context],
   );
 
   return { playlist };
