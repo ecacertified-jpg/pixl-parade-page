@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useCoverVideoPlaylist } from "@/hooks/useCoverVideoPlaylist";
-import { isSpecialDayPlaylist, type CoverVideoItem } from "@/utils/coverVideoSchedule";
+import {
+  isSpecialDayPlaylist,
+  type CoverVideoContext,
+  type CoverVideoItem,
+} from "@/utils/coverVideoSchedule";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -21,6 +25,8 @@ interface Props {
   children?: React.ReactNode;
   /** True when the connected user owns this birthday page (drives view tracking). */
   isOwner?: boolean;
+  /** 'birthday' (default) or 'wedding' — switches playlist scheduling kinds. */
+  context?: CoverVideoContext;
 }
 
 export function CoverVideoCarousel({
@@ -31,12 +37,14 @@ export function CoverVideoCarousel({
   overlay,
   children,
   isOwner = false,
+  context = "birthday",
 }: Props) {
   const { user } = useAuth();
   const { playlist } = useCoverVideoPlaylist({
     birthdayPageId,
     birthday,
     ownerId: isOwner ? user?.id ?? null : null,
+    context,
   });
   const [index, setIndex] = useState(0);
   const [muted, setMuted] = useState<boolean>(() => {
@@ -54,7 +62,7 @@ export function CoverVideoCarousel({
   const [showUnmuteHint, setShowUnmuteHint] = useState(true);
   const viewTrackedRef = useRef<Set<string>>(new Set());
 
-  const isSpecialDay = isSpecialDayPlaylist(playlist, birthday ?? null);
+  const isSpecialDay = isSpecialDayPlaylist(playlist, birthday ?? null, new Date(), context);
 
   // Auto-unmute on special days (birthday or active calendar event) unless the
   // user has explicitly chosen muted during this session.
