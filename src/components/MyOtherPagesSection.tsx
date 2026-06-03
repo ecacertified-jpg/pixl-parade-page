@@ -91,14 +91,19 @@ export function MyOtherPagesSection({
           )}
         </div>
       ) : showAddButton ? (
-        <Button
-          variant="outline"
-          className="w-full border-dashed"
-          onClick={() => navigate("/event/create")}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Créer une page d'événement (mariage, diplôme, promotion…)
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            className="w-full border-dashed h-auto py-3 whitespace-normal leading-snug text-center"
+            onClick={() => navigate("/event/create")}
+          >
+            <Plus className="h-4 w-4 mr-2 shrink-0" />
+            <span>Créer une page d'événement</span>
+          </Button>
+          <p className="text-xs text-muted-foreground text-center font-nunito">
+            Mariage, diplôme, promotion, baptême…
+          </p>
+        </div>
       ) : null}
     </Card>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Film, Loader2, Trash2, Upload } from "lucide-react";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +26,7 @@ import { getVideoMetadata } from "@/utils/videoValidation";
 import { extractSingleThumbnail } from "@/utils/videoThumbnails";
 import { CALENDAR_EVENT_PRESETS, findEventPreset } from "@/data/calendarEvents";
 
-const KINDS: CoverVideoScheduleKind[] = [
+const BIRTHDAY_KINDS: CoverVideoScheduleKind[] = [
   "greeting_morning",
   "greeting_afternoon",
   "greeting_evening",
@@ -38,11 +39,27 @@ const KINDS: CoverVideoScheduleKind[] = [
   "birthday_night",
 ];
 
+const WEDDING_KINDS: CoverVideoScheduleKind[] = [
+  "greeting_morning",
+  "greeting_afternoon",
+  "greeting_evening",
+  "greeting_night",
+  "calendar_event",
+  "wedding_day",
+  "wedding_morning",
+  "wedding_afternoon",
+  "wedding_evening",
+  "wedding_night",
+];
+
+const isWeddingKind = (k: string) => k.startsWith("wedding_");
+
 const MAX_BYTES = 60 * 1024 * 1024; // 60 MB pour l'admin
 
 export default function AdminCoverVideos() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const [tab, setTab] = useState<"birthday" | "wedding">("birthday");
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<CoverVideoScheduleKind>("greeting_morning");
   const [month, setMonth] = useState<string>("");
@@ -63,6 +80,18 @@ export default function AdminCoverVideos() {
       return (data ?? []) as any[];
     },
   });
+
+  const availableKinds = tab === "wedding" ? WEDDING_KINDS : BIRTHDAY_KINDS;
+  const filteredRows = rows.filter((r: any) =>
+    tab === "wedding" ? isWeddingKind(r.schedule_kind) : !isWeddingKind(r.schedule_kind),
+  );
+
+  // Keep selected kind valid when switching tabs.
+  useEffect(() => {
+    if (!availableKinds.includes(kind)) {
+      setKind(availableKinds[0]);
+    }
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
     if (!file || !title.trim() || !user) {
@@ -175,11 +204,18 @@ export default function AdminCoverVideos() {
             Vidéos de couverture (bibliothèque)
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Vidéos par défaut affichées en haut des pages d'anniversaire selon le créneau / la fête.
+            Vidéos par défaut affichées en haut des pages d'anniversaire et de mariage selon le créneau / la fête.
           </p>
         </div>
 
-        <Card className="p-4 space-y-3">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "birthday" | "wedding")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="birthday">🎂 Anniversaires</TabsTrigger>
+            <TabsTrigger value="wedding">💍 Mariages</TabsTrigger>
+          </TabsList>
+          <TabsContent value={tab} forceMount>
+
+        <Card className="p-4 space-y-3 mt-4">
           <h2 className="font-poppins font-semibold">Ajouter une vidéo</h2>
           <div className="grid md:grid-cols-2 gap-3">
             <div>
@@ -191,7 +227,7 @@ export default function AdminCoverVideos() {
               <Select value={kind} onValueChange={(v) => setKind(v as CoverVideoScheduleKind)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {KINDS.map((k) => (
+                  {availableKinds.map((k) => (
                     <SelectItem key={k} value={k}>{SCHEDULE_KIND_LABELS[k]}</SelectItem>
                   ))}
                 </SelectContent>
@@ -265,13 +301,15 @@ export default function AdminCoverVideos() {
           </Button>
         </Card>
 
-        <div>
-          <h2 className="font-poppins font-semibold mb-3">Bibliothèque ({rows.length})</h2>
+        <div className="mt-6">
+          <h2 className="font-poppins font-semibold mb-3">
+            Bibliothèque {tab === "wedding" ? "mariages" : "anniversaires"} ({filteredRows.length})
+          </h2>
           {isLoading ? (
             <Loader2 className="h-6 w-6 animate-spin" />
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {rows.map((r) => (
+              {filteredRows.map((r) => (
                 <Card key={r.id} className="p-3 space-y-2">
                   <div className="aspect-video bg-black rounded overflow-hidden">
                     <video
@@ -312,6 +350,8 @@ export default function AdminCoverVideos() {
             </div>
           )}
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminLayout>
   );

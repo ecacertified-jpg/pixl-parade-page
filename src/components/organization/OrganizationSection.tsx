@@ -33,19 +33,27 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle }
 
   return (
     <section className="px-4 py-2">
-      <Card className="rounded-2xl p-4 shadow-soft border-primary/20 bg-gradient-to-br from-primary/5 via-secondary/30 to-background">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-primary/10 p-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+      <Card className="rounded-2xl p-5 shadow-soft border-primary/20 bg-gradient-to-br from-primary/5 via-secondary/30 to-background">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="rounded-full bg-primary/10 p-2 shrink-0">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-poppins text-base font-semibold text-foreground whitespace-nowrap">
+                Mes coulisses ✨
+              </h2>
+              <p className="text-xs text-muted-foreground font-nunito leading-snug">
+                Préparatifs · prestataires · budget · invités
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h2 className="font-poppins text-base font-semibold text-foreground">Mes coulisses ✨</h2>
-            <p className="text-xs text-muted-foreground font-nunito">
-              Préparatifs, prestataires, budget et invités — visibles par toi et ton équipe.
-            </p>
-          </div>
-          <Button size="sm" onClick={() => setOpen(true)}>
-            <ClipboardList className="h-4 w-4 mr-1" /> Ouvrir
+          <Button
+            size="sm"
+            onClick={() => setOpen(true)}
+            className="w-full sm:w-auto shrink-0"
+          >
+            <ClipboardList className="h-4 w-4 mr-1.5" /> Ouvrir
           </Button>
         </div>
       </Card>

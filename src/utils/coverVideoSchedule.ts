@@ -14,7 +14,14 @@ export type CoverVideoScheduleKind =
   | "birthday_morning"
   | "birthday_afternoon"
   | "birthday_evening"
-  | "birthday_night";
+  | "birthday_night"
+  | "wedding_day"
+  | "wedding_morning"
+  | "wedding_afternoon"
+  | "wedding_evening"
+  | "wedding_night";
+
+export type CoverVideoContext = "birthday" | "wedding";
 
 export interface CoverVideoItem {
   id: string;
@@ -48,10 +55,27 @@ export function currentBirthdayKind(now = new Date()): CoverVideoScheduleKind {
   return "birthday_night";
 }
 
+/** Returns the wedding-day kind matching the current time-of-day slot. */
+export function currentWeddingKind(now = new Date()): CoverVideoScheduleKind {
+  const h = now.getHours();
+  if (h >= 5 && h < 12) return "wedding_morning";
+  if (h >= 12 && h < 18) return "wedding_afternoon";
+  if (h >= 18 && h < 22) return "wedding_evening";
+  return "wedding_night";
+}
+
 export function isBirthdayToday(birthday: string | null, now = new Date()): boolean {
   if (!birthday) return false;
   const [, mm, dd] = birthday.split("-").map((v) => parseInt(v, 10));
   return now.getMonth() + 1 === mm && now.getDate() === dd;
+}
+
+/** True if the local YYYY-MM-DD event date matches today (year-sensitive). */
+export function isEventToday(eventDate: string | null, now = new Date()): boolean {
+  if (!eventDate) return false;
+  const [yyyy, mm, dd] = eventDate.split("-").map((v) => parseInt(v, 10));
+  if (!yyyy || !mm || !dd) return false;
+  return now.getFullYear() === yyyy && now.getMonth() + 1 === mm && now.getDate() === dd;
 }
 
 /**
@@ -79,6 +103,11 @@ export const SCHEDULE_KIND_LABELS: Record<CoverVideoScheduleKind, string> = {
   birthday_afternoon: "Anniversaire — après-midi",
   birthday_evening: "Anniversaire — soir",
   birthday_night: "Anniversaire — coucher",
+  wedding_day: "Jour du mariage",
+  wedding_morning: "Mariage — matin",
+  wedding_afternoon: "Mariage — après-midi",
+  wedding_evening: "Mariage — soir",
+  wedding_night: "Mariage — coucher",
 };
 
 /**
@@ -88,10 +117,13 @@ export const SCHEDULE_KIND_LABELS: Record<CoverVideoScheduleKind, string> = {
  */
 export function isSpecialDayPlaylist(
   playlist: CoverVideoItem[],
-  birthday: string | null,
+  targetDate: string | null,
   now = new Date(),
+  context: CoverVideoContext = "birthday",
 ): boolean {
-  if (isBirthdayToday(birthday, now)) return true;
+  const isTargetToday =
+    context === "wedding" ? isEventToday(targetDate, now) : isBirthdayToday(targetDate, now);
+  if (isTargetToday) return true;
   return playlist.some(
     (v) =>
       v.schedule_kind === "calendar_event" &&
@@ -107,9 +139,10 @@ export function isSpecialDayPlaylist(
 export function buildPlaylist(
   userVideos: CoverVideoItem[],
   libraryVideos: CoverVideoItem[],
-  birthday: string | null,
+  targetDate: string | null,
   now = new Date(),
   viewCounts?: Record<string, number>,
+  context: CoverVideoContext = "birthday",
 ): CoverVideoItem[] {
   const baseOrder = (v: CoverVideoItem) => v.display_order ?? v.priority ?? 0;
   const viewBucket = (id: string): number => {
@@ -137,10 +170,17 @@ export function buildPlaylist(
 
   const result: CoverVideoItem[] = [];
 
-  if (isBirthdayToday(birthday, now)) {
-    // Birthday wins over everything else — only birthday videos play.
-    result.push(...pickFor(currentBirthdayKind(now)));
-    result.push(...pickFor("birthday_day"));
+  const isTargetToday =
+    context === "wedding" ? isEventToday(targetDate, now) : isBirthdayToday(targetDate, now);
+
+  if (isTargetToday) {
+    if (context === "wedding") {
+      result.push(...pickFor(currentWeddingKind(now)));
+      result.push(...pickFor("wedding_day"));
+    } else {
+      result.push(...pickFor(currentBirthdayKind(now)));
+      result.push(...pickFor("birthday_day"));
+    }
   } else {
     // If at least one calendar event is active today, ONLY those videos play.
     const calendarToday = pickFor("calendar_event", (v) =>
