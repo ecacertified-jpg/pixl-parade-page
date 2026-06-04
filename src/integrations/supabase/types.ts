@@ -10329,6 +10329,11 @@ export type Database = {
         | "birthday_afternoon"
         | "birthday_evening"
         | "birthday_night"
+        | "wedding_day"
+        | "wedding_morning"
+        | "wedding_afternoon"
+        | "wedding_evening"
+        | "wedding_night"
       event_guest_status: "invited" | "confirmed" | "declined" | "pending"
       event_task_status: "todo" | "in_progress" | "done"
       organization_page_type: "birthday" | "event"
@@ -10472,6 +10477,11 @@ export const Constants = {
         "birthday_afternoon",
         "birthday_evening",
         "birthday_night",
+        "wedding_day",
+        "wedding_morning",
+        "wedding_afternoon",
+        "wedding_evening",
+        "wedding_night",
       ],
       event_guest_status: ["invited", "confirmed", "declined", "pending"],
       event_task_status: ["todo", "in_progress", "done"],
