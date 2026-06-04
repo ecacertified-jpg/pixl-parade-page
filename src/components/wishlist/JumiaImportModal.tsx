@@ -57,6 +57,35 @@ export function JumiaImportModal({
   const [previewed, setPreviewed] = useState(false);
   const add = useAddExternalFavorite();
 
+  const MERCHANT_HOST_RX = /(jumia|amazon|aliexpress|alibaba|shein|temu|ebay)/i;
+
+  const runPreviewFor = async (target: string) => {
+    setPreviewing(true);
+    try {
+      const meta = await fetchExternalProductMeta(target);
+      setPlatform(meta.platform);
+      if (meta.name) setName(meta.name);
+      if (meta.image_url) setImageUrl(meta.image_url);
+      if (meta.price) setPrice(String(meta.price));
+      setPreviewed(true);
+      if (meta.partial || (!meta.name && !meta.price)) {
+        toast.warning(meta.warning ?? "Aperçu partiel — complétez manuellement nom et prix.");
+      } else {
+        toast.success(`Produit ${meta.platform} détecté.`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? "Impossible d'analyser ce lien.");
+      try {
+        const host = new URL(target).hostname.replace(/^www\./, "");
+        if (host.includes("jumia")) setPlatform("Jumia");
+        else setPlatform(host);
+      } catch { /* ignore */ }
+      setPreviewed(true);
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       // Sync the restored/selected platform into the modal as soon as it opens,
@@ -80,6 +109,24 @@ export function JumiaImportModal({
           toast.error("Lien plateforme prérempli invalide.");
         }
       }
+
+      // Auto-paste: si le presse-papiers contient déjà une URL marchande,
+      // on la colle silencieusement et on lance l'aperçu.
+      (async () => {
+        try {
+          if (!navigator.clipboard?.readText) return;
+          const text = (await navigator.clipboard.readText()).trim();
+          if (!text) return;
+          let parsed: URL;
+          try { parsed = new URL(text); } catch { return; }
+          if (!/^https?:$/.test(parsed.protocol)) return;
+          if (!MERCHANT_HOST_RX.test(parsed.hostname)) return;
+          setUrl(text);
+          await runPreviewFor(text);
+        } catch {
+          // accès refusé ou indisponible — on ignore silencieusement
+        }
+      })();
     } else {
       setUrl("");
       setName("");
@@ -102,31 +149,7 @@ export function JumiaImportModal({
       toast.error("Lien invalide.");
       return;
     }
-    setPreviewing(true);
-    try {
-      const meta = await fetchExternalProductMeta(url.trim());
-      setPlatform(meta.platform);
-      if (meta.name) setName(meta.name);
-      if (meta.image_url) setImageUrl(meta.image_url);
-      if (meta.price) setPrice(String(meta.price));
-      setPreviewed(true);
-      if (!meta.name && !meta.price) {
-        toast.warning("Aperçu partiel — complétez manuellement nom et prix.");
-      } else {
-        toast.success(`Produit ${meta.platform} détecté.`);
-      }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Impossible d'analyser ce lien.");
-      // Best-effort platform detection from URL alone, so the user can still save manually
-      try {
-        const host = new URL(url).hostname.replace(/^www\./, "");
-        if (host.includes("jumia")) setPlatform("Jumia");
-        else setPlatform(host);
-      } catch { /* ignore */ }
-      setPreviewed(true);
-    } finally {
-      setPreviewing(false);
-    }
+    await runPreviewFor(url.trim());
   };
 
   const handlePasteFromClipboard = async () => {
@@ -153,31 +176,7 @@ export function JumiaImportModal({
       }
       setUrl(text);
       toast.success("Lien collé — analyse en cours…");
-      // Auto-preview right after pasting
-      setPreviewing(true);
-      try {
-        const meta = await fetchExternalProductMeta(text);
-        setPlatform(meta.platform);
-        if (meta.name) setName(meta.name);
-        if (meta.image_url) setImageUrl(meta.image_url);
-        if (meta.price) setPrice(String(meta.price));
-        setPreviewed(true);
-        if (!meta.name && !meta.price) {
-          toast.warning("Aperçu partiel — complétez manuellement nom et prix.");
-        } else {
-          toast.success(`Produit ${meta.platform} détecté.`);
-        }
-      } catch (err: any) {
-        toast.error(err?.message ?? "Impossible d'analyser ce lien.");
-        try {
-          const host = parsed.hostname.replace(/^www\./, "");
-          if (host.includes("jumia")) setPlatform("Jumia");
-          else setPlatform(host);
-        } catch { /* ignore */ }
-        setPreviewed(true);
-      } finally {
-        setPreviewing(false);
-      }
+      await runPreviewFor(text);
     } catch {
       toast.error("Accès au presse-papiers refusé.");
     }
