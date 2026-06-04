@@ -227,12 +227,37 @@ Deno.serve(async (req) => {
         },
       })
       if (!res.ok) {
-        return new Response(JSON.stringify({ error: `Page inaccessible (HTTP ${res.status})`, platform }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        // Soft-fail: platform is known, return empty meta so user can fill manually
+        return new Response(
+          JSON.stringify({
+            platform,
+            name: null,
+            image_url: null,
+            price: null,
+            currency: 'XOF',
+            url: parsed.toString(),
+            partial: true,
+            warning: `Aperçu indisponible (HTTP ${res.status}) — saisis le nom et le prix manuellement.`,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
       }
       html = (await res.text()).slice(0, 1_500_000) // cap 1.5 MB
     } catch (e) {
       console.error('fetch error', e)
-      return new Response(JSON.stringify({ error: 'Impossible de récupérer la page (timeout ou réseau).', platform }), { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(
+        JSON.stringify({
+          platform,
+          name: null,
+          image_url: null,
+          price: null,
+          currency: 'XOF',
+          url: parsed.toString(),
+          partial: true,
+          warning: 'Aperçu indisponible (timeout ou réseau) — saisis le nom et le prix manuellement.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     } finally {
       clearTimeout(timeout)
     }

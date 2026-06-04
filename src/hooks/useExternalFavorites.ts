@@ -108,11 +108,24 @@ export async function fetchExternalProductMeta(url: string): Promise<{
   price: number | null;
   currency: string;
   url: string;
+  partial?: boolean;
+  warning?: string;
 }> {
   const { data, error } = await supabase.functions.invoke("fetch-external-product-meta", {
     body: { url },
   });
-  if (error) throw new Error(error.message ?? "Erreur lors de l'analyse du lien.");
+  if (error) {
+    // supabase-js v2 puts the raw Response on FunctionsHttpError.context
+    let serverMessage: string | null = null;
+    try {
+      const ctx = (error as any)?.context;
+      if (ctx && typeof ctx.json === "function") {
+        const body = await ctx.json();
+        if (body?.error) serverMessage = String(body.error);
+      }
+    } catch { /* ignore */ }
+    throw new Error(serverMessage ?? error.message ?? "Erreur lors de l'analyse du lien.");
+  }
   if ((data as any)?.error) throw new Error((data as any).error);
   return data as any;
 }

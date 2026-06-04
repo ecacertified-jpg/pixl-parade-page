@@ -1,33 +1,25 @@
 ## Constats
 
-Après investigation des deux bugs :
+### Bug 1 — "Edge Function returned a non-2xx status code"
+Le message générique vient de `supabase.functions.invoke`, qui n'expose pas le `data.error` quand le status est ≥ 400. L'edge function `fetch-external-product-meta` retourne 502/504 lorsque Jumia bloque le bot (anti-scraping fréquent : 403, captcha, redirection), 400 si l'URL n'est pas reconnue, etc. Résultat : la modale échoue dur, sans laisser l'utilisateur saisir manuellement le produit.
 
-### Bug 1 — Upload des vidéos de mariage échoue
-La colonne `cover_video_library.schedule_kind` est de type **enum** `cover_video_schedule_kind`. Cet enum ne contient **que les valeurs anniversaire** (`greeting_*`, `calendar_event`, `birthday_*`). Les valeurs `wedding_day`, `wedding_morning`, `wedding_afternoon`, `wedding_evening`, `wedding_night` ont été ajoutées au code TypeScript mais **jamais à l'enum Postgres** → l'INSERT est rejeté avec une erreur enum → toast "Échec de l'upload".
-
-### Bug 2 — Acceptation d'invitation impossible
-L'edge function `accept-organizer-invite` existe dans le repo (`supabase/functions/accept-organizer-invite/index.ts`) mais **n'est pas déployée** (`curl` renvoie `404 NOT_FOUND`, aucun log existant). `supabase.functions.invoke()` retourne donc une erreur générique → fallback "Impossible d'accepter cette invitation".
-
-Le token visible dans le screenshot (`6840e6da…61f`) existe bien en base avec `status='pending'`, donc la donnée est correcte ; seul le déploiement manque.
+### Demande 2 — Auto-collage du lien copié
+Aujourd'hui l'utilisateur doit cliquer sur "Coller le lien". Le souhait : à l'ouverture de la modale, si le presse-papiers contient déjà une URL produit valide, elle doit se coller toute seule dans le champ.
 
 ## Correctifs
 
-### 1. Migration SQL — étendre l'enum
-```sql
-ALTER TYPE public.cover_video_schedule_kind ADD VALUE IF NOT EXISTS 'wedding_day';
-ALTER TYPE public.cover_video_schedule_kind ADD VALUE IF NOT EXISTS 'wedding_morning';
-ALTER TYPE public.cover_video_schedule_kind ADD VALUE IF NOT EXISTS 'wedding_afternoon';
-ALTER TYPE public.cover_video_schedule_kind ADD VALUE IF NOT EXISTS 'wedding_evening';
-ALTER TYPE public.cover_video_schedule_kind ADD VALUE IF NOT EXISTS 'wedding_night';
-```
-(les `ADD VALUE` doivent être exécutés hors transaction, je les passerai en migration en séparant les statements).
+### 1. `supabase/functions/fetch-external-product-meta/index.ts`
+- Quand la plateforme est reconnue mais que le fetch échoue (403/timeout/non-OK), **ne plus renvoyer un status d'erreur** : renvoyer `200` avec `{ platform, url, name: null, image_url: null, price: null, currency: 'XOF', partial: true, warning: '…' }`. La modale affichera alors les champs en saisie manuelle au lieu d'un toast bloquant.
+- Garder le `400` uniquement pour les vraies erreurs d'input (URL invalide, plateforme non supportée).
 
-### 2. Déploiement de `accept-organizer-invite`
-Re-déployer l'edge function existante. Aucun changement de code nécessaire — le fichier est déjà correct (JWT extraction, lookup via service role, update du `user_id` + `status='accepted'`).
+### 2. `src/hooks/useExternalFavorites.ts`
+- Dans `fetchExternalProductMeta`, lire `error.context.json()` (forme renvoyée par supabase-js v2 sur `FunctionsHttpError`) pour extraire le vrai `error` server-side. Fallback vers `error.message` si indisponible. Plus de "non-2xx status code" générique.
 
-### 3. Bonus log côté client
-Dans `OrganizerAccept.tsx`, logger `error` brut dans la console (en plus du toast) pour faciliter le debug futur si un autre cas (token révoqué, etc.) survient.
+### 3. `src/components/wishlist/JumiaImportModal.tsx`
+- **Auto-collage à l'ouverture** : dans le `useEffect` qui se déclenche quand `isOpen` passe à `true`, tenter `navigator.clipboard.readText()` ; si le contenu est une URL `http(s)` (et plus précisément un host marchand reconnu — Jumia, Amazon, AliExpress, Alibaba, Shein, Temu, eBay), remplacer le placeholder par cette URL et déclencher automatiquement `handlePreview()`.
+- Si le presse-papiers est vide / refusé / non-URL : garder le comportement actuel (champ pré-rempli avec l'URL plateforme), aucun toast d'erreur (silencieux pour ne pas perturber l'ouverture).
+- Gérer le cas `partial: true` venant du backend : afficher un toast `warning` ("Lien reconnu mais aperçu impossible — saisis le nom et le prix.") et passer en mode `previewed=true` pour révéler les champs.
 
 ## Hors périmètre
-- Pas de modification de l'UI d'upload ni du flux d'invitation : ces couches sont correctes, seuls l'enum DB et le déploiement bloquent.
-- Pas de changement aux RLS de `event_organizers` (l'edge function utilise la service role).
+- Pas de proxy anti-bot Jumia (out of scope V1) — on accepte que certaines pages renvoient un aperçu partiel et on laisse l'utilisateur compléter.
+- Pas de modification des autres modales d'import externe.
