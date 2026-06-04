@@ -625,25 +625,9 @@ export function PreAuthDiscovery({ onClose, onSignUp, onSubmitPhoneSignup, onSub
 
               <div className="space-y-3 w-full max-w-sm mt-2">
                 <Button
-                  onClick={() => setShowWhatsAppWarning(true)}
-                  size="lg"
-                  variant="gradient"
-                  className="w-full text-base gap-2"
-                  disabled={submittingPhone || submittingGoogle || !isFieldValid('firstName', answers) || !isFieldValid('birthday', answers) || !isFieldValid('city', answers) || !isFieldValid('phone', answers)}
-                >
-                  {submittingPhone ? <Loader2 className="h-5 w-5 animate-spin" /> : <Phone className="h-5 w-5" />}
-                  Recevoir mon code de vérification
-                </Button>
-
-                <div className="relative my-2">
-                  <Separator />
-                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">ou</span>
-                </div>
-
-                <Button
                   onClick={handleGoogleSignup}
                   size="lg"
-                  variant="outline"
+                  variant="gradient"
                   className="w-full text-base gap-2"
                   disabled={submittingPhone || submittingGoogle}
                 >
@@ -658,6 +642,22 @@ export function PreAuthDiscovery({ onClose, onSignUp, onSubmitPhoneSignup, onSub
                     </svg>
                   )}
                   S'inscrire avec Google
+                </Button>
+
+                <div className="relative my-2">
+                  <Separator />
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">ou</span>
+                </div>
+
+                <Button
+                  onClick={() => setShowWhatsAppWarning(true)}
+                  size="lg"
+                  variant="outline"
+                  className="w-full text-base gap-2"
+                  disabled={submittingPhone || submittingGoogle || !isFieldValid('firstName', answers) || !isFieldValid('birthday', answers) || !isFieldValid('city', answers) || !isFieldValid('phone', answers)}
+                >
+                  {submittingPhone ? <Loader2 className="h-5 w-5 animate-spin" /> : <Phone className="h-5 w-5" />}
+                  Recevoir mon code de vérification
                 </Button>
 
                 <Button onClick={onClose} variant="ghost" size="sm" className="w-full text-muted-foreground">
