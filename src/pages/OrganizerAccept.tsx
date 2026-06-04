@@ -42,6 +42,7 @@ const OrganizerAccept = () => {
     });
     setAccepting(false);
     if (error || !data?.success) {
+      console.error('[OrganizerAccept] invoke failed', { error, data });
       toast.error(data?.error ?? "Impossible d'accepter cette invitation");
       return;
     }
