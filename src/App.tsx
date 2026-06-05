@@ -264,6 +264,8 @@ const App = () => (
             <Route path="/gifts" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Gifts /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/cart" element={<ProtectedRoute><L><Cart /></L></ProtectedRoute>} />
             <Route path="/preferences" element={<ProtectedRoute><L><Preferences /></L></ProtectedRoute>} />
+            <Route path="/pricing" element={<L><Pricing /></L>} />
+            <Route path="/tarifs" element={<L><Pricing /></L>} />
             <Route path="/checkout" element={<ProtectedRoute><L><Checkout /></L></ProtectedRoute>} />
             <Route path="/collective-checkout" element={<ProtectedRoute><L><CollectiveCheckout /></L></ProtectedRoute>} />
             <Route path="/collective-order-confirmation" element={<ProtectedRoute><L><CollectiveOrderConfirmation /></L></ProtectedRoute>} />
