@@ -4269,6 +4269,36 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_usage_counters: {
+        Row: {
+          created_at: string
+          feature_key: string
+          id: string
+          period_month: string
+          updated_at: string
+          used_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          id?: string
+          period_month?: string
+          updated_at?: string
+          used_value?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          id?: string
+          period_month?: string
+          updated_at?: string
+          used_value?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       friend_circle_members: {
         Row: {
           added_at: string | null
@@ -6329,6 +6359,45 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_overrides: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted_by: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          plan_tier: Database["public"]["Enums"]["subscription_plan_tier"]
+          reason: string
+          starts_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          plan_tier: Database["public"]["Enums"]["subscription_plan_tier"]
+          reason: string
+          starts_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          plan_tier?: Database["public"]["Enums"]["subscription_plan_tier"]
+          reason?: string
+          starts_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           created_at: string | null
@@ -8061,6 +8130,184 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          from_plan:
+            | Database["public"]["Enums"]["subscription_plan_tier"]
+            | null
+          id: string
+          metadata: Json
+          provider: Database["public"]["Enums"]["subscription_provider"] | null
+          source: string | null
+          subscription_id: string | null
+          to_plan: Database["public"]["Enums"]["subscription_plan_tier"] | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          from_plan?:
+            | Database["public"]["Enums"]["subscription_plan_tier"]
+            | null
+          id?: string
+          metadata?: Json
+          provider?: Database["public"]["Enums"]["subscription_provider"] | null
+          source?: string | null
+          subscription_id?: string | null
+          to_plan?: Database["public"]["Enums"]["subscription_plan_tier"] | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          from_plan?:
+            | Database["public"]["Enums"]["subscription_plan_tier"]
+            | null
+          id?: string
+          metadata?: Json
+          provider?: Database["public"]["Enums"]["subscription_provider"] | null
+          source?: string | null
+          subscription_id?: string | null
+          to_plan?: Database["public"]["Enums"]["subscription_plan_tier"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          external_id: string | null
+          hosted_invoice_url: string | null
+          id: string
+          metadata: Json
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          provider: Database["public"]["Enums"]["subscription_provider"]
+          status: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          hosted_invoice_url?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provider: Database["public"]["Enums"]["subscription_provider"]
+          status?: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          hosted_invoice_url?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provider?: Database["public"]["Enums"]["subscription_provider"]
+          status?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          limits: Json
+          name: string
+          price_eur_monthly: number
+          price_eur_yearly: number
+          price_xof_monthly: number
+          price_xof_yearly: number
+          sort_order: number
+          stripe_price_monthly_eur: string | null
+          stripe_price_monthly_xof: string | null
+          stripe_price_yearly_eur: string | null
+          stripe_price_yearly_xof: string | null
+          tagline: string | null
+          tier: Database["public"]["Enums"]["subscription_plan_tier"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          limits?: Json
+          name: string
+          price_eur_monthly?: number
+          price_eur_yearly?: number
+          price_xof_monthly?: number
+          price_xof_yearly?: number
+          sort_order?: number
+          stripe_price_monthly_eur?: string | null
+          stripe_price_monthly_xof?: string | null
+          stripe_price_yearly_eur?: string | null
+          stripe_price_yearly_xof?: string | null
+          tagline?: string | null
+          tier: Database["public"]["Enums"]["subscription_plan_tier"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          limits?: Json
+          name?: string
+          price_eur_monthly?: number
+          price_eur_yearly?: number
+          price_xof_monthly?: number
+          price_xof_yearly?: number
+          sort_order?: number
+          stripe_price_monthly_eur?: string | null
+          stripe_price_monthly_xof?: string | null
+          stripe_price_yearly_eur?: string | null
+          stripe_price_yearly_xof?: string | null
+          tagline?: string | null
+          tier?: Database["public"]["Enums"]["subscription_plan_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suggestion_feedback: {
         Row: {
           contact_id: string | null
@@ -8737,6 +8984,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          billing_cycle: string
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          metadata: Json
+          plan_tier: Database["public"]["Enums"]["subscription_plan_tier"]
+          provider: Database["public"]["Enums"]["subscription_provider"] | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          plan_tier?: Database["public"]["Enums"]["subscription_plan_tier"]
+          provider?: Database["public"]["Enums"]["subscription_provider"] | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          plan_tier?: Database["public"]["Enums"]["subscription_plan_tier"]
+          provider?: Database["public"]["Enums"]["subscription_provider"] | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sync_preferences: {
         Row: {
           created_at: string
@@ -8821,6 +9128,57 @@ export type Database = {
           period_type?: string | null
           spike_percentage?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      wave_subscription_requests: {
+        Row: {
+          amount_xof: number
+          billing_cycle: string
+          created_at: string
+          id: string
+          plan_tier: Database["public"]["Enums"]["subscription_plan_tier"]
+          proof_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+          transaction_reference: string | null
+          updated_at: string
+          user_id: string
+          wave_link: string | null
+        }
+        Insert: {
+          amount_xof: number
+          billing_cycle?: string
+          created_at?: string
+          id?: string
+          plan_tier: Database["public"]["Enums"]["subscription_plan_tier"]
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          transaction_reference?: string | null
+          updated_at?: string
+          user_id: string
+          wave_link?: string | null
+        }
+        Update: {
+          amount_xof?: number
+          billing_cycle?: string
+          created_at?: string
+          id?: string
+          plan_tier?: Database["public"]["Enums"]["subscription_plan_tier"]
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          transaction_reference?: string | null
+          updated_at?: string
+          user_id?: string
+          wave_link?: string | null
         }
         Relationships: []
       }
@@ -9683,6 +10041,10 @@ export type Database = {
         Returns: boolean
       }
       can_contribute_to_fund: { Args: { fund_uuid: string }; Returns: boolean }
+      can_create_resource: {
+        Args: { _feature_key: string; _user_id: string }
+        Returns: boolean
+      }
       can_manage_page: {
         Args: {
           _page_id: string
@@ -9974,6 +10336,13 @@ export type Database = {
           promise_count: number
         }[]
       }
+      get_plan_limit: {
+        Args: {
+          _feature_key: string
+          _tier: Database["public"]["Enums"]["subscription_plan_tier"]
+        }
+        Returns: number
+      }
       get_platform_seo_stats: { Args: never; Returns: Json }
       get_product_category_name: {
         Args: { p_product_id: string }
@@ -10057,6 +10426,10 @@ export type Database = {
           top_rejection_reasons: Json
         }[]
       }
+      get_user_plan: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["subscription_plan_tier"]
+      }
       get_user_profile_with_privacy: {
         Args: { p_target_user_id: string; p_viewer_id: string }
         Returns: {
@@ -10137,6 +10510,10 @@ export type Database = {
           p_share_token: string
         }
         Returns: undefined
+      }
+      increment_usage: {
+        Args: { _delta?: number; _feature_key: string; _user_id: string }
+        Returns: number
       }
       is_active_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_admin: { Args: { check_user_id: string }; Returns: boolean }
@@ -10339,6 +10716,14 @@ export type Database = {
       organization_page_type: "birthday" | "event"
       organizer_role: "admin" | "tasks" | "budget" | "guests" | "vendors"
       organizer_status: "pending" | "accepted" | "revoked"
+      subscription_plan_tier: "free" | "essentiel" | "premium"
+      subscription_provider: "stripe" | "wave" | "admin_override"
+      subscription_status:
+        | "active"
+        | "canceled"
+        | "past_due"
+        | "awaiting_payment"
+        | "incomplete"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -10488,6 +10873,15 @@ export const Constants = {
       organization_page_type: ["birthday", "event"],
       organizer_role: ["admin", "tasks", "budget", "guests", "vendors"],
       organizer_status: ["pending", "accepted", "revoked"],
+      subscription_plan_tier: ["free", "essentiel", "premium"],
+      subscription_provider: ["stripe", "wave", "admin_override"],
+      subscription_status: [
+        "active",
+        "canceled",
+        "past_due",
+        "awaiting_payment",
+        "incomplete",
+      ],
     },
   },
 } as const

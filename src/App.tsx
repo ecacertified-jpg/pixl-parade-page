@@ -105,6 +105,7 @@ const BirthdayPage = lazy(() => import("./pages/BirthdayPage"));
 const EventPage = lazy(() => import("./pages/EventPage"));
 const CreateEventPage = lazy(() => import("./pages/CreateEventPage"));
 const OrganizerAccept = lazy(() => import("./pages/OrganizerAccept"));
+const Pricing = lazy(() => import("./pages/Pricing"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
@@ -263,6 +264,8 @@ const App = () => (
             <Route path="/gifts" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Gifts /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/cart" element={<ProtectedRoute><L><Cart /></L></ProtectedRoute>} />
             <Route path="/preferences" element={<ProtectedRoute><L><Preferences /></L></ProtectedRoute>} />
+            <Route path="/pricing" element={<L><Pricing /></L>} />
+            <Route path="/tarifs" element={<L><Pricing /></L>} />
             <Route path="/checkout" element={<ProtectedRoute><L><Checkout /></L></ProtectedRoute>} />
             <Route path="/collective-checkout" element={<ProtectedRoute><L><CollectiveCheckout /></L></ProtectedRoute>} />
             <Route path="/collective-order-confirmation" element={<ProtectedRoute><L><CollectiveOrderConfirmation /></L></ProtectedRoute>} />
