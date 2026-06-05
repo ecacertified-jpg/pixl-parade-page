@@ -105,6 +105,7 @@ const BirthdayPage = lazy(() => import("./pages/BirthdayPage"));
 const EventPage = lazy(() => import("./pages/EventPage"));
 const CreateEventPage = lazy(() => import("./pages/CreateEventPage"));
 const OrganizerAccept = lazy(() => import("./pages/OrganizerAccept"));
+const Pricing = lazy(() => import("./pages/Pricing"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
