@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Check, Crown, Sparkles, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -80,14 +79,6 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-secondary/30 to-background">
-      <Helmet>
-        <title>Tarifs — Joie de Vivre Africa</title>
-        <meta
-          name="description"
-          content="Choisis ton plan JDV : Gratuit, Essentiel ou Premium. Célèbre les tiens sans limite et fais ressentir à chacun qu’il compte."
-        />
-      </Helmet>
-
       <header className="mx-auto max-w-5xl px-4 pt-12 pb-8 text-center md:pt-20">
         <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/15">
           Joie de Vivre Africa
