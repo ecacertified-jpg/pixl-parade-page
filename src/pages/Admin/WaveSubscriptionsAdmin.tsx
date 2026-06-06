@@ -46,7 +46,9 @@ function useWaveRequests(status: Status) {
           .from('profiles')
           .select('user_id, first_name, last_name, phone, country_code')
           .in('user_id', userIds);
-        const byId = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+        const byId = new Map<string, NonNullable<WaveRow['profile']>>(
+          (profiles ?? []).map((p: any) => [p.user_id as string, p as NonNullable<WaveRow['profile']>]),
+        );
         for (const r of rows) r.profile = byId.get(r.user_id) ?? null;
       }
       return rows;
