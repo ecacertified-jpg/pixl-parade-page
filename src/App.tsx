@@ -106,6 +106,7 @@ const EventPage = lazy(() => import("./pages/EventPage"));
 const CreateEventPage = lazy(() => import("./pages/CreateEventPage"));
 const OrganizerAccept = lazy(() => import("./pages/OrganizerAccept"));
 const Pricing = lazy(() => import("./pages/Pricing"));
+const Subscription = lazy(() => import("./pages/Subscription"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
@@ -151,6 +152,7 @@ const CommissionsDashboard = lazy(() => import("./pages/Admin/CommissionsDashboa
 const WhatsAppAIChat = lazy(() => import("./pages/Admin/WhatsAppAIChat"));
 const AdminFundDetail = lazy(() => import("./pages/Admin/AdminFundDetail"));
 const OnboardingProgressDashboard = lazy(() => import("./pages/Admin/OnboardingProgressDashboard"));
+const WaveSubscriptionsAdmin = lazy(() => import("./pages/Admin/WaveSubscriptionsAdmin"));
 
 // Deep link redirect that preserves query params (e.g. ?for=Name)
 const DeepLinkRedirect = ({ occasion }: { occasion: string }) => {
@@ -266,6 +268,8 @@ const App = () => (
             <Route path="/preferences" element={<ProtectedRoute><L><Preferences /></L></ProtectedRoute>} />
             <Route path="/pricing" element={<L><Pricing /></L>} />
             <Route path="/tarifs" element={<L><Pricing /></L>} />
+            <Route path="/subscription" element={<ProtectedRoute><L><Subscription /></L></ProtectedRoute>} />
+            <Route path="/abonnement" element={<ProtectedRoute><L><Subscription /></L></ProtectedRoute>} />
             <Route path="/checkout" element={<ProtectedRoute><L><Checkout /></L></ProtectedRoute>} />
             <Route path="/collective-checkout" element={<ProtectedRoute><L><CollectiveCheckout /></L></ProtectedRoute>} />
             <Route path="/collective-order-confirmation" element={<ProtectedRoute><L><CollectiveOrderConfirmation /></L></ProtectedRoute>} />
@@ -331,6 +335,7 @@ const App = () => (
             <Route path="/admin/whatsapp-ai" element={<AdminRoute><L><WhatsAppAIChat /></L></AdminRoute>} />
             <Route path="/admin/onboarding" element={<AdminRoute><L><OnboardingProgressDashboard /></L></AdminRoute>} />
             <Route path="/admin/funds/:fundId" element={<AdminRoute><L><AdminFundDetail /></L></AdminRoute>} />
+            <Route path="/admin/abonnements-wave" element={<AdminRoute><L><WaveSubscriptionsAdmin /></L></AdminRoute>} />
 
             {/* Dedicated page for WhatsApp CTA link - loads specific fund directly */}
             <Route path="/business/orders/:fundId" element={<ProtectedRoute><L><BusinessFundOrderView /></L></ProtectedRoute>} />
