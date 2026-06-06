@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, Crown, Sparkles, Star } from 'lucide-react';
+import { Check, Crown, Sparkles, Star, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,6 +8,10 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { usePlan } from '@/features/subscription/usePlan';
 import { PlanTier } from '@/features/subscription/types';
+import { WaveCheckoutModal } from '@/features/subscription/WaveCheckoutModal';
+import { usePendingWaveRequest } from '@/features/subscription/useWaveCheckout';
+import { WavePendingCard } from '@/features/subscription/WavePendingCard';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Currency = 'EUR' | 'XOF';
 
@@ -60,8 +64,11 @@ const TIER_ICON: Record<PlanTier, JSX.Element> = {
 
 export default function Pricing() {
   const { allPlans, tier: currentTier, isLoading } = usePlan();
+  const { user } = useAuth();
+  const { data: pending } = usePendingWaveRequest();
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [currency, setCurrency] = useState<Currency>('EUR');
+  const [waveOpen, setWaveOpen] = useState<{ tier: 'essentiel' | 'premium' } | null>(null);
 
   const ordered = useMemo(
     () => [...allPlans].sort((a, b) => a.sort_order - b.sort_order),
@@ -124,6 +131,11 @@ export default function Pricing() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 pb-20">
+        {pending && (
+          <div className="mx-auto mb-6 max-w-xl">
+            <WavePendingCard request={pending} />
+          </div>
+        )}
         <div className="grid gap-6 md:grid-cols-3">
           {FEATURE_ROWS.map(({ tier, lines }) => {
             const plan = ordered.find((p) => p.tier === tier);
@@ -200,14 +212,26 @@ export default function Pricing() {
                       <Link to="/auth">Commencer gratuitement</Link>
                     </Button>
                   ) : (
-                    <Button
-                      className={cn('w-full gap-2', isHighlight && 'bg-primary hover:bg-primary/90')}
-                      disabled
-                      title="Paiement bientôt disponible"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Choisir {plan?.name}
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      {user ? (
+                        <Button
+                          className={cn('w-full gap-2', isHighlight && 'bg-primary hover:bg-primary/90')}
+                          onClick={() => setWaveOpen({ tier: tier as 'essentiel' | 'premium' })}
+                          disabled={!!pending}
+                        >
+                          <Smartphone className="h-4 w-4" />
+                          {pending ? 'Demande en cours…' : `Payer ${plan?.name} avec Wave`}
+                        </Button>
+                      ) : (
+                        <Button asChild className={cn('w-full gap-2', isHighlight && 'bg-primary hover:bg-primary/90')}>
+                          <Link to="/auth">
+                            <Sparkles className="h-4 w-4" />
+                            Se connecter pour choisir {plan?.name}
+                          </Link>
+                        </Button>
+                      )}
+                      <p className="text-center text-[10px] text-muted-foreground">Paiement Wave (FCFA) — validation sous 24h</p>
+                    </div>
                   )}
                 </div>
               </Card>
@@ -216,8 +240,8 @@ export default function Pricing() {
         </div>
 
         <p className="mt-10 text-center text-xs text-muted-foreground">
-          Paiement par carte (Stripe) ou Wave — bientôt disponible. Annulation à tout
-          moment, sans engagement.
+          Paiement Wave (FCFA) disponible maintenant pour l'Afrique de l'Ouest. Paiement
+          carte international à venir. Annulation à tout moment, sans engagement.
         </p>
 
         {isLoading && (
@@ -226,6 +250,22 @@ export default function Pricing() {
           </p>
         )}
       </main>
+
+      {waveOpen && (() => {
+        const p = ordered.find((pp) => pp.tier === waveOpen.tier);
+        if (!p) return null;
+        const amount = cycle === 'yearly' ? p.price_xof_yearly : p.price_xof_monthly;
+        return (
+          <WaveCheckoutModal
+            open
+            onClose={() => setWaveOpen(null)}
+            planTier={waveOpen.tier}
+            planName={p.name}
+            billingCycle={cycle}
+            amountXof={Number(amount)}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -10205,6 +10205,13 @@ export type Database = {
         Args: { data: string; key_id?: string }
         Returns: string
       }
+      expire_wave_subscriptions: {
+        Args: never
+        Returns: {
+          expired_user_id: string
+          previous_tier: Database["public"]["Enums"]["subscription_plan_tier"]
+        }[]
+      }
       extract_beneficiary_name: {
         Args: { fund_title: string }
         Returns: string
@@ -10586,6 +10593,19 @@ export type Database = {
       process_pending_business_registration: {
         Args: { p_user_id: string }
         Returns: string
+      }
+      process_wave_confirmation: {
+        Args: {
+          _admin_user_id: string
+          _request_id: string
+          _reviewer_notes?: string
+          _transaction_reference?: string
+        }
+        Returns: Json
+      }
+      process_wave_rejection: {
+        Args: { _admin_user_id: string; _reason: string; _request_id: string }
+        Returns: undefined
       }
       promote_to_super_admin: {
         Args: { admin_email: string }
