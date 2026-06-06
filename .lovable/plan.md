@@ -1,200 +1,109 @@
 
-# PRD — Joie de Vivre Africa : système d'abonnements SaaS
+# Lot 3 — Abonnements via Wave (paiement manuel + validation admin)
 
-## 1. Vision produit
+Mise en place du paiement d'abonnement par Wave pour les utilisateurs d'Afrique de l'Ouest (CI, SN, BJ, TG, ML, BF), avec validation manuelle par l'admin et relances WhatsApp avant expiration. S'appuie sur la table `wave_subscription_requests` déjà créée au Lot 1.
 
-JDV est un réseau social émotionnel africain qui aide à **préparer, célébrer et préserver** les moments heureux (anniversaires, mariages, baptêmes, réussites, naissances, promotions, fêtes communautaires).
-
-Le système d'abonnement doit :
-- garder un **freemium pur** (gratuit utile à vie, conversion volontaire),
-- rendre le Premium **émotionnellement désirable** (badges publics, thèmes exclusifs, souvenirs illimités),
-- supporter **multi-devises** (EUR, XOF, USD) via Stripe + un fallback **Wave** (renouvellement manuel) pour l'Afrique de l'Ouest.
-
-## 2. Grille tarifaire
-
-| Plan | Prix | Cible | Promesse émotionnelle |
-|---|---|---|---|
-| **Gratuit** | 0 | Découverte, invités | "Célèbre les tiens, simplement." |
-| **Essentiel** | 4,99 € / mois (≈ 3 200 FCFA) | Utilisateurs réguliers | "Crée des célébrations qui marquent." |
-| **Premium** | 12,99 € / mois (≈ 8 500 FCFA) | Organisateurs, familles, leaders communautaires | "Inoubliable. Sans limite. Reconnu." |
-
-Annuel : -20 % (49 € / 129 €). Multi-devises gérées par Stripe (Price IDs par devise).
-
-## 3. Matrice de fonctionnalités (feature gating)
-
-| Capacité | Gratuit | Essentiel | Premium |
-|---|---|---|---|
-| Pages événement actives | **1** | 5 | **Illimitées** |
-| Vidéo de couverture HD (>1080p) | ❌ | 720p | **HD 1080p + animations** |
-| Album souvenirs / photos par page | 20 | 100 | **Illimitées** |
-| Export album (PDF / vidéo souvenir) | ❌ | PDF | **PDF + vidéo MP4** |
-| Cagnottes collectives | ✅ (commission 5 %) | commission 3 % | **0 % commission JDV** |
-| Cagnottes simultanées actives | 1 | 3 | **Illimitées** |
-| Thèmes de page | 3 basiques | 10 | **Tous + exclusifs Premium** |
-| Messages de vœux affichés | 50 | 200 | **Illimités** |
-| Badge public Premium 💜 | ❌ | Badge "Essentiel" | **Badge "Premium" doré + halo profil** |
-| Invités max par page | 30 | 150 | **Illimités** |
-| Stockage cloud media | 500 Mo | 5 Go | **50 Go** |
-| Co-organisateurs par événement | 0 | 2 | **10** |
-| Publicité / sponsoring | ✅ | Réduite | **Aucune** |
-| Support | Communautaire | Email 48 h | **WhatsApp prioritaire 24 h** |
-| AI gift recommendations / mois | 5 | 30 | **Illimitées** |
-
-> Règle : un utilisateur Gratuit ne peut **jamais** accéder à une ressource Premium, même via URL directe (vérif côté RLS + edge function).
-
-## 4. User flows clés
-
-### 4.1 Upgrade (Stripe)
-```text
-Profile/Settings → "Passer Premium"
-  → Page pricing (3 cartes)
-  → Clic plan → edge fn `create-checkout-session`
-  → Stripe Checkout (hosted, multi-devises)
-  → Webhook `stripe-webhook` → upsert user_subscriptions
-  → Redirect /subscription/success → Confetti + badge déverrouillé
-```
-
-### 4.2 Upgrade (Wave – CI/SN/BJ)
-```text
-Pricing → "Payer avec Wave"
-  → Modal : montant en XOF pré-rempli, lien wave.com/checkout généré
-  → Création `pending_subscription` (status='awaiting_wave')
-  → Utilisateur paie → preuve TX optionnelle
-  → Cron `wave-subscription-reconcile` (admin valide manuellement OU API Wave)
-  → Activation 30 jours + relance WhatsApp J-3 avant expiration
-```
-
-### 4.3 Downgrade / cancel
-```text
-Settings → "Gérer abonnement" → Stripe Customer Portal (ou bouton cancel Wave)
-  → Webhook → status='canceled', current_period_end conservé
-  → À expiration : trigger SQL rétrograde plan='free' + soft-archive ressources premium (jamais supprimées)
-```
-
-### 4.4 Hit d'un quota (ex. 2ᵉ page événement en Gratuit)
-```text
-Action bloquée → Modal émotionnelle "Tu as déjà 1 célébration en cours 💛
-  Passe Premium pour ne jamais avoir à choisir."
-  → CTA Upgrade + lien "voir tous les avantages"
-```
-
-## 5. Rôles & permissions
-
-| Rôle | Source | Capacités |
-|---|---|---|
-| `free_user` | défaut | Quotas Gratuit |
-| `essentiel_user` | `user_subscriptions.plan='essentiel' AND status='active'` | Quotas Essentiel |
-| `premium_user` | idem `'premium'` | Quotas Premium + badge public |
-| `business_user` | table `business_accounts` | inchangé |
-| `admin` / `super_admin` | `admin_users` | + dashboard abonnements, refunds, override plan |
-
-Helper SQL : `public.get_user_plan(uid)` → `'free'|'essentiel'|'premium'` (SECURITY DEFINER, stable).
-Helper TS : `usePlan()` hook + `<FeatureGate feature="unlimited_pages">`.
-
-## 6. États UI
-
-- **Pricing page** : 3 cartes responsive, toggle Mensuel/Annuel, sélecteur devise auto-détectée, badge "Le plus choisi" sur Premium, comparatif scrollable.
-- **Subscription dashboard** : plan actuel, prochain prélèvement, historique factures (Stripe), boutons upgrade/cancel, jauge quotas (X/Y pages, X/Y Mo).
-- **Quota gauges** : `<QuotaBar used={X} max={Y} feature="storage" />` avec passage en rouge à 90 %.
-- **Locked feature** : composant `<PremiumLock title="..." reason="..."/>` flouté + CTA.
-- **Public badge** : pastille dorée à côté du nom partout (profil, posts, messages d'anniversaire, cagnottes).
-- **Admin Plans** : table users avec filtre plan/statut, action "Override plan" (avec audit log), MRR/ARR, churn, conversion funnel.
-
-## 7. Architecture technique
-
-### 7.1 Tables Supabase (nouvelles)
+## 1. Flow utilisateur
 
 ```text
-subscription_plans            -- catalogue (free, essentiel, premium) + features JSONB
-user_subscriptions            -- 1 ligne active max par user_id
-subscription_events           -- journal (created, upgraded, canceled, payment_failed)
-subscription_invoices         -- miroir factures Stripe + paiements Wave
-feature_usage_counters        -- compteurs mensuels (pages_created, ai_calls, storage_bytes)
-wave_subscription_requests    -- demandes Wave en attente de validation
-plan_overrides                -- override admin (gratuit promo, VIP)
+/pricing → Clic "Payer avec Wave" sur Essentiel ou Premium
+  → WaveCheckoutModal (XOF pré-rempli selon plan + cycle)
+      • Affiche montant en FCFA, plan, durée (mensuel/annuel)
+      • Bouton "Ouvrir Wave" → lien wave.com/checkout?amount=...&recipient=...
+      • Champ optionnel : "Référence transaction Wave" (collable après paiement)
+      • Bouton "J'ai payé" → crée wave_subscription_request (status='pending')
+  → Écran de confirmation : "Ton paiement est en cours de vérification (≤ 24h).
+       Tu recevras une notification WhatsApp dès activation."
+  → Dashboard /subscription : carte "En attente de validation" + bouton "Annuler la demande"
 ```
 
-### 7.2 Edge functions
+Cycle de vie : `pending` → (admin valide) `confirmed` + activation `user_subscriptions` 30j/365j → relance J-3, J-1, J0 → expiration → retour `free` + soft-archive.
 
-- `create-checkout-session` (Stripe Checkout, multi-devises selon `country_code`)
-- `stripe-webhook` (verifie signature, upsert subscription, trigger badge award)
-- `create-wave-subscription` (génère lien + crée pending)
-- `wave-subscription-confirm` (admin/cron valide paiement)
-- `cancel-subscription`
-- `check-feature-access` (RPC appelée par RLS pour endpoints sensibles)
-- `monthly-quota-reset` (cron 1ᵉʳ du mois)
-- `subscription-expiry-reminder` (cron J-3, J-1, WhatsApp)
+## 2. Composants frontend
 
-### 7.3 RLS (extraits)
+| Fichier | Rôle |
+|---|---|
+| `src/features/subscription/WaveCheckoutModal.tsx` | Modal de paiement Wave (montant XOF, lien, "J'ai payé") |
+| `src/features/subscription/WavePendingCard.tsx` | Carte d'état "en attente" sur le dashboard abonnement |
+| `src/features/subscription/SubscriptionDashboard.tsx` | Page `/subscription` : plan actuel, prochain prélèvement, historique, demandes en attente |
+| `src/features/subscription/useWaveCheckout.ts` | Hook : create request, cancel request, poll status |
+| `src/pages/Subscription.tsx` | Route `/subscription` (et alias `/abonnement`) |
+| Mise à jour `src/pages/Pricing.tsx` | Ajout bouton "Payer avec Wave" sur cartes Essentiel/Premium pour pays XOF |
 
-```sql
--- Pages événement : créer ssi quota OK
-CREATE POLICY "Insert event_pages within plan limit"
-ON event_pages FOR INSERT TO authenticated
-WITH CHECK (
-  public.can_create_resource(auth.uid(), 'event_page')
-);
+## 3. Edge functions
 
--- Album premium : voir export ssi premium
-CREATE POLICY "Read premium video export"
-ON event_page_exports FOR SELECT TO authenticated
-USING (
-  public.get_user_plan(auth.uid()) = 'premium'
-  OR owner_id = auth.uid()  -- propriétaire toujours OK pour ses propres exports passés
-);
-```
+| Fonction | Rôle |
+|---|---|
+| `create-wave-subscription` | Crée `wave_subscription_requests` (status='pending'), retourne le lien wave.com pré-rempli + l'ID de la demande. JWT requis. |
+| `cancel-wave-subscription` | L'utilisateur annule sa demande tant que `status='pending'`. |
+| `confirm-wave-subscription` | Admin uniquement. Marque `confirmed`, crée/upsert `user_subscriptions` (period_start = now, period_end = +30j ou +365j selon cycle), log `subscription_events`, crée `subscription_invoices`, notifie l'utilisateur via WhatsApp + in-app. |
+| `reject-wave-subscription` | Admin uniquement. Marque `rejected` + raison, notifie l'utilisateur. |
+| `wave-subscription-expiry-reminder` (cron quotidien 9h) | Scanne `user_subscriptions` actifs provider='wave'. Envoie WhatsApp J-3, J-1, J0. Logge dans `subscription_events`. |
+| `wave-subscription-expire` (cron quotidien 2h) | Pour tout abonnement Wave dont `current_period_end < now()` : rétrograde plan→free, log event, notifie. |
 
-Fonctions security definer : `get_user_plan`, `get_plan_limit(plan, feature)`, `can_create_resource(uid, feature)`, `increment_usage(uid, feature)`.
+Toutes utilisent : `Authorization: Bearer <jwt>` extrait + `getUser(token)`, CORS restreint, validation Zod.
 
-### 7.4 Frontend
+## 4. Dashboard admin
 
-```text
-src/
-  features/subscription/
-    PricingPage.tsx
-    SubscriptionDashboard.tsx
-    UpgradeModal.tsx
-    WaveCheckoutModal.tsx
-    PremiumBadge.tsx
-    QuotaBar.tsx
-    FeatureGate.tsx
-  hooks/
-    usePlan.ts              -- plan + features
-    useQuota.ts             -- conso vs limite
-    useUpgrade.ts           -- launch Stripe checkout
-  pages/Admin/
-    SubscriptionsAdmin.tsx  -- MRR, churn, override
-```
+| Fichier | Rôle |
+|---|---|
+| `src/pages/Admin/WaveSubscriptionsAdmin.tsx` | Liste filtrable des `wave_subscription_requests` (pending / confirmed / rejected / expired) |
+| Colonnes affichées | User (nom, phone, pays), plan demandé, montant XOF, cycle, référence TX saisie, date demande, actions |
+| Actions admin | "Confirmer le paiement" (modal de confirmation avec champ réf TX optionnel) / "Rejeter" (modal avec raison) |
+| Filtres | Pays (CI/SN/BJ/TG/ML/BF), statut, plan, période |
+| Route | `/admin/abonnements-wave` (rôle admin/super_admin requis) |
+| Stats en haut | Demandes en attente, MRR Wave estimé, taux de confirmation, délai moyen de validation |
 
-### 7.5 Sécurité
+Ajout d'une **alerte admin** (banner dans `AdminDashboard` existant) : "X demandes Wave en attente depuis > 24h".
 
-- Stripe webhook : vérif signature obligatoire, secret en `STRIPE_WEBHOOK_SECRET`.
-- Jamais de `plan` writable depuis le client (RLS `UPDATE` interdit sur `user_subscriptions` côté `authenticated`, seulement `service_role`).
-- Override admin → audit log obligatoire (`admin_audit_logs`).
-- Gating doublé : UI (UX) + RLS/edge (sécurité). Jamais l'UI seule.
+## 5. Notifications WhatsApp
 
-## 8. Métriques produit
+Réutilise l'infra WhatsApp existante (`send-whatsapp-otp` pattern, templates Meta approuvés). Nouveaux messages texte libre (hors templates car non-OTP) :
 
-- MRR, ARR, ARPU par pays
-- Taux de conversion Free → Essentiel / Premium
-- Churn mensuel par plan
-- Top features qui déclenchent l'upgrade (event `upgrade_triggered_by`)
-- Conso médiane des quotas (détecter sous/sur-tarification)
+| Événement | Message |
+|---|---|
+| Demande créée | "Ta demande d'abonnement {plan} JDV est en cours de vérification. On t'active sous 24h max. 💛" |
+| Confirmation admin | "🎉 Ton abonnement {plan} JDV est activé jusqu'au {date}. Bienvenue dans la célébration sans limite !" |
+| Rejet | "Ta demande {plan} JDV n'a pas pu être validée : {raison}. Réessaie ou contacte le support." |
+| J-3 expiration | "Ton abonnement {plan} expire dans 3 jours. Renouvelle avec Wave pour ne rien perdre : {lien}" |
+| J-1 expiration | "⏰ Plus que 24h ! Renouvelle ton {plan} maintenant : {lien}" |
+| Expiration (J0) | "Ton abonnement {plan} a expiré. Tu repasses en Gratuit mais tes données restent intactes. Reviens quand tu veux : {lien}" |
 
-## 9. Roadmap d'implémentation (build par lots)
+## 6. Base de données
 
-1. **Lot 1 — Fondations** : tables + RLS + helpers SQL + seed des 3 plans + `usePlan` + `FeatureGate`.
-2. **Lot 2 — Stripe** : produits/prix multi-devises, `create-checkout-session`, webhook, dashboard abonnement, Customer Portal.
-3. **Lot 3 — Wave** : flow manuel, dashboard admin de validation, relances WhatsApp.
-4. **Lot 4 — Gating** : appliquer quotas sur pages événement, albums, cagnottes (commission dynamique), AI reco, stockage.
-5. **Lot 5 — Premium visible** : badges publics, thèmes exclusifs, halo profil, modals émotionnelles, export PDF/vidéo souvenir.
-6. **Lot 6 — Admin & analytics** : MRR/ARR, churn, override plan, audit, alertes.
+**Aucune nouvelle table** — `wave_subscription_requests` et `user_subscriptions` existent depuis Lot 1.
 
-## 10. Hors périmètre V1
-- Plans famille / multi-sièges.
-- Crédits à l'unité (one-shot) — possible V2.
-- Facturation B2B vendeurs (existe déjà via `business_accounts`, séparé).
+**Ajouts SQL nécessaires :**
+- Index `wave_subscription_requests(status, created_at)` pour le dashboard admin
+- Index `user_subscriptions(provider, current_period_end)` pour le cron d'expiration
+- RLS sur `wave_subscription_requests` : user lit/insère/cancel ses propres demandes, admins lisent tout et update statut
+- Trigger ou fonction `process_wave_confirmation(request_id)` (SECURITY DEFINER) qui upsert `user_subscriptions` + log event atomiquement
+- Cron `pg_cron` pour les 2 nouvelles fonctions edge (rappel J-3/J-1 et expiration)
 
----
+## 7. Hors périmètre Lot 3
 
-**Prochaine étape** : si tu valides ce plan, je passe en build mode et j'attaque **Lot 1 (fondations DB + hooks + FeatureGate)** en premier, puis on enchaîne lot par lot pour garder un contrôle propre des migrations Stripe.
+- Pas d'API Wave Business (réconciliation auto) — V2 si volume justifie
+- Pas de paiement CB internationale (Paddle reporté en Lot 7)
+- Pas de remboursement automatique (admin manuel via `subscription_events`)
+- Pas de Customer Portal (annulation = bouton "Ne pas renouveler" qui désactive le rappel)
+
+## 8. Critères d'acceptation
+
+- Un user CI/SN clique "Payer avec Wave" → reçoit un lien wave.com prérempli en XOF correct selon plan et cycle
+- L'admin voit la demande dans `/admin/abonnements-wave` ≤ 1 min après création
+- Confirmation admin → user reçoit WhatsApp + voit son plan actif dans `/subscription`
+- Cron quotidien envoie bien J-3/J-1/J0
+- À expiration : plan repasse à `free` automatiquement, ressources premium soft-archivées (pas supprimées)
+- RLS : un user ne peut pas voir/modifier les demandes d'un autre user
+- Tous les events tracés dans `subscription_events`
+
+## 9. Découpage de livraison (à l'intérieur du Lot 3)
+
+1. **3.1** Migration index + RLS + fonction `process_wave_confirmation`
+2. **3.2** Edge functions `create-wave-subscription` + `cancel-wave-subscription` + hook `useWaveCheckout` + `WaveCheckoutModal`
+3. **3.3** Page `/subscription` (`SubscriptionDashboard` + `WavePendingCard`) + bouton Wave dans Pricing
+4. **3.4** Edge functions admin `confirm-wave-subscription` + `reject-wave-subscription` + page `WaveSubscriptionsAdmin`
+5. **3.5** Crons `wave-subscription-expiry-reminder` + `wave-subscription-expire` + templates WhatsApp
+6. **3.6** Tests end-to-end + alerte admin "demandes > 24h"
+
+Si tu valides, j'attaque **3.1 (migration)** en premier en build mode, puis on enchaîne sous-lot par sous-lot.
