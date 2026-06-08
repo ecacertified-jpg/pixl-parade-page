@@ -23,11 +23,22 @@ export default defineConfig(({ mode }) => ({
         theme_color: '#FF6B9D',
         background_color: '#FFF5F8',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        id: '/',
+        dir: 'ltr',
+        prefer_related_applications: false,
+        launch_handler: { client_mode: 'navigate-existing' },
         categories: ['lifestyle', 'social', 'shopping'],
         lang: 'fr',
+        shortcuts: [
+          { name: 'Accueil', short_name: 'Accueil', description: 'Mon fil de joie', url: '/home', icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }] },
+          { name: 'Cagnottes', short_name: 'Cagnottes', description: 'Mes cagnottes en cours', url: '/dashboard?tab=funds', icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }] },
+          { name: 'Anniversaires', short_name: 'Anniversaires', description: 'Anniversaires à venir', url: '/dashboard?tab=birthdays', icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }] },
+          { name: 'Boutique', short_name: 'Boutique', description: 'Découvrir des cadeaux', url: '/shop', icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }] }
+        ],
         icons: [
           {
             src: '/pwa-192x192.png',
@@ -51,20 +62,42 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,ico,png,svg,webp,avif,woff,woff2}'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
+        navigationPreload: true,
+        navigateFallback: '/offline.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/~oauth/, /^\/auth/, /\.[^/]+$/],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
             options: {
               cacheName: 'navigation-cache-v1',
-              networkTimeoutSeconds: 3,
+              networkTimeoutSeconds: 2,
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 },
               cacheableResponse: {
                 statuses: [0, 200]
               }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/vaimfeurvzokepqqqrsl\.supabase\.co\/rest\/v1\/(profiles|contacts|business_accounts|business_public_info)/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'supabase-core-v1',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24, purgeOnQuotaError: true },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/vaimfeurvzokepqqqrsl\.supabase\.co\/functions\/v1\/(home-preview|birthday-preview|event-preview|join-preview|og-inspector)/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'edge-previews-v1',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] }
             }
           },
           {
@@ -119,7 +152,8 @@ export default defineConfig(({ mode }) => ({
               cacheName: 'images-cache-v2',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+                purgeOnQuotaError: true
               },
               cacheableResponse: {
                 statuses: [0, 200]

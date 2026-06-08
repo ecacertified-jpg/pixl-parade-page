@@ -26,19 +26,25 @@
     <link rel="alternate" hreflang="x-default" href="https://joiedevivre-africa.com/" />
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#FF6B9D" />
+    <meta name="theme-color" content="#FF6B9D" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a0f1a" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Joie de Vivre" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="JDV" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="Joie de Vivre" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-TileColor" content="#FF6B9D" />
     <meta name="msapplication-tap-highlight" content="no" />
-    
+    <meta name="color-scheme" content="light dark" />
+
     <!-- PWA Links -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" />
+    <!-- Apple splash (auto-fit, single image fallback) -->
+    <link rel="apple-touch-startup-image" href="/pwa-512x512.png" />
     <link rel="icon" type="image/svg+xml" href="https://storage.googleapis.com/gpt-engineer-file-uploads/BxFLQ2rhOdg5ajKYIVmupCqEksM2/uploads/1770667340529-Logo_favicon_svg.svg">
 
     <!-- Preconnect for performance -->
