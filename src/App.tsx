@@ -14,6 +14,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PublicRoute } from "@/components/PublicRoute";
 import { AuthGateProvider } from "@/contexts/AuthGateContext";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { UpdateToast } from "@/components/pwa/UpdateToast";
+import { NetworkQualityHint } from "@/components/pwa/NetworkQualityHint";
 import { NotificationSoundProvider } from "@/components/NotificationSoundProvider";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
@@ -189,6 +191,8 @@ const App = () => (
           <NotificationSoundProvider>
             <TooltipProvider>
               <OfflineIndicator />
+              <NetworkQualityHint />
+              <UpdateToast />
             <Toaster />
             <Sonner />
             <BrowserRouter>

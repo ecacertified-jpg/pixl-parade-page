@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FF6B9D" />
+  <title>Hors ligne — Joie de Vivre</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;font-family:'Nunito','Poppins',system-ui,-apple-system,sans-serif;color:#2E2E2E;background:linear-gradient(160deg,#FFF5F8 0%,#FAD4E1 60%,#E8E2F5 100%);-webkit-font-smoothing:antialiased}
+    .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+    .card{max-width:420px;background:rgba(255,255,255,.75);backdrop-filter:blur(14px);border-radius:24px;padding:32px 24px;box-shadow:0 10px 40px rgba(122,93,199,.18);animation:rise .6s ease-out both}
+    .emoji{font-size:56px;line-height:1;margin-bottom:12px;animation:pulse 2.4s ease-in-out infinite}
+    h1{font-family:'Poppins',sans-serif;font-size:22px;margin:0 0 8px;color:#7A5DC7}
+    p{font-size:15px;line-height:1.5;color:#4a4a4a;margin:0 0 20px}
+    button{appearance:none;border:0;cursor:pointer;background:linear-gradient(135deg,#FF6B9D,#C084FC);color:#fff;font-weight:600;font-family:inherit;padding:14px 26px;border-radius:999px;font-size:15px;box-shadow:0 6px 20px rgba(255,107,157,.4);transition:transform .15s ease,box-shadow .15s ease}
+    button:active{transform:scale(.97)}
+    .hint{margin-top:18px;font-size:12px;color:#7a7a8a}
+    @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="emoji">🌙</div>
+      <h1>Vous êtes hors ligne</h1>
+      <p>Pas d'inquiétude — vos moments de joie vous attendent. Reconnectez-vous pour continuer à célébrer ensemble.</p>
+      <button onclick="location.reload()">Réessayer</button>
+      <div class="hint">Joie de Vivre Africa · mode économie</div>
+    </div>
+  </div>
+</body>
+</html>

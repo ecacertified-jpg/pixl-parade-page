@@ -4,15 +4,20 @@ import { registerSW } from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
 
-// Enregistrement du Service Worker avec mise à jour automatique
+// Enregistrement du Service Worker — UX douce : avertit l'utilisateur
+// via un événement custom plutôt que de recharger brutalement.
 const updateSW = registerSW({
   onNeedRefresh() {
-    // Nouvelle version disponible - recharger automatiquement
-    console.log('[PWA] Nouvelle version disponible, rechargement...');
-    updateSW(true);
+    console.log('[PWA] Nouvelle version disponible');
+    window.dispatchEvent(
+      new CustomEvent('pwa:need-refresh', {
+        detail: { update: () => updateSW(true) },
+      })
+    );
   },
   onOfflineReady() {
     console.log('[PWA] Application prête pour le mode hors ligne');
+    window.dispatchEvent(new CustomEvent('pwa:offline-ready'));
   },
   onRegistered(registration) {
     console.log('[PWA] Service Worker enregistré:', registration);
