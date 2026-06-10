@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendWebPushNotification } from "../_shared/web-push.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,13 +20,15 @@ interface PushNotificationPayload {
   playSound?: boolean;
 }
 
+const ONESIGNAL_APP_ID = '52d13eb4-510f-4bb0-8909-d3eb996e91cd';
+const ONESIGNAL_API_URL = 'https://api.onesignal.com/notifications';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authentication check
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -50,15 +51,9 @@ serve(async (req) => {
       );
     }
 
-    console.log('✅ Authenticated user:', user.id);
-
-    // Get VAPID keys
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
-    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
-    const vapidEmail = Deno.env.get('VAPID_EMAIL') || 'contact@joiedevivre.app';
-
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      console.error('❌ VAPID keys not configured');
+    const restApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
+    if (!restApiKey) {
+      console.error('❌ ONESIGNAL_REST_API_KEY not configured');
       return new Response(
         JSON.stringify({ error: 'Push notifications not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -73,54 +68,34 @@ serve(async (req) => {
     const payload: PushNotificationPayload = await req.json();
     console.log('📬 Sending push to users:', payload.user_ids);
 
-    // Get active subscriptions
-    const { data: subscriptions, error: subsError } = await supabaseAdmin
-      .from('push_subscriptions')
-      .select('*')
+    // Fetch OneSignal player IDs from profiles
+    const { data: profilesData, error: profErr } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id, onesignal_player_id')
       .in('user_id', payload.user_ids)
-      .eq('is_active', true);
+      .not('onesignal_player_id', 'is', null);
 
-    if (subsError) {
-      console.error('❌ Error fetching subscriptions:', subsError);
-      throw subsError;
+    if (profErr) {
+      console.error('❌ Error fetching profiles:', profErr);
+      throw profErr;
     }
 
-    if (!subscriptions || subscriptions.length === 0) {
-      console.log('ℹ️ No active subscriptions found');
+    const playerIds = (profilesData || [])
+      .map((p) => p.onesignal_player_id as string)
+      .filter(Boolean);
+
+    if (playerIds.length === 0) {
+      console.log('ℹ️ No OneSignal subscriptions found');
       return new Response(
-        JSON.stringify({ message: 'No active subscriptions', sent: 0 }),
+        JSON.stringify({ message: 'No active subscriptions', sent: 0, failed: 0, total: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`📱 Found ${subscriptions.length} active subscriptions`);
+    console.log(`📱 Sending to ${playerIds.length} OneSignal subscriptions`);
 
     const notificationType = payload.type || 'default';
     const isBirthday = notificationType.includes('birthday');
-
-    const pushPayload = JSON.stringify({
-      title: payload.title,
-      message: payload.message,
-      body: payload.message,
-      icon: payload.icon || '/pwa-192x192.png',
-      badge: payload.badge || '/pwa-192x192.png',
-      tag: payload.tag || `joie-de-vivre-${notificationType}-${Date.now()}`,
-      type: notificationType,
-      isUrgent: payload.isUrgent || false,
-      data: {
-        ...payload.data,
-        type: notificationType,
-        isUrgent: payload.isUrgent || false,
-        playSound: payload.playSound !== false,
-        soundType: isBirthday ? (payload.isUrgent ? 'tada' : 'chime') : 'pop',
-        timestamp: Date.now()
-      },
-      requireInteraction: payload.requireInteraction || isBirthday,
-    });
-
-    let successCount = 0;
-    let failedCount = 0;
-    const expiredEndpoints: string[] = [];
 
     const categoryMap: Record<string, string> = {
       'birthday': 'birthday',
@@ -131,71 +106,68 @@ serve(async (req) => {
       'order': 'order',
     };
     const category = categoryMap[notificationType] || 'other';
+    const actionUrl = (payload.data?.url as string) || undefined;
 
-    for (const subscription of subscriptions) {
-      // Create analytics entry before sending
-      const { data: analyticsEntry } = await supabaseAdmin
-        .from('notification_analytics')
-        .insert({
-          user_id: subscription.user_id,
-          notification_type: 'push',
-          category,
-          title: payload.title,
-          body: payload.message,
-          action_url: payload.data?.url as string || null,
-          status: 'sent',
-          device_type: subscription.device_type || 'unknown',
-        })
-        .select('id')
-        .single();
-
-      const result = await sendWebPushNotification(
-        subscription,
-        pushPayload,
-        vapidPublicKey,
-        vapidPrivateKey,
-        `mailto:${vapidEmail}`
-      );
-
-      if (result.success) {
-        successCount++;
-        await supabaseAdmin
-          .from('push_subscriptions')
-          .update({ last_used_at: new Date().toISOString() })
-          .eq('id', subscription.id);
-        
-        if (analyticsEntry?.id) {
-          await supabaseAdmin
-            .from('notification_analytics')
-            .update({ delivered_at: new Date().toISOString(), status: 'delivered' })
-            .eq('id', analyticsEntry.id);
-        }
-      } else {
-        failedCount++;
-        if (analyticsEntry?.id) {
-          await supabaseAdmin
-            .from('notification_analytics')
-            .update({ status: 'failed', error_message: result.error })
-            .eq('id', analyticsEntry.id);
-        }
-        if (result.error === 'subscription_expired') {
-          expiredEndpoints.push(subscription.endpoint);
-          await supabaseAdmin
-            .from('push_subscriptions')
-            .update({ is_active: false })
-            .eq('id', subscription.id);
-        }
-      }
+    // Insert analytics entries (one per recipient)
+    const analyticsRows = (profilesData || []).map((p) => ({
+      user_id: p.user_id as string,
+      notification_type: 'push',
+      category,
+      title: payload.title,
+      body: payload.message,
+      action_url: actionUrl || null,
+      status: 'sent',
+      device_type: 'web',
+    }));
+    if (analyticsRows.length > 0) {
+      await supabaseAdmin.from('notification_analytics').insert(analyticsRows);
     }
 
-    console.log(`📊 Results: ${successCount} success, ${failedCount} failed, ${expiredEndpoints.length} expired`);
+    const body: Record<string, unknown> = {
+      app_id: ONESIGNAL_APP_ID,
+      include_player_ids: playerIds,
+      headings: { en: payload.title, fr: payload.title },
+      contents: { en: payload.message, fr: payload.message },
+      chrome_web_icon: payload.icon || 'https://joiedevivre-africa.com/pwa-192x192.png',
+      chrome_web_badge: payload.badge || 'https://joiedevivre-africa.com/pwa-192x192.png',
+      data: {
+        ...payload.data,
+        type: notificationType,
+        isUrgent: payload.isUrgent || false,
+        playSound: payload.playSound !== false,
+        soundType: isBirthday ? (payload.isUrgent ? 'tada' : 'chime') : 'pop',
+      },
+    };
+    if (actionUrl) body.url = actionUrl;
+    if (payload.tag) body.web_push_topic = payload.tag;
+
+    const osResp = await fetch(ONESIGNAL_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Key ${restApiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const osJson = await osResp.json().catch(() => ({}));
+    if (!osResp.ok) {
+      console.error('❌ OneSignal error:', osResp.status, osJson);
+      return new Response(
+        JSON.stringify({ error: 'OneSignal request failed', details: osJson, sent: 0, failed: playerIds.length }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 }
+      );
+    }
+
+    const recipients = (osJson as any).recipients ?? playerIds.length;
+    console.log(`📊 OneSignal sent to ${recipients} recipients (id=${(osJson as any).id})`);
 
     return new Response(
       JSON.stringify({
-        sent: successCount,
-        failed: failedCount,
-        expired: expiredEndpoints.length,
-        total: subscriptions.length
+        sent: recipients,
+        failed: Math.max(0, playerIds.length - recipients),
+        total: playerIds.length,
+        onesignal_id: (osJson as any).id ?? null,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
