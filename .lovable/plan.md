@@ -1,87 +1,103 @@
-# Plan — JDV PWA Premium (Mobile-First, Afrique)
+# Migration vers OneSignal Web Push
 
-L'app a déjà `vite-plugin-pwa` + manifest basique + `Install.tsx` + `InstallBanner.tsx` + `useOfflineData`. Ce plan **enrichit** sans casser l'existant. Aucun changement métier — uniquement frontend/PWA/UX.
+## Objectif
+Remplacer le système Web Push VAPID actuel (basé sur `push_subscriptions` + `_shared/web-push.ts`) par OneSignal Web SDK, plus fiable, multi-plateforme et avec dashboard de suivi inclus.
 
-## 1. Manifest enrichi (`vite.config.ts`)
-- Ajouter `id`, `dir: "ltr"`, `prefer_related_applications: false`
-- `shortcuts` : Accueil, Cagnottes, Anniversaires, Boutique (accès rapide depuis icône home)
-- `screenshots` (mobile + desktop, `form_factor`) → améliore install prompt Chrome/Edge
-- `display_override: ["standalone", "minimal-ui"]`
-- `launch_handler: { client_mode: "navigate-existing" }` (évite doublons d'onglets)
-- `protocol_handlers` + `share_target` (recevoir partages WhatsApp/photos vers `/share`)
+## Configuration acquise
+- ✅ App OneSignal créée : `Joie de Vivre Africa`
+- ✅ App ID public : `52d13eb4-510f-4bb0-8909-d3eb996e91cd` (en clair dans le code, c'est normal)
+- ✅ Secret `ONESIGNAL_REST_API_KEY` ajouté côté edge functions
 
-## 2. Splash screens iOS
-- Ajouter `<link rel="apple-touch-startup-image">` pour iPhone SE/12/13/14/15 Pro Max (8 tailles)
-- `apple-mobile-web-app-status-bar-style: black-translucent`
-- `apple-mobile-web-app-title: "JDV"`
+## Architecture cible
 
-## 3. Icônes adaptatives
-- Vérifier `pwa-192`, `pwa-512`, `pwa-maskable-512` existent (sinon générer via imagegen)
-- Ajouter favicon SVG monochrome (déjà présent)
+```text
+┌─────────────────────────────┐
+│  Client (React PWA)         │
+│  ─ OneSignal Web SDK v16    │
+│  ─ Player ID stocké dans    │
+│    profiles.onesignal_id    │
+└──────────────┬──────────────┘
+               │
+       ┌───────▼────────┐
+       │ Edge Function  │
+       │ send-push-     │
+       │ notification   │
+       │ (réécrite)     │
+       └───────┬────────┘
+               │ REST
+       ┌───────▼────────┐
+       │ OneSignal API  │
+       │ /notifications │
+       └────────────────┘
+```
 
-## 4. Service Worker — cache intelligent Afrique (réseau faible)
-Étendre `workbox.runtimeCaching` dans `vite.config.ts` :
-- **HTML navigations** : `NetworkFirst` avec `networkTimeoutSeconds: 2` (au lieu de 3) → bascule offline plus vite
-- **API Supabase REST (profiles, contacts, businesses)** : `StaleWhileRevalidate` 24h → affichage instantané même 2G
-- **Storage images** : `CacheFirst` 30 jours + `expiration.purgeOnQuotaError: true`
-- **Edge functions GET** (OG, previews) : `StaleWhileRevalidate` 1h
-- Ajouter `navigationPreload` activé
-- `globPatterns` inclure `webp,avif`
+## Étapes
 
-## 5. Page offline dédiée
-- Créer `public/offline.html` — page jolie en français, branding JDV, message rassurant + bouton "Réessayer"
-- Workbox `navigateFallback: '/offline.html'` quand pas de cache
+### 1. Base de données
+- Ajouter colonne `onesignal_player_id text` à `profiles` (indexée).
+- Garder `push_subscriptions` pour l'historique mais marquer la table comme dépréciée (pas de drop, on évite la régression).
 
-## 6. UX émotionnelle
-- Créer `src/components/pwa/UpdateToast.tsx` : toast chaleureux "Nouvelle version disponible ✨" avec bouton "Actualiser" (remplace le `updateSW(true)` auto-brutal dans `main.tsx` qui interrompt l'utilisateur)
-- Créer `src/components/pwa/OfflineIndicator.tsx` : badge flottant "Mode hors-ligne 🌙" avec fade-in doux quand `navigator.onLine === false`
-- Créer `src/components/pwa/NetworkQualityHint.tsx` : utilise `navigator.connection` (effectiveType `2g`/`slow-2g`) → bannière douce "Connexion lente détectée, mode économie activé 💛"
-- Animations Tailwind : `animate-fade-in`, `animate-scale-in` déjà disponibles
+### 2. Client — SDK OneSignal
+- Installer `react-onesignal`.
+- Créer `src/lib/onesignal.ts` : initialisation unique avec `appId`, `safari_web_id` non requis, `allowLocalhostAsSecureOrigin: true` en dev.
+- Initialiser dans `src/main.tsx` (après le mount) uniquement en prod ou preview publié (pas dans l'iframe Lovable).
+- Réécrire `src/hooks/usePushNotifications.ts` :
+  - `isSupported` ← `OneSignal.Notifications.isPushSupported()`
+  - `permission` ← `OneSignal.Notifications.permission`
+  - `subscribe()` ← `OneSignal.Notifications.requestPermission()` puis `OneSignal.login(user.id)` et upsert `profiles.onesignal_player_id`
+  - `unsubscribe()` ← `OneSignal.User.PushSubscription.optOut()`
+- `PushNotificationPrompt.tsx` : aucun changement de logique nécessaire (utilise déjà le hook).
 
-## 7. Optimisation batterie & réseau faible
-- Hook `src/hooks/useDataSaver.ts` : détecte `connection.saveData` ou `effectiveType === '2g'` → expose `isLowData` aux composants pour skip vidéos auto-play, images HD, animations lourdes
-- Hook `src/hooks/usePageVisibility.ts` : pause polling/intervals quand onglet caché (économie batterie)
-- Lazy load images via `loading="lazy"` + `decoding="async"` (à documenter, pas forcer refacto massif)
+### 3. Service Worker
+- OneSignal exige `OneSignalSDKWorker.js` à la racine du site.
+- Ajouter `public/OneSignalSDKWorker.js` (1 ligne : `importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');`).
+- Compatible avec la PWA existante (scope distinct, n'interfère pas avec un éventuel app-shell SW).
 
-## 8. Mobile-first & viewport
-- Vérifier `<meta name="viewport">` avec `viewport-fit=cover` (notch iPhone)
-- Ajouter `theme-color` adaptatif light/dark via `<meta media="(prefers-color-scheme)">`
-- `<meta name="mobile-web-app-capable" content="yes">`
+### 4. Edge function `send-push-notification`
+- Garder l'interface d'appel (même `user_ids`, `title`, `message`, `type`, etc.) pour ne rien casser dans les ~30 fonctions qui l'appellent.
+- Remplacer la logique interne :
+  - Récupérer les `onesignal_player_id` depuis `profiles` pour `user_ids`.
+  - POST `https://api.onesignal.com/notifications` avec `Authorization: Key <ONESIGNAL_REST_API_KEY>`, `app_id`, `include_player_ids`, `headings`, `contents`, `url`, `chrome_web_icon`, `data`.
+  - Mapper `type` → `android_channel_id` / `web_buttons` si pertinent.
+  - Garder l'écriture dans `notification_analytics`.
+- Supprimer la dépendance à `_shared/web-push.ts` et aux secrets `VAPID_*` (les laisser en place, on les retirera plus tard).
 
-## 9. Web Share API
-- Hook `src/hooks/useNativeShare.ts` : fallback gracieux si `navigator.share` indisponible → copie presse-papier (cohérent avec stratégie mémoire viral-sharing)
+### 5. Fichiers supprimés / inchangés
+- ❌ Plus utilisé : `supabase/functions/_shared/web-push.ts` (à laisser, supprimé après vérif que rien d'autre ne l'importe).
+- ✅ Inchangé : toutes les fonctions appelantes (`notify-*`, crons WhatsApp, etc.).
 
-## 10. Push notifications (préparation future)
-- Pas d'implémentation maintenant (hors scope), mais le SW Workbox supporte déjà via `importScripts` futur
-- Documenter dans `BIRTHDAY_CRON_SETUP.md` la marche à suivre
+### 6. Validation
+- Build + déploiement de la edge function.
+- Test manuel : se logger sur le site publié, accepter la permission, vérifier que `profiles.onesignal_player_id` est rempli.
+- Envoyer une notif de test via `supabase--curl_edge_functions` → vérifier réception navigateur + dashboard OneSignal "Delivery".
 
----
+## Détails techniques (pour mémoire)
 
-## Fichiers créés/modifiés
+**Endpoint OneSignal REST**
+```
+POST https://api.onesignal.com/notifications
+Authorization: Key <REST_API_KEY>
+Content-Type: application/json
 
-**Modifiés** :
-- `vite.config.ts` — manifest enrichi + runtimeCaching optimisé
-- `index.html` — splash iOS, meta tags mobile, theme-color
-- `src/main.tsx` — registration SW non-brutale (callback vers toast)
-- `src/App.tsx` — monter `<UpdateToast>`, `<OfflineIndicator>`, `<NetworkQualityHint>`
+{
+  "app_id": "52d13eb4-510f-4bb0-8909-d3eb996e91cd",
+  "include_player_ids": ["..."],
+  "headings": {"fr": "Titre", "en": "Title"},
+  "contents": {"fr": "Message", "en": "Message"},
+  "url": "https://joiedevivre-africa.com/...",
+  "chrome_web_icon": "https://.../pwa-192x192.png",
+  "data": { "type": "birthday", ... }
+}
+```
 
-**Créés** :
-- `public/offline.html`
-- `src/components/pwa/UpdateToast.tsx`
-- `src/components/pwa/OfflineIndicator.tsx`
-- `src/components/pwa/NetworkQualityHint.tsx`
-- `src/hooks/useDataSaver.ts`
-- `src/hooks/usePageVisibility.ts`
-- `src/hooks/useNativeShare.ts`
+**Auto-resubscribe** déjà coché côté OneSignal dashboard ✅.
 
-**Non touché** : logique métier, Supabase, edge functions, routing, Wave/abonnements (Lot 3 livré).
+## Risques & mitigations
+- **Préviews Lovable** : ne pas initialiser OneSignal dans l'iframe (`window.top !== window.self`) pour éviter la pollution de scope SW.
+- **Migration douce** : les utilisateurs déjà inscrits via VAPID seront re-promptés au prochain login (acceptation OneSignal). Pas de perte d'historique.
+- **Auto-resubscribe** activé côté OneSignal → reconnexion transparente.
 
----
-
-## Garde-fous
-- SW déjà guardé par `vite-plugin-pwa autoUpdate` — pas de double registration
-- Preview Lovable : SW ne s'enregistre qu'en PROD (vérifié dans `main.tsx`)
-- Pas de cache-busting agressif — `NetworkFirst` sur navigations garantit fraîcheur HTML
-- Cohérent avec mémoire `[Active business]` et `[Hybrid country immersion]`
-
-Confirme et je build dans la foulée.
+## Hors scope (livré plus tard si besoin)
+- Mobile push natif via OneSignal SDK Capacitor (uniquement si tu ajoutes une app native).
+- Segmentation avancée (tags pays, langue) — peut être ajoutée plus tard via `OneSignal.User.addTag()`.
+- Suppression du code VAPID legacy (faire après 2-3 semaines de stabilité).
