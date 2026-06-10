@@ -34,7 +34,6 @@ export function initOneSignal(): Promise<boolean> {
     allowLocalhostAsSecureOrigin: true,
     serviceWorkerPath: 'OneSignalSDKWorker.js',
     serviceWorkerParam: { scope: '/onesignal/' },
-    notifyButton: { enable: false },
   })
     .then(() => {
       console.log('[OneSignal] Initialized');
