@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
+import { initOneSignal } from './lib/onesignal';
+
+// Initialize OneSignal Web Push (skipped automatically in Lovable preview/iframe)
+initOneSignal();
 
 // Enregistrement du Service Worker — UX douce : avertit l'utilisateur
 // via un événement custom plutôt que de recharger brutalement.

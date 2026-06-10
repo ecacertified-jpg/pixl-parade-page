@@ -7188,6 +7188,7 @@ export type Database = {
           neighborhood: string | null
           onboarding_completed: boolean
           onboarding_furthest_step: number
+          onesignal_player_id: string | null
           phone: string | null
           preferences: Json | null
           primary_referral_code: string | null
@@ -7228,6 +7229,7 @@ export type Database = {
           neighborhood?: string | null
           onboarding_completed?: boolean
           onboarding_furthest_step?: number
+          onesignal_player_id?: string | null
           phone?: string | null
           preferences?: Json | null
           primary_referral_code?: string | null
@@ -7268,6 +7270,7 @@ export type Database = {
           neighborhood?: string | null
           onboarding_completed?: boolean
           onboarding_furthest_step?: number
+          onesignal_player_id?: string | null
           phone?: string | null
           preferences?: Json | null
           primary_referral_code?: string | null
