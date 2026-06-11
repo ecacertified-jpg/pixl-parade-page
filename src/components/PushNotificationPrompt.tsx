@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Bell, Gift, Calendar, X } from 'lucide-react';
+import { Bell, Gift, Calendar, Heart, X, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/contexts/AuthContext';
@@ -72,10 +72,10 @@ export const PushNotificationPrompt = ({ open, onClose }: PushNotificationPrompt
           {/* Content */}
           <div className="text-center space-y-3 mb-6">
             <h2 className="text-xl font-bold text-foreground">
-              🔔 Activez les notifications
+              🎁 Ne ratez aucun anniversaire
             </h2>
             <p className="text-sm text-muted-foreground">
-              Ne manquez jamais un anniversaire ou une occasion spéciale !
+              Recevez les rappels et bonnes nouvelles de vos proches en temps réel.
             </p>
           </div>
 
@@ -91,9 +91,20 @@ export const PushNotificationPrompt = ({ open, onClose }: PushNotificationPrompt
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Gift className="h-4 w-4 text-primary" />
               </div>
-              <span className="text-muted-foreground">Alertes quand quelqu'un contribue à votre cadeau</span>
+              <span className="text-muted-foreground">Alertes dès qu'une cagnotte ou un cadeau avance</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Heart className="h-4 w-4 text-primary" />
+              </div>
+              <span className="text-muted-foreground">Messages de gratitude et célébrations</span>
             </div>
           </div>
+
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-4">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Vous pouvez désactiver à tout moment.
+          </p>
 
           {/* Actions */}
           <div className="flex flex-col gap-2">
@@ -103,7 +114,7 @@ export const PushNotificationPrompt = ({ open, onClose }: PushNotificationPrompt
               className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90"
             >
               <Bell className="h-4 w-4" />
-              {isActivating ? 'Activation...' : 'Activer les notifications'}
+              {isActivating ? 'Activation...' : 'Activer'}
             </Button>
             <Button
               variant="ghost"
