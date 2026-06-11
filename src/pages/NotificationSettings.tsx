@@ -109,7 +109,7 @@ export default function NotificationSettings() {
             </div>
 
             {/* Test button for push notifications */}
-            {isSubscribed && (
+            {(isSubscribed || permission === 'granted') && (
               <>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -118,7 +118,9 @@ export default function NotificationSettings() {
                     <div>
                       <Label>Tester les notifications</Label>
                       <p className="text-sm text-muted-foreground">
-                        Envoyer une notification de test
+                        {isSubscribed
+                          ? 'Envoyer une notification de test'
+                          : "Permission accordée — finalisez l'abonnement pour tester"}
                       </p>
                     </div>
                   </div>
@@ -126,7 +128,7 @@ export default function NotificationSettings() {
                     size="sm" 
                     variant="outline"
                     onClick={sendTestNotification}
-                    disabled={isTesting}
+                    disabled={isTesting || !isSubscribed}
                   >
                     {isTesting ? 'Envoi...' : 'Tester'}
                   </Button>

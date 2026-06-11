@@ -34,6 +34,10 @@ export function initOneSignal(): Promise<boolean> {
     allowLocalhostAsSecureOrigin: true,
     serviceWorkerPath: 'OneSignalSDKWorker.js',
     serviceWorkerParam: { scope: '/onesignal/' },
+    // Désactive le slidedown natif (en anglais) — on utilise notre modale française PushNotificationPrompt
+    autoRegister: false,
+    autoResubscribe: true,
+    promptOptions: { slidedown: { prompts: [] } },
   })
     .then(() => {
       console.log('[OneSignal] Initialized');

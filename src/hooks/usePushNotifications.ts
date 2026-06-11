@@ -76,7 +76,14 @@ export const usePushNotifications = () => {
         return false;
       }
       setIsSubscribed(true);
-      toast.success('Notifications activées !');
+      toast.success('Notifications activées !', {
+        description: 'Envoyez une notification de test depuis Paramètres → Notifications.',
+        action: {
+          label: 'Tester',
+          onClick: () => { window.location.href = '/notification-settings'; },
+        },
+        duration: 8000,
+      });
       return true;
     } catch (error) {
       console.error('❌ subscribe error:', error);
