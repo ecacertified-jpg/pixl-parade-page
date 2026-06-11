@@ -5765,6 +5765,12 @@ export type Database = {
           in_app_enabled: boolean | null
           post_notifications: boolean | null
           push_enabled: boolean | null
+          push_family_activity: boolean
+          push_new_memory: boolean
+          push_new_reaction: boolean
+          push_new_visitor: boolean
+          push_wedding_reminder: boolean
+          push_weekly_memory_digest: boolean
           quiet_hours_end: string | null
           quiet_hours_start: string | null
           reaction_notifications: boolean | null
@@ -5791,6 +5797,12 @@ export type Database = {
           in_app_enabled?: boolean | null
           post_notifications?: boolean | null
           push_enabled?: boolean | null
+          push_family_activity?: boolean
+          push_new_memory?: boolean
+          push_new_reaction?: boolean
+          push_new_visitor?: boolean
+          push_wedding_reminder?: boolean
+          push_weekly_memory_digest?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           reaction_notifications?: boolean | null
@@ -5817,6 +5829,12 @@ export type Database = {
           in_app_enabled?: boolean | null
           post_notifications?: boolean | null
           push_enabled?: boolean | null
+          push_family_activity?: boolean
+          push_new_memory?: boolean
+          push_new_reaction?: boolean
+          push_new_visitor?: boolean
+          push_wedding_reminder?: boolean
+          push_weekly_memory_digest?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           reaction_notifications?: boolean | null
@@ -9980,6 +9998,10 @@ export type Database = {
       }
     }
     Functions: {
+      _jdv_notify_edge: {
+        Args: { fn_name: string; payload: Json }
+        Returns: undefined
+      }
       add_loyalty_points: {
         Args: {
           p_description?: string

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { sendWhatsAppTemplate } from "../_shared/sms-sender.ts";
+import { sendPushToUsers } from "../_shared/push-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -159,6 +160,22 @@ serve(async (req) => {
         amount: amount ?? null,
       },
     });
+
+    // Push (family activity channel)
+    try {
+      await sendPushToUsers({
+        user_ids: [page.user_id],
+        title: `🎉 ${actorFirstName} sur ta page !`,
+        message: `${actorFirstName} vient de ${actionLabel}.`,
+        url: `/birthday/${page.slug}`,
+        category: 'birthday',
+        type: 'family_activity',
+        preference_key: 'push_family_activity',
+        data: { page_slug: page.slug, actor_user_id: actorUserId, action_type: actionType },
+      });
+    } catch (pushErr) {
+      console.warn('[BPN-Activity] push failed:', pushErr);
+    }
 
     // WhatsApp template
     let waResult: { success: boolean; error?: string } = { success: false };
