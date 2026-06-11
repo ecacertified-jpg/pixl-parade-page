@@ -38,7 +38,6 @@ export function initOneSignal(): Promise<boolean> {
     autoRegister: false,
     autoResubscribe: true,
     promptOptions: { slidedown: { prompts: [] } },
-    notifyButton: { enable: false },
   })
     .then(() => {
       console.log('[OneSignal] Initialized');
