@@ -78,6 +78,21 @@ verify_jwt = false
 [functions.check-business-performance]
 verify_jwt = false
 
+[functions.notify-upcoming-weddings]
+verify_jwt = false
+
+[functions.notify-page-visitor]
+verify_jwt = false
+
+[functions.notify-new-reaction]
+verify_jwt = false
+
+[functions.notify-new-memory]
+verify_jwt = false
+
+[functions.notify-weekly-memories]
+verify_jwt = false
+
 [functions.send-admin-report]
 verify_jwt = false
 
