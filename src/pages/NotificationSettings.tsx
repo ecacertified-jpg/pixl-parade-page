@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw, Heart, Sparkles, Cake, Send } from "lucide-react";
+import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw, Heart, Sparkles, Cake, Send, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -83,6 +83,23 @@ export default function NotificationSettings() {
       </header>
 
       <div className="max-w-2xl mx-auto p-4 space-y-6">
+        {/* Lien vers historique */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition"
+          onClick={() => navigate('/notifications/history')}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <History className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Historique des notifications</p>
+              <p className="text-xs text-muted-foreground">Voir toutes les notifications push reçues</p>
+            </div>
+            <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
+          </CardContent>
+        </Card>
+
         {/* Canaux de notification */}
         <Card>
           <CardHeader>
