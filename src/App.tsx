@@ -66,6 +66,7 @@ const CollectiveCheckout = lazy(() => import("./pages/CollectiveCheckout"));
 const CollectiveOrderConfirmation = lazy(() => import("./pages/CollectiveOrderConfirmation"));
 const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation"));
 const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
+const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
 const Preferences = lazy(() => import("./pages/Preferences"));
 const Community = lazy(() => import("./pages/Community"));
 const ReciprocityProfile = lazy(() => import("./pages/ReciprocityProfile"));
@@ -279,6 +280,7 @@ const App = () => (
             <Route path="/collective-order-confirmation" element={<ProtectedRoute><L><CollectiveOrderConfirmation /></L></ProtectedRoute>} />
             <Route path="/order-confirmation" element={<ProtectedRoute><L><OrderConfirmation /></L></ProtectedRoute>} />
             <Route path="/notification-settings" element={<ProtectedRoute><L><NotificationSettings /></L></ProtectedRoute>} />
+            <Route path="/notifications/history" element={<ProtectedRoute><L><NotificationHistory /></L></ProtectedRoute>} />
             <Route path="/community" element={<PublicRoute><L><Community /></L></PublicRoute>} />
             <Route path="/reciprocity-profile" element={<ProtectedRoute><L><ReciprocityProfile /></L></ProtectedRoute>} />
             <Route path="/profile/:userId" element={<PublicRoute><L><UserProfile /></L></PublicRoute>} />
