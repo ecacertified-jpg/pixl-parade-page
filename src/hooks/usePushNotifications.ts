@@ -12,16 +12,17 @@ export const usePushNotifications = () => {
 
   const refreshState = useCallback(async () => {
     try {
-      const ok = await initOneSignal();
-      if (!ok) {
-        setIsSupported(false);
-        setLoading(false);
-        return;
-      }
-      const supported = OneSignal.Notifications.isPushSupported();
+      // Heuristique légère : ne charge PAS OneSignal tant que l'utilisateur
+      // n'a pas cliqué « Activer ». Évite le slidedown natif anglais.
+      const inIframe = typeof window !== 'undefined' && (() => { try { return window.top !== window.self; } catch { return true; } })();
+      const supported =
+        typeof window !== 'undefined' &&
+        'serviceWorker' in navigator &&
+        'PushManager' in window &&
+        !inIframe;
       setIsSupported(supported);
-      setPermission(OneSignal.Notifications.permission ? 'granted' : (typeof Notification !== 'undefined' ? Notification.permission : 'default'));
-      setIsSubscribed(!!OneSignal.User.PushSubscription.id && OneSignal.User.PushSubscription.optedIn !== false);
+      setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'default');
+      setIsSubscribed(false);
     } catch (e) {
       console.error('[push] refreshState error', e);
     } finally {
@@ -31,21 +32,6 @@ export const usePushNotifications = () => {
 
   useEffect(() => {
     refreshState();
-
-    let unsubFns: Array<() => void> = [];
-    initOneSignal().then((ok) => {
-      if (!ok) return;
-      const onPerm = (granted: boolean) => {
-        setPermission(granted ? 'granted' : 'denied');
-        refreshState();
-      };
-      const onSub = () => refreshState();
-      OneSignal.Notifications.addEventListener('permissionChange', onPerm);
-      OneSignal.User.PushSubscription.addEventListener('change', onSub);
-      unsubFns.push(() => OneSignal.Notifications.removeEventListener('permissionChange', onPerm));
-      unsubFns.push(() => OneSignal.User.PushSubscription.removeEventListener('change', onSub));
-    });
-    return () => { unsubFns.forEach((f) => f()); };
   }, [refreshState]);
 
   const subscribe = async () => {
