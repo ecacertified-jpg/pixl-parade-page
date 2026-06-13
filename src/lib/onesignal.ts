@@ -37,7 +37,13 @@ export function initOneSignal(): Promise<boolean> {
     // Désactive le slidedown natif (en anglais) — on utilise notre modale française PushNotificationPrompt
     autoRegister: false,
     autoResubscribe: true,
-    promptOptions: { slidedown: { prompts: [] } },
+    promptOptions: {
+      slidedown: {
+        prompts: [
+          { type: 'push', autoPrompt: false, text: { actionMessage: '', acceptButton: '', cancelButton: '' } } as any,
+        ],
+      },
+    },
   })
     .then(() => {
       console.log('[OneSignal] Initialized');
