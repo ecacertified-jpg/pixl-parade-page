@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { CelebrationArtisansPicker } from "@/components/birthday/CelebrationArtisansPicker";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
-import { useQuota } from "@/features/subscription/useQuota";
+import { useActiveEventsQuota } from "@/hooks/useActiveEventsQuota";
 import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
 
@@ -37,7 +37,7 @@ const CreateEventPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const eventsQuota = useQuota('event_pages');
+  const eventsQuota = useActiveEventsQuota();
 
   const [occasion, setOccasion] = useState(searchParams.get('occasion') || 'wedding');
   const [title, setTitle] = useState('');
