@@ -3729,6 +3729,11 @@ export type Database = {
           page_id: string
           page_type: Database["public"]["Enums"]["organization_page_type"]
           phone: string | null
+          rsvp_message: string | null
+          rsvp_plus_ones: number
+          rsvp_responded_at: string | null
+          rsvp_response: string | null
+          rsvp_token: string | null
           status: Database["public"]["Enums"]["event_guest_status"]
           updated_at: string
         }
@@ -3743,6 +3748,11 @@ export type Database = {
           page_id: string
           page_type: Database["public"]["Enums"]["organization_page_type"]
           phone?: string | null
+          rsvp_message?: string | null
+          rsvp_plus_ones?: number
+          rsvp_responded_at?: string | null
+          rsvp_response?: string | null
+          rsvp_token?: string | null
           status?: Database["public"]["Enums"]["event_guest_status"]
           updated_at?: string
         }
@@ -3757,6 +3767,11 @@ export type Database = {
           page_id?: string
           page_type?: Database["public"]["Enums"]["organization_page_type"]
           phone?: string | null
+          rsvp_message?: string | null
+          rsvp_plus_ones?: number
+          rsvp_responded_at?: string | null
+          rsvp_response?: string | null
+          rsvp_token?: string | null
           status?: Database["public"]["Enums"]["event_guest_status"]
           updated_at?: string
         }
@@ -10405,6 +10420,23 @@ export type Database = {
         }[]
       }
       get_referral_code_stats: { Args: { code_id: string }; Returns: Json }
+      get_rsvp_by_token: {
+        Args: { _token: string }
+        Returns: {
+          cover_image_url: string
+          event_date: string
+          event_occasion: string
+          event_slug: string
+          event_title: string
+          guest_id: string
+          guest_name: string
+          page_id: string
+          page_type: string
+          rsvp_message: string
+          rsvp_plus_ones: number
+          rsvp_response: string
+        }[]
+      }
       get_surprises_to_reveal: {
         Args: never
         Returns: {
@@ -10668,6 +10700,15 @@ export type Database = {
           p_source_id?: string
           p_source_type: string
           p_user_id: string
+        }
+        Returns: boolean
+      }
+      submit_rsvp_by_token: {
+        Args: {
+          _message?: string
+          _plus_ones?: number
+          _response: string
+          _token: string
         }
         Returns: boolean
       }
