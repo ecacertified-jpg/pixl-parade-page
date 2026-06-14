@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Service role can manage reminder log" ON public.event_reminder_log;
