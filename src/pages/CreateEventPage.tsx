@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { CelebrationArtisansPicker } from "@/components/birthday/CelebrationArtisansPicker";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
+import { useQuota } from "@/features/subscription/useQuota";
+import { Link } from "react-router-dom";
+import { Lock } from "lucide-react";
 
 const occasions = [
   { key: 'birthday', emoji: '🎂', label: "Anniversaire d'un proche" },
@@ -34,6 +37,7 @@ const CreateEventPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const eventsQuota = useQuota('event_pages');
 
   const [occasion, setOccasion] = useState(searchParams.get('occasion') || 'wedding');
   const [title, setTitle] = useState('');
@@ -51,6 +55,10 @@ const CreateEventPage = () => {
 
   const handleCreate = async () => {
     if (!user || !title.trim()) { toast.error('Le titre est obligatoire'); return; }
+    if (!eventsQuota.canCreate) {
+      toast.error("Quota d'événements atteint. Passe à un plan supérieur.");
+      return;
+    }
     setCreating(true);
     try {
       const slug = `${occasion}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`;
@@ -94,6 +102,21 @@ const CreateEventPage = () => {
           </div>
 
           <Card className="p-6 space-y-5">
+            {!eventsQuota.isLoading && !eventsQuota.canCreate && (
+              <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10 p-4 text-center space-y-2">
+                <Lock className="h-5 w-5 text-primary mx-auto" />
+                <p className="font-poppins text-sm font-semibold">Quota atteint</p>
+                <p className="text-xs text-muted-foreground">
+                  Ton plan inclut {eventsQuota.limit === -1 ? '∞' : eventsQuota.limit} événement
+                  {eventsQuota.limit > 1 ? 's' : ''} actif{eventsQuota.limit > 1 ? 's' : ''}.
+                  Tu en as déjà {eventsQuota.used}.
+                </p>
+                <Button asChild size="sm" variant="default">
+                  <Link to="/pricing">Voir les plans</Link>
+                </Button>
+              </div>
+            )}
+
             {/* Occasion selector */}
             <div>
               <label className="text-sm font-medium mb-2 block">Type d'événement</label>
