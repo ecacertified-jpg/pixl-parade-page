@@ -3,9 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Send, Copy } from 'lucide-react';
 import { useEventGuests } from '@/hooks/useOrganizationData';
 import { GUEST_STATUS_LABELS, type OrganizationPageType, type EventGuestStatus } from '@/types/organization';
+import { toast } from 'sonner';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 interface Props { pageType: OrganizationPageType; pageId: string; canEdit: boolean; }
 
@@ -26,6 +28,25 @@ export const GuestsList = ({ pageType, pageId, canEdit }: Props) => {
     if (!name.trim()) return;
     await insert({ name: name.trim(), phone: phone.trim() || null, status: 'invited' } as any);
     setName(''); setPhone('');
+  };
+
+  const rsvpUrl = (token: string) => `${getAppBaseUrl()}/rsvp/${token}`;
+
+  const sendWhatsApp = (g: any) => {
+    const token = g.rsvp_token;
+    if (!token) { toast.error('Aucun lien RSVP disponible'); return; }
+    const msg = `Salut ${g.name.split(' ')[0]} 👋\n\nTu es invité(e) à mon événement 🎉\nMerci de confirmer ta présence ici :\n${rsvpUrl(token)}`;
+    const cleanPhone = (g.phone || '').replace(/[^\d]/g, '');
+    const url = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
+
+  const copyLink = async (g: any) => {
+    if (!g.rsvp_token) { toast.error('Aucun lien RSVP'); return; }
+    await navigator.clipboard.writeText(rsvpUrl(g.rsvp_token));
+    toast.success('Lien RSVP copié 💌');
   };
 
   return (
@@ -65,27 +86,47 @@ export const GuestsList = ({ pageType, pageId, canEdit }: Props) => {
       <ul className="space-y-2">
         {items.map((g) => (
           <li key={g.id}>
-            <Card className="p-3 rounded-2xl flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="font-nunito text-sm font-medium">{g.name}</p>
-                {g.phone && <p className="text-xs text-muted-foreground">{g.phone}</p>}
+            <Card className="p-3 rounded-2xl space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-nunito text-sm font-medium">{g.name}</p>
+                  {g.phone && <p className="text-xs text-muted-foreground">{g.phone}</p>}
+                  {(g as any).rsvp_response && (
+                    <p className="text-[11px] text-primary font-medium mt-0.5">
+                      {(g as any).rsvp_response === 'yes' && '✓ A confirmé'}
+                      {(g as any).rsvp_response === 'no' && '✗ Ne viendra pas'}
+                      {(g as any).rsvp_response === 'maybe' && '? Peut-être'}
+                      {(g as any).rsvp_plus_ones > 0 && ` (+${(g as any).rsvp_plus_ones})`}
+                    </p>
+                  )}
+                </div>
+                <Select
+                  value={g.status}
+                  onValueChange={(v) => canEdit && update(g.id, { status: v as EventGuestStatus } as any)}
+                  disabled={!canEdit}
+                >
+                  <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(GUEST_STATUS_LABELS).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v.emoji} {v.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {canEdit && (
+                  <Button size="icon" variant="ghost" onClick={() => remove(g.id)} className="h-7 w-7">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
-              <Select
-                value={g.status}
-                onValueChange={(v) => canEdit && update(g.id, { status: v as EventGuestStatus } as any)}
-                disabled={!canEdit}
-              >
-                <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(GUEST_STATUS_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v.emoji} {v.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               {canEdit && (
-                <Button size="icon" variant="ghost" onClick={() => remove(g.id)} className="h-7 w-7">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex gap-1.5">
+                  <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => sendWhatsApp(g)}>
+                    <Send className="h-3 w-3 mr-1" /> WhatsApp
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => copyLink(g)}>
+                    <Copy className="h-3 w-3 mr-1" /> Lien
+                  </Button>
+                </div>
               )}
             </Card>
           </li>

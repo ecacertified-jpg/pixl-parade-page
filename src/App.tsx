@@ -108,6 +108,7 @@ const BirthdayPage = lazy(() => import("./pages/BirthdayPage"));
 const EventPage = lazy(() => import("./pages/EventPage"));
 const CreateEventPage = lazy(() => import("./pages/CreateEventPage"));
 const OrganizerAccept = lazy(() => import("./pages/OrganizerAccept"));
+const RsvpPage = lazy(() => import("./pages/RsvpPage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 // Admin pages
@@ -248,6 +249,7 @@ const App = () => (
             <Route path="/evenement/:slug" element={<L><EventPage /></L>} />
             <Route path="/organisation/accept/:token" element={<L><OrganizerAccept /></L>} />
             <Route path="/organisation/inviter/:token" element={<L><OrganizerAccept /></L>} />
+            <Route path="/rsvp/:token" element={<L><RsvpPage /></L>} />
             <Route path="/join/:code" element={<L><JoinAdmin /></L>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<L><ResetPassword /></L>} />

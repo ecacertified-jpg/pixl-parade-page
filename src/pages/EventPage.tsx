@@ -24,6 +24,7 @@ import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CoverVideoCarousel } from "@/components/birthday/CoverVideoCarousel";
 import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
+import { CountdownWidget } from "@/components/event/CountdownWidget";
 
 const occasionThemes: Record<string, { emoji: string; gradient: string; label: string }> = {
   wedding: { emoji: '💍', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage' },
@@ -247,6 +248,9 @@ const EventPage = () => {
       </motion.div>
 
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
+        {page?.event_date && (
+          <CountdownWidget eventDate={page.event_date} occasionEmoji={theme.emoji} />
+        )}
         {page && (
           <CelebrationArtisansSection
             artisans={((page as any).celebration_artisans ?? []) as CelebrationArtisan[]}
