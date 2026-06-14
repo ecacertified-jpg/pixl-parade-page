@@ -3992,6 +3992,54 @@ export type Database = {
         }
         Relationships: []
       }
+      event_reminder_log: {
+        Row: {
+          channel: string
+          error: string | null
+          event_id: string
+          guest_id: string | null
+          id: string
+          milestone: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          channel?: string
+          error?: string | null
+          event_id: string
+          guest_id?: string | null
+          id?: string
+          milestone: string
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          channel?: string
+          error?: string | null
+          event_id?: string
+          guest_id?: string | null
+          id?: string
+          milestone?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_reminder_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_reminder_log_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "event_guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_tasks: {
         Row: {
           assigned_to: string | null
