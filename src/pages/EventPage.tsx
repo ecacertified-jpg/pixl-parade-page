@@ -25,6 +25,7 @@ import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CoverVideoCarousel } from "@/components/birthday/CoverVideoCarousel";
 import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
 import { CountdownWidget } from "@/components/event/CountdownWidget";
+import { EventWishlistSection } from "@/components/event/EventWishlistSection";
 
 const occasionThemes: Record<string, { emoji: string; gradient: string; label: string }> = {
   wedding: { emoji: '💍', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage' },
