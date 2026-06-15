@@ -4170,6 +4170,65 @@ export type Database = {
           },
         ]
       }
+      event_wishlist_items: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          event_id: string
+          id: string
+          image_url: string | null
+          position: number
+          price_estimate: number | null
+          product_url: string | null
+          reserved_at: string | null
+          reserved_by: string | null
+          reserved_by_name: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          event_id: string
+          id?: string
+          image_url?: string | null
+          position?: number
+          price_estimate?: number | null
+          product_url?: string | null
+          reserved_at?: string | null
+          reserved_by?: string | null
+          reserved_by_name?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          image_url?: string | null
+          position?: number
+          price_estimate?: number | null
+          product_url?: string | null
+          reserved_at?: string | null
+          reserved_by?: string | null
+          reserved_by_name?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_wishlist_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_favorites: {
         Row: {
           country_code: string | null
