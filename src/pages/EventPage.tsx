@@ -277,6 +277,9 @@ const EventPage = () => {
             pageTitle={page.title}
           />
         )}
+        {page && (
+          <EventWishlistSection eventId={page.id} isOwner={isOwner} />
+        )}
         {/* Fund section */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="p-5 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
