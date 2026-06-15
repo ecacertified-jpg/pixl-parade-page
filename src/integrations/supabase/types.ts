@@ -3717,53 +3717,6 @@ export type Database = {
         }
         Relationships: []
       }
-      event_checklist_items: {
-        Row: {
-          ai_generated: boolean
-          category: string | null
-          created_at: string
-          due_offset_days: number | null
-          event_id: string
-          id: string
-          is_done: boolean
-          position: number
-          task: string
-          updated_at: string
-        }
-        Insert: {
-          ai_generated?: boolean
-          category?: string | null
-          created_at?: string
-          due_offset_days?: number | null
-          event_id: string
-          id?: string
-          is_done?: boolean
-          position?: number
-          task: string
-          updated_at?: string
-        }
-        Update: {
-          ai_generated?: boolean
-          category?: string | null
-          created_at?: string
-          due_offset_days?: number | null
-          event_id?: string
-          id?: string
-          is_done?: boolean
-          position?: number
-          task?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_checklist_items_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_pages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       event_guests: {
         Row: {
           contact_id: string | null
