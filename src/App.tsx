@@ -69,6 +69,7 @@ const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
 const Preferences = lazy(() => import("./pages/Preferences"));
 const Community = lazy(() => import("./pages/Community"));
+const Celebrer = lazy(() => import("./pages/Celebrer"));
 const ReciprocityProfile = lazy(() => import("./pages/ReciprocityProfile"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const Invitations = lazy(() => import("./pages/Invitations"));
@@ -284,6 +285,8 @@ const App = () => (
             <Route path="/notification-settings" element={<ProtectedRoute><L><NotificationSettings /></L></ProtectedRoute>} />
             <Route path="/notifications/history" element={<ProtectedRoute><L><NotificationHistory /></L></ProtectedRoute>} />
             <Route path="/community" element={<PublicRoute><L><Community /></L></PublicRoute>} />
+            <Route path="/celebrer" element={<PublicRoute><L><Celebrer /></L></PublicRoute>} />
+            <Route path="/celebrate" element={<PublicRoute><L><Celebrer /></L></PublicRoute>} />
             <Route path="/reciprocity-profile" element={<ProtectedRoute><L><ReciprocityProfile /></L></ProtectedRoute>} />
             <Route path="/profile/:userId" element={<PublicRoute><L><UserProfile /></L></PublicRoute>} />
             <Route path="/u/:userId/pages" element={<PublicRoute><L><UserPagesPage /></L></PublicRoute>} />
