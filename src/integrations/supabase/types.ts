@@ -4216,42 +4216,63 @@ export type Database = {
       }
       event_vendors: {
         Row: {
+          booking_status: string
           business_account_id: string | null
           category: string
+          contact_logged_at: string | null
           created_at: string
           created_by: string | null
+          currency: string
+          deposit_amount: number | null
+          deposit_paid_at: string | null
           id: string
           name: string
           notes: string | null
           page_id: string
           page_type: Database["public"]["Enums"]["organization_page_type"]
           phone: string | null
+          quote_amount: number | null
+          requested_date: string | null
           updated_at: string
         }
         Insert: {
+          booking_status?: string
           business_account_id?: string | null
           category: string
+          contact_logged_at?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string
+          deposit_amount?: number | null
+          deposit_paid_at?: string | null
           id?: string
           name: string
           notes?: string | null
           page_id: string
           page_type: Database["public"]["Enums"]["organization_page_type"]
           phone?: string | null
+          quote_amount?: number | null
+          requested_date?: string | null
           updated_at?: string
         }
         Update: {
+          booking_status?: string
           business_account_id?: string | null
           category?: string
+          contact_logged_at?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string
+          deposit_amount?: number | null
+          deposit_paid_at?: string | null
           id?: string
           name?: string
           notes?: string | null
           page_id?: string
           page_type?: Database["public"]["Enums"]["organization_page_type"]
           phone?: string | null
+          quote_amount?: number | null
+          requested_date?: string | null
           updated_at?: string
         }
         Relationships: []
