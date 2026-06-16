@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ClipboardList, Sparkles } from 'lucide-react';
 import { useOrganizationAccess } from '@/hooks/useOrganizationAccess';
+import { OrganizationDashboard } from './OrganizationDashboard';
 import { TasksBoard } from './TasksBoard';
 import { VendorsList } from './VendorsList';
 import { BudgetTable } from './BudgetTable';
@@ -70,8 +71,9 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle }
             </SheetDescription>
           </SheetHeader>
 
-          <Tabs defaultValue="tasks" className="w-full">
+          <Tabs defaultValue="overview" className="w-full">
             <TabsList className="w-full overflow-x-auto flex justify-start h-auto p-1 gap-1">
+              <TabsTrigger value="overview" className="text-xs">📊 Vue d'ensemble</TabsTrigger>
               <TabsTrigger value="tasks" className="text-xs">✅ Préparatifs</TabsTrigger>
               <TabsTrigger value="vendors" className="text-xs">🎨 Prestataires</TabsTrigger>
               <TabsTrigger value="budget" className="text-xs">💰 Budget</TabsTrigger>
@@ -80,6 +82,9 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle }
               <TabsTrigger value="team" className="text-xs">💛 Équipe</TabsTrigger>
             </TabsList>
 
+            <TabsContent value="overview" className="mt-4">
+              <OrganizationDashboard pageType={pageType} pageId={pageId} />
+            </TabsContent>
             <TabsContent value="tasks" className="mt-4">
               <TasksBoard pageType={pageType} pageId={pageId} canEdit={canWrite(effective, 'tasks')} />
             </TabsContent>
