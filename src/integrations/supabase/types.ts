@@ -3769,6 +3769,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           created_by: string | null
+          dietary_preference: string | null
           email: string | null
           id: string
           name: string
@@ -3776,6 +3777,9 @@ export type Database = {
           page_id: string
           page_type: Database["public"]["Enums"]["organization_page_type"]
           phone: string | null
+          plus_one_names: string[] | null
+          reminder_count: number
+          reminder_sent_at: string | null
           rsvp_message: string | null
           rsvp_plus_ones: number
           rsvp_responded_at: string | null
@@ -3788,6 +3792,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          dietary_preference?: string | null
           email?: string | null
           id?: string
           name: string
@@ -3795,6 +3800,9 @@ export type Database = {
           page_id: string
           page_type: Database["public"]["Enums"]["organization_page_type"]
           phone?: string | null
+          plus_one_names?: string[] | null
+          reminder_count?: number
+          reminder_sent_at?: string | null
           rsvp_message?: string | null
           rsvp_plus_ones?: number
           rsvp_responded_at?: string | null
@@ -3807,6 +3815,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          dietary_preference?: string | null
           email?: string | null
           id?: string
           name?: string
@@ -3814,6 +3823,9 @@ export type Database = {
           page_id?: string
           page_type?: Database["public"]["Enums"]["organization_page_type"]
           phone?: string | null
+          plus_one_names?: string[] | null
+          reminder_count?: number
+          reminder_sent_at?: string | null
           rsvp_message?: string | null
           rsvp_plus_ones?: number
           rsvp_responded_at?: string | null
@@ -10578,6 +10590,7 @@ export type Database = {
         Args: { _token: string }
         Returns: {
           cover_image_url: string
+          dietary_preference: string
           event_date: string
           event_occasion: string
           event_slug: string
@@ -10586,6 +10599,7 @@ export type Database = {
           guest_name: string
           page_id: string
           page_type: string
+          plus_one_names: string[]
           rsvp_message: string
           rsvp_plus_ones: number
           rsvp_response: string
@@ -10792,6 +10806,7 @@ export type Database = {
             }
             Returns: undefined
           }
+      mark_rsvp_reminder_sent: { Args: { _guest_id: string }; Returns: boolean }
       mark_surprise_revealed: {
         Args: { p_fund_id: string }
         Returns: undefined
@@ -10859,7 +10874,9 @@ export type Database = {
       }
       submit_rsvp_by_token: {
         Args: {
+          _dietary?: string
           _message?: string
+          _plus_one_names?: string[]
           _plus_ones?: number
           _response: string
           _token: string

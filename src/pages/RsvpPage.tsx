@@ -9,6 +9,7 @@ import { Loader2, Check, X, HelpCircle, PartyPopper, Heart } from 'lucide-react'
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { CountdownWidget } from '@/components/event/CountdownWidget';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Rsvp = {
   guest_id: string;
@@ -23,6 +24,8 @@ type Rsvp = {
   event_slug: string;
   event_occasion: string;
   cover_image_url: string | null;
+  dietary_preference: string | null;
+  plus_one_names: string[] | null;
 };
 
 const occasionEmoji: Record<string, string> = {
@@ -30,6 +33,16 @@ const occasionEmoji: Record<string, string> = {
   baptism: '👶', engagement: '💑', graduation: '🎓', promotion: '💼',
   birthday: '🎂', other: '🎊',
 };
+
+const DIETARY_OPTIONS = [
+  { value: 'none', label: 'Aucune restriction' },
+  { value: 'vegetarien', label: '🥗 Végétarien' },
+  { value: 'vegan', label: '🌱 Vegan' },
+  { value: 'sans_porc', label: '🚫🐖 Sans porc' },
+  { value: 'halal', label: '☪️ Halal' },
+  { value: 'sans_gluten', label: '🌾 Sans gluten' },
+  { value: 'autre', label: '✍️ Autre (précisez)' },
+];
 
 const RsvpPage = () => {
   const { token } = useParams<{ token: string }>();
@@ -39,6 +52,9 @@ const RsvpPage = () => {
   const [response, setResponse] = useState<'yes' | 'no' | 'maybe' | null>(null);
   const [plusOnes, setPlusOnes] = useState(0);
   const [message, setMessage] = useState('');
+  const [dietaryKey, setDietaryKey] = useState<string>('none');
+  const [dietaryCustom, setDietaryCustom] = useState('');
+  const [plusOneNames, setPlusOneNames] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -54,19 +70,49 @@ const RsvpPage = () => {
         setResponse(r.rsvp_response);
         setPlusOnes(r.rsvp_plus_ones || 0);
         setMessage(r.rsvp_message || '');
+        setPlusOneNames(r.plus_one_names || []);
+        const diet = r.dietary_preference || '';
+        const match = DIETARY_OPTIONS.find((o) => o.value === diet);
+        if (match) { setDietaryKey(diet); setDietaryCustom(''); }
+        else if (diet) { setDietaryKey('autre'); setDietaryCustom(diet); }
+        else { setDietaryKey('none'); setDietaryCustom(''); }
       }
       setLoading(false);
     })();
   }, [token]);
 
+  // Keep plusOneNames length in sync with plusOnes
+  useEffect(() => {
+    setPlusOneNames((prev) => {
+      const next = [...prev];
+      while (next.length < plusOnes) next.push('');
+      next.length = plusOnes;
+      return next;
+    });
+  }, [plusOnes]);
+
   const submit = async () => {
     if (!response || !token) return;
     setSubmitting(true);
+    const dietary =
+      response === 'yes'
+        ? dietaryKey === 'none'
+          ? null
+          : dietaryKey === 'autre'
+            ? dietaryCustom.trim() || null
+            : dietaryKey
+        : null;
+    const names =
+      response === 'yes'
+        ? plusOneNames.map((n) => n.trim()).filter(Boolean)
+        : [];
     const { data: ok, error } = await (supabase as any).rpc('submit_rsvp_by_token', {
       _token: token,
       _response: response,
       _plus_ones: plusOnes,
       _message: message.trim() || null,
+      _dietary: dietary,
+      _plus_one_names: names,
     });
     setSubmitting(false);
     if (error || !ok) {
@@ -174,6 +220,52 @@ const RsvpPage = () => {
                   onChange={(e) => setPlusOnes(Math.max(0, Math.min(10, parseInt(e.target.value || '0', 10))))}
                 />
                 <p className="text-xs text-muted-foreground mt-1">Nombre de personnes en plus de toi.</p>
+              </div>
+            )}
+
+            {response === 'yes' && plusOnes > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">
+                  Prénoms des accompagnant(e)s
+                </label>
+                {plusOneNames.map((n, i) => (
+                  <Input
+                    key={i}
+                    value={n}
+                    maxLength={60}
+                    placeholder={`Accompagnant ${i + 1}`}
+                    onChange={(e) => {
+                      const next = [...plusOneNames];
+                      next[i] = e.target.value;
+                      setPlusOneNames(next);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {response === 'yes' && (
+              <div>
+                <label className="text-sm font-medium block mb-1">
+                  Régime alimentaire 🍽️
+                </label>
+                <Select value={dietaryKey} onValueChange={setDietaryKey}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DIETARY_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {dietaryKey === 'autre' && (
+                  <Input
+                    className="mt-2"
+                    placeholder="Précisez (allergie, intolérance…)"
+                    maxLength={120}
+                    value={dietaryCustom}
+                    onChange={(e) => setDietaryCustom(e.target.value)}
+                  />
+                )}
               </div>
             )}
 
