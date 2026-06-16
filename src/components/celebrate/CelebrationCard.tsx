@@ -6,6 +6,9 @@ import { MessageCircle, Trash2, Sparkles } from "lucide-react";
 import { ReactionBar } from "./ReactionBar";
 import { CelebrateWall } from "./CelebrateWall";
 import { TributeSlideshow } from "./TributeSlideshow";
+import { DigitalGiftBar } from "./DigitalGiftBar";
+import { PremiumActionsSheet } from "./PremiumActionsSheet";
+import { VipBadge } from "./VipBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import type { CelebrationPost } from "@/hooks/useCelebrationFeed";
 import { cn } from "@/lib/utils";
@@ -13,9 +16,11 @@ import { cn } from "@/lib/utils";
 interface Props {
   post: CelebrationPost;
   onDelete?: (id: string) => void;
+  isAuthorVip?: boolean;
+  cardTemplateUrl?: string | null;
 }
 
-export function CelebrationCard({ post, onDelete }: Props) {
+export function CelebrationCard({ post, onDelete, isAuthorVip, cardTemplateUrl }: Props) {
   const { user } = useAuth();
   const [showWall, setShowWall] = useState(false);
   const isAuthor = user?.id === post.author_id;
@@ -27,10 +32,20 @@ export function CelebrationCard({ post, onDelete }: Props) {
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-card p-4 shadow-soft transition-all",
+        "relative overflow-hidden rounded-2xl border bg-card p-4 shadow-soft transition-all",
         post.is_boosted && "border-celebration ring-2 ring-celebration/30",
-        post.is_pinned && "border-primary"
+        post.is_pinned && "border-primary",
+        cardTemplateUrl && "text-white"
       )}
+      style={
+        cardTemplateUrl
+          ? {
+              backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.65) 100%), url(${cardTemplateUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : undefined
+      }
     >
       <header className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
@@ -38,8 +53,11 @@ export function CelebrationCard({ post, onDelete }: Props) {
           <AvatarFallback>{initial}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{name}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className={cn("text-sm font-semibold truncate flex items-center gap-2", cardTemplateUrl && "text-white")}>
+            <span className="truncate">{name}</span>
+            {isAuthorVip && <VipBadge />}
+          </p>
+          <p className={cn("text-xs", cardTemplateUrl ? "text-white/70" : "text-muted-foreground")}>
             {new Date(post.created_at).toLocaleDateString("fr-FR", {
               day: "2-digit",
               month: "short",
@@ -57,7 +75,7 @@ export function CelebrationCard({ post, onDelete }: Props) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            className={cn("h-8 w-8 hover:text-destructive", cardTemplateUrl ? "text-white/80" : "text-muted-foreground")}
             onClick={() => onDelete(post.id)}
           >
             <Trash2 className="h-4 w-4" />
@@ -66,7 +84,7 @@ export function CelebrationCard({ post, onDelete }: Props) {
       </header>
 
       {post.content && (
-        <p className="mt-3 whitespace-pre-wrap break-words text-foreground/90">
+        <p className={cn("mt-3 whitespace-pre-wrap break-words", cardTemplateUrl ? "text-white" : "text-foreground/90")}>
           {post.content}
         </p>
       )}
@@ -106,16 +124,22 @@ export function CelebrationCard({ post, onDelete }: Props) {
       )}
 
       <div className="mt-3 flex items-center justify-between gap-2">
-        <ReactionBar postId={post.id} />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowWall((s) => !s)}
-          className="gap-1 text-muted-foreground hover:text-primary"
-        >
-          <MessageCircle className="h-4 w-4" />
-          {post.messages_count}
-        </Button>
+        <div className="flex items-center gap-1">
+          <ReactionBar postId={post.id} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowWall((s) => !s)}
+            className={cn("gap-1 hover:text-primary", cardTemplateUrl ? "text-white/80" : "text-muted-foreground")}
+          >
+            <MessageCircle className="h-4 w-4" />
+            {post.messages_count}
+          </Button>
+        </div>
+        <div className="flex items-center gap-1">
+          <DigitalGiftBar postId={post.id} recipientUserId={post.author_id} />
+          <PremiumActionsSheet postId={post.id} isAuthor={isAuthor} />
+        </div>
       </div>
 
       {showWall && (

@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MUSIC_TRACKS } from "./musicTracks";
+import { PremiumCardPicker } from "./PremiumCardPicker";
 import type {
   CelebrationPageType,
   CelebrationPostKind,
@@ -27,6 +28,7 @@ interface Props {
     content: string;
     media_urls?: string[];
     music_track_id?: string | null;
+    card_template_id?: string | null;
   }) => Promise<unknown>;
   triggerLabel?: string;
   fullWidth?: boolean;
@@ -56,6 +58,7 @@ export function ComposerSheet({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [musicId, setMusicId] = useState<string | null>(null);
+  const [cardId, setCardId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const reset = () => {
@@ -63,6 +66,7 @@ export function ComposerSheet({
     setText("");
     setMedia([]);
     setMusicId(null);
+    setCardId(null);
   };
 
   const acceptFor = (m: Mode) =>
@@ -121,6 +125,7 @@ export function ComposerSheet({
       content: text.trim(),
       media_urls: media,
       music_track_id: mode === "tribute" ? musicId : null,
+      card_template_id: cardId,
     });
     setSubmitting(false);
     if (res) {
@@ -290,6 +295,8 @@ export function ComposerSheet({
               )}
             </div>
           )}
+
+          <PremiumCardPicker value={cardId} onChange={setCardId} />
 
           <Button
             onClick={publish}
