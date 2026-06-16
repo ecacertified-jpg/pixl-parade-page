@@ -16,6 +16,7 @@ export interface CelebrationPost {
   kind: CelebrationPostKind;
   content: string | null;
   media_urls: string[];
+  music_track_id: string | null;
   is_premium: boolean;
   is_pinned: boolean;
   is_boosted: boolean;
@@ -101,6 +102,7 @@ export function useCelebrationFeed(opts: UseCelebrationFeedOptions = {}) {
       kind: CelebrationPostKind;
       content?: string;
       media_urls?: string[];
+      music_track_id?: string | null;
       target_user_id?: string | null;
       target_contact_id?: string | null;
     }) => {
@@ -113,6 +115,7 @@ export function useCelebrationFeed(opts: UseCelebrationFeedOptions = {}) {
         kind: input.kind,
         content: input.content || null,
         media_urls: input.media_urls || [],
+        music_track_id: input.music_track_id || null,
         target_user_id: input.target_user_id || null,
         target_contact_id: input.target_contact_id || null,
         page_type: pageType || "standalone",
