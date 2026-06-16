@@ -19,6 +19,8 @@ import { useSchemaInjector } from "@/components/schema";
 import { FundSelector } from "@/components/birthday/FundSelector";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
 import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBanner";
+import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
+import { CelebrateWall } from "@/components/celebrate/CelebrateWall";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
@@ -258,6 +260,15 @@ const EventPage = () => {
         )}
         {page && (
           <UrgentMessageBanner pageType="event" pageId={page.id} />
+        )}
+        {page && (
+          <section className="space-y-4">
+            <h2 className="font-poppins text-xl font-semibold flex items-center gap-2">
+              ✨ Célébrer
+            </h2>
+            <CelebrationFeed pageType="event" pageId={page.id} emptyTitle="Sois le premier à célébrer cet événement 💖" />
+            <CelebrateWall pageType="event" pageId={page.id} title="💌 Mur de messages" />
+          </section>
         )}
         {page && (
           <CelebrationArtisansSection
