@@ -223,6 +223,52 @@ const RsvpPage = () => {
               </div>
             )}
 
+            {response === 'yes' && plusOnes > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">
+                  Prénoms des accompagnant(e)s
+                </label>
+                {plusOneNames.map((n, i) => (
+                  <Input
+                    key={i}
+                    value={n}
+                    maxLength={60}
+                    placeholder={`Accompagnant ${i + 1}`}
+                    onChange={(e) => {
+                      const next = [...plusOneNames];
+                      next[i] = e.target.value;
+                      setPlusOneNames(next);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {response === 'yes' && (
+              <div>
+                <label className="text-sm font-medium block mb-1">
+                  Régime alimentaire 🍽️
+                </label>
+                <Select value={dietaryKey} onValueChange={setDietaryKey}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DIETARY_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {dietaryKey === 'autre' && (
+                  <Input
+                    className="mt-2"
+                    placeholder="Précisez (allergie, intolérance…)"
+                    maxLength={120}
+                    value={dietaryCustom}
+                    onChange={(e) => setDietaryCustom(e.target.value)}
+                  />
+                )}
+              </div>
+            )}
+
             <div>
               <label className="text-sm font-medium block mb-1">
                 Petit mot (optionnel) <Heart className="inline h-3 w-3 text-rose-500" />
