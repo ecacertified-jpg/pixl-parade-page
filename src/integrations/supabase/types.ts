@@ -2693,6 +2693,186 @@ export type Database = {
         }
         Relationships: []
       }
+      celebration_post_views: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          viewer_id: string | null
+          viewer_session: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          viewer_id?: string | null
+          viewer_session?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          viewer_id?: string | null
+          viewer_session?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "celebration_post_views_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "celebration_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      celebration_posts: {
+        Row: {
+          author_id: string
+          boost_expires_at: string | null
+          content: string | null
+          created_at: string
+          id: string
+          is_boosted: boolean
+          is_pinned: boolean
+          is_premium: boolean
+          kind: Database["public"]["Enums"]["celebration_post_kind"]
+          media_urls: Json
+          messages_count: number
+          music_track_id: string | null
+          page_id: string | null
+          page_type: Database["public"]["Enums"]["celebration_page_type"]
+          reactions_count: number
+          target_contact_id: string | null
+          target_user_id: string | null
+          updated_at: string
+          views_count: number
+          visibility: Database["public"]["Enums"]["celebration_visibility"]
+        }
+        Insert: {
+          author_id: string
+          boost_expires_at?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_boosted?: boolean
+          is_pinned?: boolean
+          is_premium?: boolean
+          kind?: Database["public"]["Enums"]["celebration_post_kind"]
+          media_urls?: Json
+          messages_count?: number
+          music_track_id?: string | null
+          page_id?: string | null
+          page_type?: Database["public"]["Enums"]["celebration_page_type"]
+          reactions_count?: number
+          target_contact_id?: string | null
+          target_user_id?: string | null
+          updated_at?: string
+          views_count?: number
+          visibility?: Database["public"]["Enums"]["celebration_visibility"]
+        }
+        Update: {
+          author_id?: string
+          boost_expires_at?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_boosted?: boolean
+          is_pinned?: boolean
+          is_premium?: boolean
+          kind?: Database["public"]["Enums"]["celebration_post_kind"]
+          media_urls?: Json
+          messages_count?: number
+          music_track_id?: string | null
+          page_id?: string | null
+          page_type?: Database["public"]["Enums"]["celebration_page_type"]
+          reactions_count?: number
+          target_contact_id?: string | null
+          target_user_id?: string | null
+          updated_at?: string
+          views_count?: number
+          visibility?: Database["public"]["Enums"]["celebration_visibility"]
+        }
+        Relationships: []
+      }
+      celebration_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "celebration_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "celebration_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      celebration_wall_messages: {
+        Row: {
+          audio_url: string | null
+          author_display_name: string | null
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          is_vip: boolean
+          page_id: string | null
+          page_type: Database["public"]["Enums"]["celebration_page_type"]
+          post_id: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          author_display_name?: string | null
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_vip?: boolean
+          page_id?: string | null
+          page_type?: Database["public"]["Enums"]["celebration_page_type"]
+          post_id?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          author_display_name?: string | null
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_vip?: boolean
+          page_id?: string | null
+          page_type?: Database["public"]["Enums"]["celebration_page_type"]
+          post_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "celebration_wall_messages_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "celebration_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collective_fund_orders: {
         Row: {
           beneficiary_phone: string
@@ -11219,6 +11399,9 @@ export type Database = {
       }
     }
     Enums: {
+      celebration_page_type: "birthday" | "event" | "standalone"
+      celebration_post_kind: "text" | "photo" | "video" | "tribute" | "card"
+      celebration_visibility: "public" | "friends" | "private"
       cover_video_schedule_kind:
         | "greeting_morning"
         | "greeting_afternoon"
@@ -11376,6 +11559,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      celebration_page_type: ["birthday", "event", "standalone"],
+      celebration_post_kind: ["text", "photo", "video", "tribute", "card"],
+      celebration_visibility: ["public", "friends", "private"],
       cover_video_schedule_kind: [
         "greeting_morning",
         "greeting_afternoon",
