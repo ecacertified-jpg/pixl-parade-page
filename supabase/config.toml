@@ -3,6 +3,9 @@ project_id = "vaimfeurvzokepqqqrsl"
 [functions.indexnow-notify]
 verify_jwt = false
 
+[functions.notify-premium-trial-phases]
+verify_jwt = false
+
 [functions.contribute-as-guest]
 verify_jwt = false
 
