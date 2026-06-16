@@ -17,6 +17,9 @@ export interface CelebrationPost {
   content: string | null;
   media_urls: string[];
   music_track_id: string | null;
+  card_template_id: string | null;
+  gifts_count: number;
+  gifts_total_xof: number;
   is_premium: boolean;
   is_pinned: boolean;
   is_boosted: boolean;
@@ -103,6 +106,7 @@ export function useCelebrationFeed(opts: UseCelebrationFeedOptions = {}) {
       content?: string;
       media_urls?: string[];
       music_track_id?: string | null;
+      card_template_id?: string | null;
       target_user_id?: string | null;
       target_contact_id?: string | null;
     }) => {
@@ -116,6 +120,7 @@ export function useCelebrationFeed(opts: UseCelebrationFeedOptions = {}) {
         content: input.content || null,
         media_urls: input.media_urls || [],
         music_track_id: input.music_track_id || null,
+        card_template_id: input.card_template_id || null,
         target_user_id: input.target_user_id || null,
         target_contact_id: input.target_contact_id || null,
         page_type: pageType || "standalone",
