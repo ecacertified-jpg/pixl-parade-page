@@ -158,6 +158,7 @@ const WhatsAppAIChat = lazy(() => import("./pages/Admin/WhatsAppAIChat"));
 const AdminFundDetail = lazy(() => import("./pages/Admin/AdminFundDetail"));
 const OnboardingProgressDashboard = lazy(() => import("./pages/Admin/OnboardingProgressDashboard"));
 const WaveSubscriptionsAdmin = lazy(() => import("./pages/Admin/WaveSubscriptionsAdmin"));
+const CelebrationPremiumOrders = lazy(() => import("./pages/Admin/CelebrationPremiumOrders"));
 
 // Deep link redirect that preserves query params (e.g. ?for=Name)
 const DeepLinkRedirect = ({ occasion }: { occasion: string }) => {
@@ -347,6 +348,7 @@ const App = () => (
             <Route path="/admin/onboarding" element={<AdminRoute><L><OnboardingProgressDashboard /></L></AdminRoute>} />
             <Route path="/admin/funds/:fundId" element={<AdminRoute><L><AdminFundDetail /></L></AdminRoute>} />
             <Route path="/admin/abonnements-wave" element={<AdminRoute><L><WaveSubscriptionsAdmin /></L></AdminRoute>} />
+            <Route path="/admin/celebrer-premium" element={<AdminRoute><L><CelebrationPremiumOrders /></L></AdminRoute>} />
 
             {/* Dedicated page for WhatsApp CTA link - loads specific fund directly */}
             <Route path="/business/orders/:fundId" element={<ProtectedRoute><L><BusinessFundOrderView /></L></ProtectedRoute>} />
