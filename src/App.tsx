@@ -69,6 +69,7 @@ const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
 const Preferences = lazy(() => import("./pages/Preferences"));
 const Community = lazy(() => import("./pages/Community"));
+const Celebrer = lazy(() => import("./pages/Celebrer"));
 const ReciprocityProfile = lazy(() => import("./pages/ReciprocityProfile"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const Invitations = lazy(() => import("./pages/Invitations"));
