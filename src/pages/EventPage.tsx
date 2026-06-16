@@ -426,6 +426,19 @@ const EventPage = () => {
       {!user && page && (
         <VisitorConversionCTA refSlug={page.slug} pageKind="event" occasion={page.occasion} />
       )}
+
+      {isOwner && page && (
+        <>
+          <PremiumTrialUnlockModal
+            targetType="event_page"
+            targetId={page.id}
+            occasionLabel={`Ton ${page.occasion || 'événement'}`}
+          />
+          <div className="container mx-auto px-4 pb-6">
+            <PostEventConversionCard targetType="event_page" targetId={page.id} />
+          </div>
+        </>
+      )}
     </div>
   );
 };
