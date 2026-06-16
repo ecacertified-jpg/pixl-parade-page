@@ -4214,6 +4214,42 @@ export type Database = {
           },
         ]
       }
+      event_urgent_messages: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_at: string | null
+          id: string
+          is_active: boolean
+          message: string
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_at?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_at?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          page_id?: string
+          page_type?: Database["public"]["Enums"]["organization_page_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_vendors: {
         Row: {
           booking_status: string
