@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { Helmet } from "react-helmet-async";
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
 import { MessageWall } from "@/components/celebrate/MessageWall";
 import { Sparkles } from "lucide-react";
@@ -7,18 +6,23 @@ import { Sparkles } from "lucide-react";
 export default function Celebrer() {
   useEffect(() => {
     window.scrollTo(0, 0);
+    document.title = "Célébrer — Fais sentir à tes proches qu'ils sont aimés | JDV";
+    const meta =
+      document.querySelector('meta[name="description"]') ||
+      (() => {
+        const m = document.createElement("meta");
+        m.setAttribute("name", "description");
+        document.head.appendChild(m);
+        return m;
+      })();
+    meta.setAttribute(
+      "content",
+      "Publie des célébrations, laisse des messages, réagis. Le mur de l'amour pour célébrer ceux qui comptent."
+    );
   }, []);
 
   return (
     <>
-      <Helmet>
-        <title>Célébrer — Fais sentir à tes proches qu'ils sont aimés | JDV</title>
-        <meta
-          name="description"
-          content="Publie des célébrations, laisse des messages, réagis. Le mur de l'amour pour célébrer ceux qui comptent."
-        />
-      </Helmet>
-
       <main className="min-h-screen bg-gradient-to-b from-secondary/40 to-background pb-24">
         <header className="relative overflow-hidden bg-gradient-primary py-10 px-4 text-center text-white">
           <div className="absolute inset-0 opacity-20">
