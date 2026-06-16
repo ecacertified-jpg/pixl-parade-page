@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Trash2, Sparkles } from "lucide-react";
 import { ReactionBar } from "./ReactionBar";
-import { MessageWall } from "./MessageWall";
+import { CelebrateWall } from "./CelebrateWall";
 import { useAuth } from "@/contexts/AuthContext";
 import type { CelebrationPost } from "@/hooks/useCelebrationFeed";
 import { cn } from "@/lib/utils";
@@ -109,7 +109,7 @@ export function CelebrationCard({ post, onDelete }: Props) {
 
       {showWall && (
         <div className="mt-3 border-t border-border pt-3">
-          <MessageWall postId={post.id} title="Messages" />
+          <CelebrateWall postId={post.id} title="Messages" />
         </div>
       )}
     </article>
