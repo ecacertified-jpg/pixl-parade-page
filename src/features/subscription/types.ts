@@ -65,3 +65,33 @@ export const PLAN_ORDER: Record<PlanTier, number> = {
 
 export const isPlanAtLeast = (current: PlanTier, required: PlanTier) =>
   PLAN_ORDER[current] >= PLAN_ORDER[required];
+
+// ============================================================
+// Premium Trial — 1 événement Premium offert par utilisateur
+// ============================================================
+
+export type TrialTargetType = 'birthday_page' | 'event_page' | 'collective_fund';
+
+/**
+ * Phases du Premium offert :
+ *  - active   : avant + jour J de l'événement → Premium complet sur CET item
+ *  - memories : J+1 → J+7 → souvenirs Premium encore consultables/ajoutables
+ *  - limited  : J+8 → J+30 → tout reste visible mais ajouts bloqués
+ *  - archived : > J+30 → page figée, CTA upgrade
+ */
+export type TrialPhase = 'active' | 'memories' | 'limited' | 'archived' | 'none';
+
+export interface PremiumTrialStatus {
+  grant_id: string;
+  target_type: TrialTargetType;
+  target_id: string;
+  event_date: string | null;
+  premium_until: string;
+  memories_until: string;
+  archived_at: string;
+  phase: TrialPhase;
+  converted_to_premium: boolean;
+}
+
+/** États utilisateur exposés à l'UI. */
+export type UserPlanState = 'free' | 'free_with_premium_event' | 'premium';

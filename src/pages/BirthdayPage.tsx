@@ -33,6 +33,8 @@ import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
+import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
+import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
 
 interface BirthdayPageData {
   id: string;
@@ -861,6 +863,20 @@ const BirthdayPage = () => {
         pageUrl={pageUrl}
         age={age}
       />
+
+      {/* Premium offert : déblocage émotionnel + conversion post-événement */}
+      {isOwner && page && (
+        <>
+          <PremiumTrialUnlockModal
+            targetType="birthday_page"
+            targetId={page.id}
+            occasionLabel="Ton anniversaire"
+          />
+          <div className="container mx-auto px-4 pb-6">
+            <PostEventConversionCard targetType="birthday_page" targetId={page.id} />
+          </div>
+        </>
+      )}
 
       {/* Visitor conversion CTA — only for non-authenticated visitors */}
       {!user && page && (

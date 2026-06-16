@@ -6861,6 +6861,98 @@ export type Database = {
           },
         ]
       }
+      premium_trial_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          grant_id: string | null
+          id: string
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          grant_id?: string | null
+          id?: string
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          grant_id?: string | null
+          id?: string
+          metadata?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premium_trial_events_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "premium_trial_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      premium_trial_grants: {
+        Row: {
+          archived_at: string
+          converted_to_premium: boolean
+          created_at: string
+          event_date: string | null
+          granted_at: string
+          id: string
+          memories_until: string
+          metadata: Json
+          notified_memories_ending: boolean
+          notified_post_event: boolean
+          notified_unlock: boolean
+          premium_until: string
+          target_id: string
+          target_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at: string
+          converted_to_premium?: boolean
+          created_at?: string
+          event_date?: string | null
+          granted_at?: string
+          id?: string
+          memories_until: string
+          metadata?: Json
+          notified_memories_ending?: boolean
+          notified_post_event?: boolean
+          notified_unlock?: boolean
+          premium_until: string
+          target_id: string
+          target_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string
+          converted_to_premium?: boolean
+          created_at?: string
+          event_date?: string | null
+          granted_at?: string
+          id?: string
+          memories_until?: string
+          metadata?: Json
+          notified_memories_ending?: boolean
+          notified_post_event?: boolean
+          notified_unlock?: boolean
+          premium_until?: string
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_ratings: {
         Row: {
           created_at: string
@@ -10262,6 +10354,38 @@ export type Database = {
       }
     }
     Functions: {
+      _grant_premium_trial: {
+        Args: {
+          _event_date: string
+          _target_id: string
+          _target_type: string
+          _user_id: string
+        }
+        Returns: {
+          archived_at: string
+          converted_to_premium: boolean
+          created_at: string
+          event_date: string | null
+          granted_at: string
+          id: string
+          memories_until: string
+          metadata: Json
+          notified_memories_ending: boolean
+          notified_post_event: boolean
+          notified_unlock: boolean
+          premium_until: string
+          target_id: string
+          target_type: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "premium_trial_grants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _jdv_notify_edge: {
         Args: { fn_name: string; payload: Json }
         Returns: undefined
@@ -10640,6 +10764,20 @@ export type Database = {
         Returns: number
       }
       get_platform_seo_stats: { Args: never; Returns: Json }
+      get_premium_trial_status: {
+        Args: never
+        Returns: {
+          archived_at: string
+          converted_to_premium: boolean
+          event_date: string
+          grant_id: string
+          memories_until: string
+          phase: string
+          premium_until: string
+          target_id: string
+          target_type: string
+        }[]
+      }
       get_product_category_name: {
         Args: { p_product_id: string }
         Returns: string
@@ -10864,6 +11002,10 @@ export type Database = {
       is_surprise_contributor: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
+      }
+      log_premium_trial_event: {
+        Args: { _event_type: string; _metadata?: Json }
+        Returns: undefined
       }
       log_security_event:
         | {

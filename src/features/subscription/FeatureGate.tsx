@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { FeatureFlag, PlanTier } from './types';
+import { FeatureFlag, PlanTier, TrialTargetType } from './types';
 import { usePlan } from './usePlan';
 
 interface FeatureGateProps {
@@ -12,6 +12,11 @@ interface FeatureGateProps {
   requires?: PlanTier;
   /** Optionnel : exige aussi qu'une feature qualitative soit truthy. */
   feature?: FeatureFlag;
+  /**
+   * Contexte d'item (ex. page d'anniversaire) : si cet item est l'événement
+   * couvert par le Premium offert, l'accès est autorisé même en plan free.
+   */
+  trialContext?: { targetType: TrialTargetType; targetId: string };
   /** Affichage quand l'accès est refusé. "lock" = overlay floutée premium. */
   fallback?: 'lock' | 'hide' | ReactNode;
   title?: string;
@@ -27,19 +32,23 @@ interface FeatureGateProps {
 export const FeatureGate = ({
   requires = 'premium',
   feature,
+  trialContext,
   fallback = 'lock',
   title = 'Fonctionnalité Premium',
   reason = 'Passe à un plan supérieur pour débloquer cette expérience.',
   className,
   children,
 }: FeatureGateProps) => {
-  const { isAtLeast, getFeature, isLoading } = usePlan();
+  const { isAtLeast, getFeature, isLoading, isTrialCoveredItem } = usePlan();
 
   if (isLoading) return null;
 
   const planOk = isAtLeast(requires);
   const featureOk = feature ? Boolean(getFeature(feature)) : true;
-  const allowed = planOk && featureOk;
+  const trialOk = trialContext
+    ? isTrialCoveredItem(trialContext.targetType, trialContext.targetId)
+    : false;
+  const allowed = (planOk && featureOk) || trialOk;
 
   if (allowed) return <>{children}</>;
   if (fallback === 'hide') return null;

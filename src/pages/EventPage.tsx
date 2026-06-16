@@ -23,6 +23,8 @@ import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CoverVideoCarousel } from "@/components/birthday/CoverVideoCarousel";
+import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
+import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
 import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
 import { CountdownWidget } from "@/components/event/CountdownWidget";
 import { EventWishlistSection } from "@/components/event/EventWishlistSection";
@@ -423,6 +425,19 @@ const EventPage = () => {
       {/* Visitor conversion CTA — only for non-authenticated visitors */}
       {!user && page && (
         <VisitorConversionCTA refSlug={page.slug} pageKind="event" occasion={page.occasion} />
+      )}
+
+      {isOwner && page && (
+        <>
+          <PremiumTrialUnlockModal
+            targetType="event_page"
+            targetId={page.id}
+            occasionLabel={`Ton ${page.occasion || 'événement'}`}
+          />
+          <div className="container mx-auto px-4 pb-6">
+            <PostEventConversionCard targetType="event_page" targetId={page.id} />
+          </div>
+        </>
       )}
     </div>
   );
