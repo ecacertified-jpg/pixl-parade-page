@@ -285,6 +285,8 @@ const App = () => (
             <Route path="/notification-settings" element={<ProtectedRoute><L><NotificationSettings /></L></ProtectedRoute>} />
             <Route path="/notifications/history" element={<ProtectedRoute><L><NotificationHistory /></L></ProtectedRoute>} />
             <Route path="/community" element={<PublicRoute><L><Community /></L></PublicRoute>} />
+            <Route path="/celebrer" element={<PublicRoute><L><Celebrer /></L></PublicRoute>} />
+            <Route path="/celebrate" element={<PublicRoute><L><Celebrer /></L></PublicRoute>} />
             <Route path="/reciprocity-profile" element={<ProtectedRoute><L><ReciprocityProfile /></L></ProtectedRoute>} />
             <Route path="/profile/:userId" element={<PublicRoute><L><UserProfile /></L></PublicRoute>} />
             <Route path="/u/:userId/pages" element={<PublicRoute><L><UserPagesPage /></L></PublicRoute>} />
