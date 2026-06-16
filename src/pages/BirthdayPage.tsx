@@ -864,6 +864,20 @@ const BirthdayPage = () => {
         age={age}
       />
 
+      {/* Premium offert : déblocage émotionnel + conversion post-événement */}
+      {isOwner && page && (
+        <>
+          <PremiumTrialUnlockModal
+            targetType="birthday_page"
+            targetId={page.id}
+            occasionLabel="Ton anniversaire"
+          />
+          <div className="container mx-auto px-4 pb-6">
+            <PostEventConversionCard targetType="birthday_page" targetId={page.id} />
+          </div>
+        </>
+      )}
+
       {/* Visitor conversion CTA — only for non-authenticated visitors */}
       {!user && page && (
         <VisitorConversionCTA refSlug={page.slug} pageKind="birthday" />
