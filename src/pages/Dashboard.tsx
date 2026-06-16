@@ -581,6 +581,9 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
+        {/* Premium offert — bandeau émotionnel global */}
+        <PremiumTrialBanner className="mb-4" />
+
         {/* Rappel cercle d'amis */}
         <div className="mb-4">
           <FriendsCircleReminderCard onFriendAdded={() => refreshDashboard()} />
