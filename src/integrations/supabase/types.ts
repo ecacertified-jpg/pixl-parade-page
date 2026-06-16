@@ -3785,7 +3785,9 @@ export type Database = {
           rsvp_responded_at: string | null
           rsvp_response: string | null
           rsvp_token: string | null
+          seat_number: number | null
           status: Database["public"]["Enums"]["event_guest_status"]
+          table_id: string | null
           updated_at: string
         }
         Insert: {
@@ -3808,7 +3810,9 @@ export type Database = {
           rsvp_responded_at?: string | null
           rsvp_response?: string | null
           rsvp_token?: string | null
+          seat_number?: number | null
           status?: Database["public"]["Enums"]["event_guest_status"]
+          table_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -3831,10 +3835,20 @@ export type Database = {
           rsvp_responded_at?: string | null
           rsvp_response?: string | null
           rsvp_token?: string | null
+          seat_number?: number | null
           status?: Database["public"]["Enums"]["event_guest_status"]
+          table_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "event_guests_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "event_tables"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_organizers: {
         Row: {
@@ -4098,6 +4112,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      event_tables: {
+        Row: {
+          capacity: number
+          color: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          position_x: number
+          position_y: number
+          shape: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          page_id: string
+          page_type: Database["public"]["Enums"]["organization_page_type"]
+          position_x?: number
+          position_y?: number
+          shape?: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          page_id?: string
+          page_type?: Database["public"]["Enums"]["organization_page_type"]
+          position_x?: number
+          position_y?: number
+          shape?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       event_tasks: {
         Row: {
