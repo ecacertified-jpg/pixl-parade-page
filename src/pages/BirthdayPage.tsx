@@ -33,6 +33,8 @@ import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
+import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
+import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
 
 interface BirthdayPageData {
   id: string;
