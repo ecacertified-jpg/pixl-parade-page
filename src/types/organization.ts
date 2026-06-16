@@ -70,7 +70,35 @@ export interface EventGuest {
   status: EventGuestStatus;
   note: string | null;
   created_at: string;
+  table_id?: string | null;
+  seat_number?: number | null;
+  rsvp_response?: 'yes' | 'no' | 'maybe' | null;
+  rsvp_plus_ones?: number | null;
 }
+
+export type EventTableShape = 'round' | 'rect' | 'square';
+
+export interface EventTable {
+  id: string;
+  page_type: OrganizationPageType;
+  page_id: string;
+  name: string;
+  capacity: number;
+  shape: EventTableShape;
+  position_x: number;
+  position_y: number;
+  color: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const TABLE_SHAPE_LABELS: Record<EventTableShape, { label: string; emoji: string }> = {
+  round: { label: 'Ronde', emoji: '⭕' },
+  rect: { label: 'Rectangulaire', emoji: '▭' },
+  square: { label: 'Carrée', emoji: '⬛' },
+};
 
 export const ORGANIZER_ROLE_LABELS: Record<OrganizerRole, { label: string; emoji: string }> = {
   admin: { label: 'Administrateur', emoji: '👑' },
