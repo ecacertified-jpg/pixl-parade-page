@@ -282,6 +282,7 @@ const EventPage = () => {
             pageId={page.id}
             ownerUserId={page.creator_id}
             pageTitle={page.title}
+            defaultEventAt={page.event_date ?? null}
           />
         )}
         {page && (
