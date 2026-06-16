@@ -31,6 +31,7 @@ import { FundSelector } from "@/components/birthday/FundSelector";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
+import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBanner";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
@@ -675,6 +676,9 @@ const BirthdayPage = () => {
       )}
 
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
+        {page && (
+          <UrgentMessageBanner pageType="birthday" pageId={page.id} />
+        )}
         {page && (
           <CelebrationArtisansSection
             artisans={((page as any).celebration_artisans ?? []) as CelebrationArtisan[]}
