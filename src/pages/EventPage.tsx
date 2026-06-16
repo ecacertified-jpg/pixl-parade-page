@@ -23,6 +23,8 @@ import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CoverVideoCarousel } from "@/components/birthday/CoverVideoCarousel";
+import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
+import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
 import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
 import { CountdownWidget } from "@/components/event/CountdownWidget";
 import { EventWishlistSection } from "@/components/event/EventWishlistSection";
