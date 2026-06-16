@@ -4218,34 +4218,40 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          display_order: number
           event_at: string | null
           id: string
           is_active: boolean
           message: string
           page_id: string
           page_type: Database["public"]["Enums"]["organization_page_type"]
+          priority: Database["public"]["Enums"]["urgent_message_priority"]
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          display_order?: number
           event_at?: string | null
           id?: string
           is_active?: boolean
           message: string
           page_id: string
           page_type: Database["public"]["Enums"]["organization_page_type"]
+          priority?: Database["public"]["Enums"]["urgent_message_priority"]
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          display_order?: number
           event_at?: string | null
           id?: string
           is_active?: boolean
           message?: string
           page_id?: string
           page_type?: Database["public"]["Enums"]["organization_page_type"]
+          priority?: Database["public"]["Enums"]["urgent_message_priority"]
           updated_at?: string
         }
         Relationships: []
@@ -11242,6 +11248,7 @@ export type Database = {
         | "past_due"
         | "awaiting_payment"
         | "incomplete"
+      urgent_message_priority: "high" | "medium" | "low"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -11400,6 +11407,7 @@ export const Constants = {
         "awaiting_payment",
         "incomplete",
       ],
+      urgent_message_priority: ["high", "medium", "low"],
     },
   },
 } as const
