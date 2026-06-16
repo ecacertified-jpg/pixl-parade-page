@@ -1,41 +1,69 @@
-# Fix — Prompt notifications push
+## Objectif
+Permettre à l'organisateur (propriétaire + co-organisateurs admin) de publier un **message urgent** (avec ou sans date/heure) depuis Mes coulisses. Ce message s'affiche en bannière **rouge clignotante** sur la page publique (anniversaire et événement), juste avant la section "Les artisans de cette célébration", et disparaît automatiquement quand la date saisie est dépassée.
 
-## Diagnostic
+## 1. Base de données (migration)
 
-1. **Le bandeau anglais "Subscribe to our notifications…"** vu dans la capture est le *slidedown natif OneSignal v16*, configuré côté **Dashboard OneSignal** (Web Configuration → Slide Prompt). Dans la v16 du SDK, `promptOptions.slidedown.prompts` passé à `init()` **n'écrase plus** la configuration dashboard — c'est pour ça qu'il s'affiche malgré `autoRegister: false`.
-2. **Initialisation trop précoce** : `src/main.tsx` appelle `initOneSignal()` au boot, donc le SDK se lance même pour les visiteurs anonymes sur la page publique `/` → le slidedown dashboard apparaît.
-3. **La modale FR `PushNotificationPrompt`** n'est montée que dans `src/pages/Dashboard.tsx` (utilisateur connecté). Sur la home publique de la capture, elle ne peut donc pas s'afficher — d'où l'impression qu'elle "ne marche pas".
-4. Le **toast post-activation avec bouton « Tester »** existe déjà dans `usePushNotifications.subscribe()` et redirige bien vers `/notification-settings` — rien à refaire, mais il ne se déclenche jamais tant que le point 3 bloque l'activation.
+Nouvelle table polymorphe `event_urgent_messages` (cohérente avec le pattern `(page_type, page_id)` déjà utilisé par le module Organisation) :
 
-## Changements code
+- `id`, `page_type` ('birthday' | 'event'), `page_id`
+- `message` (text, 1-280 chars)
+- `event_at` (timestamptz, nullable) — date/heure de l'événement; si null, le message reste affiché jusqu'à suppression manuelle
+- `is_active` (bool, default true)
+- `created_by`, `created_at`, `updated_at`
 
-### 1. `src/main.tsx`
-- Retirer l'appel `initOneSignal()` au boot. Le SDK ne sera plus chargé tant que l'utilisateur n'a pas explicitement cliqué « Activer ».
+RLS :
+- SELECT public : `is_active = true AND (event_at IS NULL OR event_at > now())` — pour que les visiteurs voient la bannière
+- INSERT/UPDATE/DELETE : `can_manage_page(auth.uid(), page_type, page_id, 'admin')` (helper existant)
 
-### 2. `src/lib/onesignal.ts`
-- Ajouter `autoPrompt: false` sur chaque prompt (sécurité v16) et garder `autoRegister: false`.
-- Conserver l'init paresseuse via `initOneSignal()` appelée uniquement depuis `subscribe()` / settings.
+GRANTs : `anon, authenticated` SELECT ; `authenticated` INSERT/UPDATE/DELETE ; `service_role` ALL.
 
-### 3. `src/hooks/usePushNotifications.ts`
-- Ne plus appeler `initOneSignal()` dans le `useEffect` initial. On expose `isSupported` via une heuristique légère (`'serviceWorker' in navigator && 'PushManager' in window` + pas en iframe preview) **sans** charger OneSignal.
-- L'init réelle ne se fait qu'à `subscribe()` (geste utilisateur) ou à l'ouverture de `/notification-settings`.
+Un seul message actif par page : index unique partiel `(page_type, page_id) WHERE is_active = true` — l'UI remplace l'ancien à l'enregistrement.
 
-### 4. `src/components/PushNotificationPrompt.tsx`
-- Inchangé fonctionnellement, mais s'assurer qu'il ne déclenche pas `initOneSignal` tant que l'utilisateur n'a pas cliqué « Activer ».
+## 2. Onglet "Date/Message" dans Mes coulisses
 
-### 5. Affichage de la modale FR aussi pour les visiteurs connectés sur la home
-- Monter `<PushNotificationPrompt>` dans un composant global réservé aux utilisateurs **authentifiés** (ex. dans `App.tsx` derrière `useAuth().user`), avec la même garde `localStorage[push_prompted_${user.id}]` + délai 8s, pour qu'il s'affiche sur n'importe quelle page (pas seulement Dashboard).
-- **Important** : pas d'affichage pour les visiteurs anonymes (conforme à la stratégie produit : opt-in après inscription).
+Dans `OrganizationSection` (Sheet à 5 sous-tabs aujourd'hui : Préparatifs, Prestataires, Budget, Invités, Équipe), ajout d'un **6e onglet "Date/Message"** (icône `Megaphone` ou `AlarmClock`).
 
-## Action manuelle requise (hors code)
+Composant `UrgentMessageTab.tsx` :
+- Textarea (compteur 280)
+- Switch "Définir une date/heure" → si activé, datetime-local picker (par défaut: date de l'événement/anniversaire)
+- Aperçu live de la bannière (mêmes styles que le rendu public)
+- Boutons : Enregistrer / Désactiver
+- Hook `useUrgentMessage(pageType, pageId)` (fetch + mutation + realtime optionnel)
 
-Dans **OneSignal Dashboard → Settings → Web Configuration → Permission Prompt Setup** :
-- Désactiver **"Slide Prompt"** (et "Native Prompt" auto) afin que le bandeau anglais ne soit plus envoyé par OneSignal lui-même.
+## 3. Bannière publique rouge clignotante
 
-Sans cette désactivation côté dashboard, le slidedown anglais peut continuer d'apparaître pour les comptes qui ont déjà chargé le SDK une fois (cache SW). Je documenterai ça dans le plan d'implémentation.
+Nouveau composant `UrgentMessageBanner.tsx` :
+- Fond `bg-destructive` / `text-destructive-foreground`, icône `AlertTriangle`, bord arrondi 2xl, ombre douce
+- Animation clignotement subtile (Tailwind `animate-pulse` sur un halo + bordure animée via keyframes ajoutées à `tailwind.config.ts` : `urgent-blink` = opacity 1 ↔ 0.85 / shadow pulse, 1.6s)
+- Respect de `prefers-reduced-motion` (désactive le blink)
+- Affiche la date/heure formatée FR si `event_at` présent (`format(..., "EEEE d MMMM 'à' HH'h'mm", locale fr)`)
+- Auto-hide côté client via un `setInterval` qui compare `event_at` à `now()` (toutes les 30s) en plus du filtre RLS
 
-## Vérification
+Intégration :
+- `src/pages/BirthdayPage.tsx` — inséré juste avant `<CelebrationArtisansSection ... />`, sous les vidéos de couverture
+- `src/pages/EventPage.tsx` — même emplacement
 
-1. Charger `/` en navigation privée non connecté → aucun bandeau OneSignal.
-2. Se connecter → après ~8s, la modale FR avec 3 bénéfices + mention « Vous pouvez désactiver à tout moment » s'affiche.
-3. Cliquer « Activer » → permission navigateur → toast vert avec bouton « Tester » → clic → redirection `/notification-settings`.
+Hook public `usePublicUrgentMessage(pageType, pageId)` (lecture seule, anon-friendly).
+
+## 4. Fichiers touchés
+
+Création :
+- `supabase/migrations/<ts>_urgent_messages.sql`
+- `src/components/organization/UrgentMessageTab.tsx`
+- `src/components/organization/UrgentMessageBanner.tsx`
+- `src/hooks/useUrgentMessage.ts`
+
+Édition :
+- `src/components/organization/OrganizationSection.tsx` (ajout onglet)
+- `src/pages/BirthdayPage.tsx` (insertion bannière)
+- `src/pages/EventPage.tsx` (insertion bannière)
+- `tailwind.config.ts` (keyframe `urgent-blink`)
+- `.lovable/mem/features/organization-module.md` (ajout sous-tab)
+
+## 5. Sécurité & UX
+- Aucune donnée sensible : message public assumé
+- Modération : seul un admin de la page peut écrire (helper `can_manage_page`)
+- Disparition automatique garantie côté RLS **et** côté client
+- Mobile-first : bannière pleine largeur, 2 lignes max avec ellipsis + tap pour développer
+
+Pas de changement aux notifications OneSignal ni au Premium trial.
