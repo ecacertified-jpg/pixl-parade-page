@@ -9,6 +9,7 @@ import { TasksBoard } from './TasksBoard';
 import { VendorsList } from './VendorsList';
 import { BudgetTable } from './BudgetTable';
 import { GuestsList } from './GuestsList';
+import { SeatingPlan } from './SeatingPlan';
 import { OrganizersManager } from './OrganizersManager';
 import type { OrganizationPageType, OrganizerRole } from '@/types/organization';
 
@@ -75,6 +76,7 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle }
               <TabsTrigger value="vendors" className="text-xs">🎨 Prestataires</TabsTrigger>
               <TabsTrigger value="budget" className="text-xs">💰 Budget</TabsTrigger>
               <TabsTrigger value="guests" className="text-xs">💌 Invités</TabsTrigger>
+              <TabsTrigger value="seating" className="text-xs">🪑 Plan de table</TabsTrigger>
               <TabsTrigger value="team" className="text-xs">💛 Équipe</TabsTrigger>
             </TabsList>
 
@@ -89,6 +91,9 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle }
             </TabsContent>
             <TabsContent value="guests" className="mt-4">
               <GuestsList pageType={pageType} pageId={pageId} canEdit={canWrite(effective, 'guests')} />
+            </TabsContent>
+            <TabsContent value="seating" className="mt-4">
+              <SeatingPlan pageType={pageType} pageId={pageId} canEdit={canWrite(effective, 'guests')} />
             </TabsContent>
             <TabsContent value="team" className="mt-4">
               <OrganizersManager pageType={pageType} pageId={pageId} canEdit={isOwner} pageTitle={pageTitle} />
