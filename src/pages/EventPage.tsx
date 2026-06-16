@@ -18,6 +18,7 @@ import { useEventPageSEO } from "@/hooks/useEventPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 import { FundSelector } from "@/components/birthday/FundSelector";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
+import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBanner";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
@@ -254,6 +255,9 @@ const EventPage = () => {
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
         {page?.event_date && (
           <CountdownWidget eventDate={page.event_date} occasionEmoji={theme.emoji} />
+        )}
+        {page && (
+          <UrgentMessageBanner pageType="event" pageId={page.id} />
         )}
         {page && (
           <CelebrationArtisansSection
