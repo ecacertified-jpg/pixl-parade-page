@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
-import { MessageWall } from "@/components/celebrate/MessageWall";
+import { CelebrateWall } from "@/components/celebrate/CelebrateWall";
 import { Sparkles } from "lucide-react";
 
 export default function Celebrer() {
@@ -41,7 +41,7 @@ export default function Celebrer() {
 
         <div className="container mx-auto max-w-2xl px-4 py-6 space-y-6">
           <CelebrationFeed pageType="standalone" />
-          <MessageWall pageType="standalone" pageId={null} title="✨ Mur d'amour global" />
+          <CelebrateWall pageType="standalone" pageId={null} title="✨ Mur d'amour global" />
         </div>
       </main>
     </>
