@@ -13,7 +13,7 @@ interface Props {
   title?: string;
 }
 
-export function MessageWall({ postId, pageType, pageId, title = "Mur de messages" }: Props) {
+export function CelebrateWall({ postId, pageType, pageId, title = "Mur de messages" }: Props) {
   const { user } = useAuth();
   const { messages, send } = useCelebrationWall({ postId, pageType, pageId });
   const [draft, setDraft] = useState("");
