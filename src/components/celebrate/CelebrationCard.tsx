@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Trash2, Sparkles } from "lucide-react";
 import { ReactionBar } from "./ReactionBar";
 import { CelebrateWall } from "./CelebrateWall";
+import { TributeSlideshow } from "./TributeSlideshow";
 import { useAuth } from "@/contexts/AuthContext";
 import type { CelebrationPost } from "@/hooks/useCelebrationFeed";
 import { cn } from "@/lib/utils";
@@ -92,6 +93,16 @@ export function CelebrationCard({ post, onDelete }: Props) {
           playsInline
           className="mt-3 w-full rounded-xl"
         />
+      )}
+
+      {post.kind === "tribute" && post.media_urls?.length > 0 && (
+        <div className="mt-3">
+          <TributeSlideshow
+            photos={post.media_urls}
+            musicTrackId={post.music_track_id}
+            caption={post.content}
+          />
+        </div>
       )}
 
       <div className="mt-3 flex items-center justify-between gap-2">
