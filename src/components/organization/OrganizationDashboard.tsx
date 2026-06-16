@@ -2,13 +2,23 @@ import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   CheckCircle2, Wallet, Users, Palette, AlertTriangle, CalendarClock, Sparkles,
+  Store, MessageCircle,
 } from 'lucide-react';
 import {
   useEventTasks, useEventBudget, useEventGuests, useEventVendors, useEventTables,
 } from '@/hooks/useOrganizationData';
 import type { OrganizationPageType } from '@/types/organization';
+import { toast } from 'sonner';
+
+const JDV_STATUS: Record<string, { label: string; emoji: string; cls: string }> = {
+  proposed:  { label: 'Proposé',  emoji: '💡', cls: 'bg-muted text-foreground' },
+  contacted: { label: 'Contacté', emoji: '💬', cls: 'bg-amber-100 text-amber-800' },
+  confirmed: { label: 'Confirmé', emoji: '✅', cls: 'bg-emerald-100 text-emerald-800' },
+  cancelled: { label: 'Annulé',   emoji: '✖️', cls: 'bg-red-100 text-red-800' },
+};
 
 interface Props { pageType: OrganizationPageType; pageId: string; }
 
@@ -28,7 +38,7 @@ export const OrganizationDashboard = ({ pageType, pageId }: Props) => {
   const { items: tasks,    loading: l1 } = useEventTasks(pageType, pageId);
   const { items: budget,   loading: l2 } = useEventBudget(pageType, pageId);
   const { items: guests,   loading: l3 } = useEventGuests(pageType, pageId);
-  const { items: vendors,  loading: l4 } = useEventVendors(pageType, pageId);
+  const { items: vendors,  loading: l4, update: updateVendor } = useEventVendors(pageType, pageId);
   const { items: tables,   loading: l5 } = useEventTables(pageType, pageId);
   const loading = l1 || l2 || l3 || l4 || l5;
 
@@ -95,6 +105,26 @@ export const OrganizationDashboard = ({ pageType, pageId }: Props) => {
 
     return out;
   }, [tasks, vendors, guests, tables, stats]);
+
+  const jdvToContact = useMemo(
+    () => (vendors as any[]).filter(
+      (v) => v.business_account_id &&
+        (v.booking_status === 'proposed' || v.booking_status === 'contacted'),
+    ),
+    [vendors],
+  );
+
+  const relanceJDV = (v: any) => {
+    const txt = encodeURIComponent(
+      `Bonjour JDV 👋\nPetite relance concernant le prestataire « ${v.name} » pour mon événement.\nMerci 🙏`,
+    );
+    updateVendor(v.id, {
+      booking_status: 'contacted',
+      contact_logged_at: new Date().toISOString(),
+    } as any);
+    window.open(`https://wa.me/?text=${txt}`, '_blank', 'noopener,noreferrer');
+    toast.success('Relance envoyée à JDV');
+  };
 
   if (loading) return <p className="text-sm text-muted-foreground">Chargement…</p>;
 
@@ -181,6 +211,40 @@ export const OrganizationDashboard = ({ pageType, pageId }: Props) => {
               </span>
             </div>
           ))}
+        </Card>
+      )}
+
+      {jdvToContact.length > 0 && (
+        <Card className="p-3 rounded-2xl space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+            <Store className="h-3.5 w-3.5" /> Prestataires JDV à relancer
+          </div>
+          <ul className="space-y-1.5">
+            {jdvToContact.map((v: any) => {
+              const s = JDV_STATUS[v.booking_status ?? 'proposed'] ?? JDV_STATUS.proposed;
+              return (
+                <li
+                  key={v.id}
+                  className="flex items-center justify-between gap-2 text-xs"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground truncate">{v.name}</p>
+                    <Badge className={`text-[10px] h-4 ${s.cls}`}>
+                      {s.emoji} {s.label}
+                    </Badge>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px] shrink-0"
+                    onClick={() => relanceJDV(v)}
+                  >
+                    <MessageCircle className="h-3 w-3 mr-1" /> Relancer
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
         </Card>
       )}
     </div>
