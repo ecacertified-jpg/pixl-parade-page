@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type {
   OrganizationPageType,
-  EventTask, EventVendor, EventBudgetItem, EventGuest, EventOrganizer,
+  EventTask, EventVendor, EventBudgetItem, EventGuest, EventOrganizer, EventTable,
 } from '@/types/organization';
 
 type AnyTable = any;
@@ -67,3 +67,4 @@ export const useEventVendors = (t: OrganizationPageType | null, id: string | nul
 export const useEventBudget  = (t: OrganizationPageType | null, id: string | null) => useTable<EventBudgetItem>('event_budget_items', t, id);
 export const useEventGuests  = (t: OrganizationPageType | null, id: string | null) => useTable<EventGuest>('event_guests', t, id);
 export const useEventOrganizers = (t: OrganizationPageType | null, id: string | null) => useTable<EventOrganizer>('event_organizers', t, id);
+export const useEventTables    = (t: OrganizationPageType | null, id: string | null) => useTable<EventTable>('event_tables', t, id);
