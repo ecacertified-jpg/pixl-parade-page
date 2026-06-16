@@ -6000,6 +6000,107 @@ export type Database = {
         }
         Relationships: []
       }
+      live_participants: {
+        Row: {
+          avatar_url: string | null
+          camera_off: boolean
+          created_at: string
+          display_name: string
+          id: string
+          is_muted: boolean
+          joined_at: string
+          left_at: string | null
+          role: string
+          room_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          camera_off?: boolean
+          created_at?: string
+          display_name: string
+          id?: string
+          is_muted?: boolean
+          joined_at?: string
+          left_at?: string | null
+          role?: string
+          room_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          camera_off?: boolean
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_muted?: boolean
+          joined_at?: string
+          left_at?: string | null
+          role?: string
+          room_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "live_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_rooms: {
+        Row: {
+          context_id: string | null
+          context_type: string
+          created_at: string
+          ended_at: string | null
+          host_id: string
+          id: string
+          is_public: boolean
+          livekit_room_name: string
+          max_participants: number
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          context_id?: string | null
+          context_type?: string
+          created_at?: string
+          ended_at?: string | null
+          host_id: string
+          id?: string
+          is_public?: boolean
+          livekit_room_name: string
+          max_participants?: number
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          context_id?: string | null
+          context_type?: string
+          created_at?: string
+          ended_at?: string | null
+          host_id?: string
+          id?: string
+          is_public?: boolean
+          livekit_room_name?: string
+          max_participants?: number
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loyalty_points: {
         Row: {
           created_at: string
