@@ -24,7 +24,7 @@ export function CelebrationFeed({
         <ComposerSheet
           pageType={pageType}
           pageId={pageId}
-          onPublish={(i) => createPost(i)}
+          onPublish={(i) => createPost(i as any)}
           fullWidth
         />
       )}
