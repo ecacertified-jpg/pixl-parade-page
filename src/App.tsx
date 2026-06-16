@@ -158,6 +158,7 @@ const WhatsAppAIChat = lazy(() => import("./pages/Admin/WhatsAppAIChat"));
 const AdminFundDetail = lazy(() => import("./pages/Admin/AdminFundDetail"));
 const OnboardingProgressDashboard = lazy(() => import("./pages/Admin/OnboardingProgressDashboard"));
 const WaveSubscriptionsAdmin = lazy(() => import("./pages/Admin/WaveSubscriptionsAdmin"));
+const CelebrationPremiumOrders = lazy(() => import("./pages/Admin/CelebrationPremiumOrders"));
 
 // Deep link redirect that preserves query params (e.g. ?for=Name)
 const DeepLinkRedirect = ({ occasion }: { occasion: string }) => {
