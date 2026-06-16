@@ -70,6 +70,7 @@ import { FriendRequestsCarousel } from "@/components/FriendRequestsCarousel";
 import { LinkContactDialog } from "@/components/LinkContactDialog";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { PremiumTrialBanner } from "@/features/subscription/PremiumTrialBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFriendCircles } from "@/hooks/useFriendCircles";
 import { useFavorites } from "@/hooks/useFavorites";
