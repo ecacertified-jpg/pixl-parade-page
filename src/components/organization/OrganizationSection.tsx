@@ -12,6 +12,7 @@ import { BudgetTable } from './BudgetTable';
 import { GuestsList } from './GuestsList';
 import { SeatingPlan } from './SeatingPlan';
 import { OrganizersManager } from './OrganizersManager';
+import { UrgentMessageTab } from './UrgentMessageTab';
 import type { OrganizationPageType, OrganizerRole } from '@/types/organization';
 
 interface Props {
@@ -19,13 +20,15 @@ interface Props {
   pageId: string;
   ownerUserId: string;
   pageTitle?: string;
+  /** Optional ISO date used as default for the urgent message expiry. */
+  defaultEventAt?: string | null;
 }
 
 /** Decides if a role can write a given resource. Admin = all. */
 const canWrite = (role: OrganizerRole | null, scope: OrganizerRole) =>
   role === 'admin' || role === scope;
 
-export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle }: Props) => {
+export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle, defaultEventAt }: Props) => {
   const { canManage, role, isOwner, loading } = useOrganizationAccess(pageType, pageId, ownerUserId);
   const [open, setOpen] = useState(false);
 
@@ -79,6 +82,7 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle }
               <TabsTrigger value="budget" className="text-xs">💰 Budget</TabsTrigger>
               <TabsTrigger value="guests" className="text-xs">💌 Invités</TabsTrigger>
               <TabsTrigger value="seating" className="text-xs">🪑 Plan de table</TabsTrigger>
+              <TabsTrigger value="urgent" className="text-xs">📢 Date / Message</TabsTrigger>
               <TabsTrigger value="team" className="text-xs">💛 Équipe</TabsTrigger>
             </TabsList>
 
@@ -99,6 +103,14 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle }
             </TabsContent>
             <TabsContent value="seating" className="mt-4">
               <SeatingPlan pageType={pageType} pageId={pageId} canEdit={canWrite(effective, 'guests')} />
+            </TabsContent>
+            <TabsContent value="urgent" className="mt-4">
+              <UrgentMessageTab
+                pageType={pageType}
+                pageId={pageId}
+                canEdit={effective === 'admin'}
+                defaultEventAt={defaultEventAt}
+              />
             </TabsContent>
             <TabsContent value="team" className="mt-4">
               <OrganizersManager pageType={pageType} pageId={pageId} canEdit={isOwner} pageTitle={pageTitle} />

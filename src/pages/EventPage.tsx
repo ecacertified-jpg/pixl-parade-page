@@ -18,6 +18,7 @@ import { useEventPageSEO } from "@/hooks/useEventPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 import { FundSelector } from "@/components/birthday/FundSelector";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
+import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBanner";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
@@ -256,6 +257,9 @@ const EventPage = () => {
           <CountdownWidget eventDate={page.event_date} occasionEmoji={theme.emoji} />
         )}
         {page && (
+          <UrgentMessageBanner pageType="event" pageId={page.id} />
+        )}
+        {page && (
           <CelebrationArtisansSection
             artisans={((page as any).celebration_artisans ?? []) as CelebrationArtisan[]}
             editable={
@@ -278,6 +282,7 @@ const EventPage = () => {
             pageId={page.id}
             ownerUserId={page.creator_id}
             pageTitle={page.title}
+            defaultEventAt={page.event_date ?? null}
           />
         )}
         {page && (
