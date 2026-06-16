@@ -33,7 +33,7 @@ import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
 import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBanner";
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
-import { MessageWall } from "@/components/celebrate/MessageWall";
+import { CelebrateWall } from "@/components/celebrate/CelebrateWall";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
@@ -687,7 +687,7 @@ const BirthdayPage = () => {
               ✨ Célébrer
             </h2>
             <CelebrationFeed pageType="birthday" pageId={page.id} emptyTitle="Sois le premier à célébrer 💖" />
-            <MessageWall pageType="birthday" pageId={page.id} title="💌 Mur de messages" />
+            <CelebrateWall pageType="birthday" pageId={page.id} title="💌 Mur de messages" />
           </section>
         )}
         {page && (
