@@ -2693,6 +2693,50 @@ export type Database = {
         }
         Relationships: []
       }
+      celebration_digital_gifts: {
+        Row: {
+          amount_xof: number
+          created_at: string
+          gift_key: string
+          id: string
+          is_anonymous: boolean
+          message: string | null
+          post_id: string
+          recipient_user_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          amount_xof?: number
+          created_at?: string
+          gift_key: string
+          id?: string
+          is_anonymous?: boolean
+          message?: string | null
+          post_id: string
+          recipient_user_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          amount_xof?: number
+          created_at?: string
+          gift_key?: string
+          id?: string
+          is_anonymous?: boolean
+          message?: string | null
+          post_id?: string
+          recipient_user_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "celebration_digital_gifts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "celebration_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       celebration_post_views: {
         Row: {
           created_at: string
@@ -2729,8 +2773,11 @@ export type Database = {
         Row: {
           author_id: string
           boost_expires_at: string | null
+          card_template_id: string | null
           content: string | null
           created_at: string
+          gifts_count: number
+          gifts_total_xof: number
           id: string
           is_boosted: boolean
           is_pinned: boolean
@@ -2751,8 +2798,11 @@ export type Database = {
         Insert: {
           author_id: string
           boost_expires_at?: string | null
+          card_template_id?: string | null
           content?: string | null
           created_at?: string
+          gifts_count?: number
+          gifts_total_xof?: number
           id?: string
           is_boosted?: boolean
           is_pinned?: boolean
@@ -2773,8 +2823,11 @@ export type Database = {
         Update: {
           author_id?: string
           boost_expires_at?: string | null
+          card_template_id?: string | null
           content?: string | null
           created_at?: string
+          gifts_count?: number
+          gifts_total_xof?: number
           id?: string
           is_boosted?: boolean
           is_pinned?: boolean
@@ -2792,7 +2845,68 @@ export type Database = {
           views_count?: number
           visibility?: Database["public"]["Enums"]["celebration_visibility"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "celebration_posts_card_template_id_fkey"
+            columns: ["card_template_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_card_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      celebration_premium_orders: {
+        Row: {
+          activated_at: string | null
+          amount_xof: number
+          created_at: string
+          duration_hours: number | null
+          id: string
+          kind: string
+          metadata: Json
+          post_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          wave_reference: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          amount_xof: number
+          created_at?: string
+          duration_hours?: number | null
+          id?: string
+          kind: string
+          metadata?: Json
+          post_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          wave_reference?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          amount_xof?: number
+          created_at?: string
+          duration_hours?: number | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          post_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wave_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "celebration_premium_orders_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "celebration_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       celebration_reactions: {
         Row: {
@@ -2825,6 +2939,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      celebration_vip_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       celebration_wall_messages: {
         Row: {
