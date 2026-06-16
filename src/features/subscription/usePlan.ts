@@ -6,16 +6,28 @@ import {
   FeatureKey,
   PLAN_ORDER,
   PlanTier,
+  PremiumTrialStatus,
   SubscriptionPlan,
+  TrialPhase,
+  UserPlanState,
   UserSubscription,
   isPlanAtLeast,
 } from './types';
 
 interface PlanContext {
   tier: PlanTier;
+  /** Plan "réel" (abonnement payant uniquement, ignore le trial). */
+  baseTier: PlanTier;
+  /** État utilisateur émotionnel (UI). */
+  state: UserPlanState;
   subscription: UserSubscription | null;
   plan: SubscriptionPlan | null;
   allPlans: SubscriptionPlan[];
+  /** Trial Premium offert (1 événement à vie). null si jamais déclenché. */
+  trial: PremiumTrialStatus | null;
+  trialPhase: TrialPhase;
+  /** true si l'item donné est l'événement offert ET encore couvert. */
+  isTrialCoveredItem: (targetType: PremiumTrialStatus['target_type'], targetId: string) => boolean;
   /** Limite numérique (-1 = illimité, 0 = bloqué). */
   getLimit: (feature: FeatureKey) => number;
   /** Feature qualitative (booléen / string). */
@@ -71,11 +83,37 @@ export const usePlan = (): PlanContext & { isLoading: boolean } => {
     staleTime: 60 * 1000,
   });
 
-  const tier: PlanTier =
+  const { data: trial = null, isLoading: trialLoading } = useQuery({
+    queryKey: ['premium-trial-status', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_premium_trial_status');
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? null) as PremiumTrialStatus | null;
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const baseTier: PlanTier =
     subscription &&
     (subscription.status === 'active' || subscription.status === 'past_due')
       ? subscription.plan_tier
       : 'free';
+
+  // Le trial ne fait PAS basculer le plan globalement : il déverrouille
+  // uniquement le SEUL item ciblé. On expose donc tier = baseTier ; les gates
+  // contextuelles utilisent `isTrialCoveredItem`.
+  const tier = baseTier;
+
+  const trialPhase: TrialPhase = trial?.phase ?? 'none';
+
+  const state: UserPlanState =
+    baseTier === 'premium' || baseTier === 'essentiel'
+      ? 'premium'
+      : trial && (trial.phase === 'active' || trial.phase === 'memories')
+        ? 'free_with_premium_event'
+        : 'free';
 
   const plan =
     allPlans.find((p) => p.tier === tier) ??
@@ -93,13 +131,22 @@ export const usePlan = (): PlanContext & { isLoading: boolean } => {
 
   return {
     tier,
+    baseTier,
+    state,
     subscription: subscription ?? null,
     plan,
     allPlans,
+    trial,
+    trialPhase,
+    isTrialCoveredItem: (targetType, targetId) =>
+      !!trial &&
+      trial.target_type === targetType &&
+      trial.target_id === targetId &&
+      (trial.phase === 'active' || trial.phase === 'memories'),
     getLimit,
     getFeature,
     isAtLeast: (required) => isPlanAtLeast(tier, required),
-    isLoading: plansLoading || (!!user && subLoading),
+    isLoading: plansLoading || (!!user && (subLoading || trialLoading)),
   };
 };
 
