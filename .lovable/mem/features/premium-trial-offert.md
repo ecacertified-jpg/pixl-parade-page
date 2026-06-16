@@ -32,3 +32,11 @@ Pas d'essai SaaS générique. Chaque utilisateur reçoit AUTOMATIQUEMENT un Prem
 - UNIQUE constraint sur `user_id` = impossible de réutiliser le trial.
 - Triggers SECURITY DEFINER = pas de bypass client.
 - RLS lecture only sur les deux tables.
+
+## Notifications émotionnelles (OneSignal)
+Edge function `notify-premium-trial-phases` (cron quotidien 09:00, `notify-premium-trial-phases-daily`) envoie via `sendPushToUsers` :
+- **unlock** (`notified_unlock`) — 🎁 cadeau JDV, vers la page de l'item.
+- **post_event** (`notified_post_event`, après `premium_until`) — 💫 phase souvenirs, vers la page.
+- **memories_ending** (`notified_memories_ending`, 24h avant `memories_until`) — ⏳ vers `/pricing?from=trial_memories_ending`.
+- **archived** (flag `metadata.notified_archived`, après `archived_at`) — 🌙 vers `/pricing?from=trial_archived`.
+Chaque envoi log un `premium_trial_events` + flip le flag pour éviter les doublons.
