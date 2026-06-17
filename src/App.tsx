@@ -109,6 +109,7 @@ const BirthdayPage = lazy(() => import("./pages/BirthdayPage"));
 const EventPage = lazy(() => import("./pages/EventPage"));
 const CreateEventPage = lazy(() => import("./pages/CreateEventPage"));
 const Souvenirs = lazy(() => import("./pages/Souvenirs"));
+const Assistant = lazy(() => import("./pages/Assistant"));
 const SouvenirsRetrospective = lazy(() => import("./pages/SouvenirsRetrospective"));
 const SouvenirsCapsule = lazy(() => import("./pages/SouvenirsCapsule"));
 const OrganizerAccept = lazy(() => import("./pages/OrganizerAccept"));
