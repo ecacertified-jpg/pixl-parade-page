@@ -272,6 +272,7 @@ const App = () => (
             <Route path="/index" element={<PublicRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Index /></AnimatedPageTransition></L></PublicRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Dashboard /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/souvenirs" element={<ProtectedRoute><L><Souvenirs /></L></ProtectedRoute>} />
+            <Route path="/assistant" element={<ProtectedRoute><L><Assistant /></L></ProtectedRoute>} />
             <Route path="/memories" element={<ProtectedRoute><L><Souvenirs /></L></ProtectedRoute>} />
             <Route path="/souvenirs/retrospective/:year" element={<ProtectedRoute><L><SouvenirsRetrospective /></L></ProtectedRoute>} />
             <Route path="/souvenirs/capsule/:id" element={<ProtectedRoute><L><SouvenirsCapsule /></L></ProtectedRoute>} />
