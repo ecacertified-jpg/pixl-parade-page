@@ -11454,6 +11454,15 @@ export type Database = {
         Args: { follower: string; following: string }
         Returns: boolean
       }
+      is_live_room_host: {
+        Args: { _room_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_live_room_member: {
+        Args: { _room_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_live_room_public: { Args: { _room_id: string }; Returns: boolean }
       is_page_owner: {
         Args: {
           _page_id: string
