@@ -116,6 +116,7 @@ const OrganizerAccept = lazy(() => import("./pages/OrganizerAccept"));
 const RsvpPage = lazy(() => import("./pages/RsvpPage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Subscription = lazy(() => import("./pages/Subscription"));
+const Invoices = lazy(() => import("./pages/Invoices"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
