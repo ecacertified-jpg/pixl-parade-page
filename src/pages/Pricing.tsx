@@ -14,7 +14,6 @@ import { WavePendingCard } from '@/features/subscription/WavePendingCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useState as useReactState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,8 +81,8 @@ export default function Pricing() {
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [waveOpen, setWaveOpen] = useState<{ tier: 'essentiel' | 'premium' } | null>(null);
-  const [downgradeTarget, setDowngradeTarget] = useReactState<'free' | 'essentiel' | null>(null);
-  const [downgrading, setDowngrading] = useReactState(false);
+  const [downgradeTarget, setDowngradeTarget] = useState<'free' | 'essentiel' | null>(null);
+  const [downgrading, setDowngrading] = useState(false);
 
   const handleDowngrade = async () => {
     if (!downgradeTarget) return;
