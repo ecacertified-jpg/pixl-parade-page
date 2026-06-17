@@ -294,6 +294,8 @@ const App = () => (
             <Route path="/tarifs" element={<L><Pricing /></L>} />
             <Route path="/subscription" element={<ProtectedRoute><L><Subscription /></L></ProtectedRoute>} />
             <Route path="/abonnement" element={<ProtectedRoute><L><Subscription /></L></ProtectedRoute>} />
+            <Route path="/invoices" element={<ProtectedRoute><L><Invoices /></L></ProtectedRoute>} />
+            <Route path="/factures" element={<ProtectedRoute><L><Invoices /></L></ProtectedRoute>} />
             <Route path="/checkout" element={<ProtectedRoute><L><Checkout /></L></ProtectedRoute>} />
             <Route path="/collective-checkout" element={<ProtectedRoute><L><CollectiveCheckout /></L></ProtectedRoute>} />
             <Route path="/collective-order-confirmation" element={<ProtectedRoute><L><CollectiveOrderConfirmation /></L></ProtectedRoute>} />
