@@ -145,6 +145,7 @@ const CountryObjectivesPage = lazy(() => import("./pages/Admin/CountryObjectives
 const CountryMonthlyComparisonPage = lazy(() => import("./pages/Admin/CountryMonthlyComparisonPage"));
 const ForecastPage = lazy(() => import("./pages/Admin/ForecastPage"));
 const AdminBirthdays = lazy(() => import("./pages/Admin/AdminBirthdays"));
+const EmotionalCampaigns = lazy(() => import("./pages/Admin/EmotionalCampaigns"));
 const AdminCoverVideos = lazy(() => import("./pages/Admin/AdminCoverVideos"));
 const OrdersManagement = lazy(() => import("./pages/Admin/OrdersManagement"));
 const AdminNotificationsPage = lazy(() => import("./pages/Admin/AdminNotificationsPage"));
