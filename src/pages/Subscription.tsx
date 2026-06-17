@@ -7,6 +7,9 @@ import { usePlan } from '@/features/subscription/usePlan';
 import { PremiumBadge } from '@/features/subscription/PremiumBadge';
 import { usePendingWaveRequest } from '@/features/subscription/useWaveCheckout';
 import { WavePendingCard } from '@/features/subscription/WavePendingCard';
+import { QuotaBar } from '@/features/subscription/QuotaBar';
+import { ModulesGrid } from '@/features/subscription/ModulesGrid';
+import type { FeatureKey } from '@/features/subscription/types';
 
 const TIER_ICON = {
   free: Star,
@@ -29,7 +32,7 @@ export default function Subscription() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-secondary/30 to-background">
-      <div className="mx-auto max-w-3xl px-4 py-10">
+      <div className="mx-auto max-w-4xl px-4 py-10 space-y-8">
         <header className="mb-8 text-center">
           <Badge className="mb-2 bg-primary/10 text-primary hover:bg-primary/15">Mon abonnement</Badge>
           <h1 className="font-poppins text-3xl font-semibold">Ton plan JDV</h1>
@@ -101,6 +104,29 @@ export default function Subscription() {
             </div>
           )}
         </Card>
+
+        <section>
+          <h2 className="mb-3 font-poppins text-lg font-semibold">Tes modules</h2>
+          <ModulesGrid />
+        </section>
+
+        <section>
+          <h2 className="mb-3 font-poppins text-lg font-semibold">Ta consommation ce mois-ci</h2>
+          <Card className="p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(['event_pages', 'active_funds', 'ai_recommendations', 'storage_mb'] as FeatureKey[]).map(
+                (f) => (
+                  <QuotaBar key={f} feature={f} />
+                )
+              )}
+            </div>
+            {tier === 'free' && (
+              <p className="mt-4 text-xs text-muted-foreground">
+                Passe Essentiel ou Premium pour augmenter ces limites et débloquer plus de modules.
+              </p>
+            )}
+          </Card>
+        </section>
       </div>
     </div>
   );
