@@ -239,36 +239,77 @@ export default function Pricing() {
                 </ul>
 
                 <div className="mt-auto">
-                  {isCurrent ? (
-                    <Button variant="outline" disabled className="w-full">
-                      Plan actuel
-                    </Button>
-                  ) : isFree ? (
-                    <Button asChild variant="outline" className="w-full">
-                      <Link to="/auth">Commencer gratuitement</Link>
-                    </Button>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      {user ? (
-                        <Button
-                          className={cn('w-full gap-2', isHighlight && 'bg-primary hover:bg-primary/90')}
-                          onClick={() => setWaveOpen({ tier: tier as 'essentiel' | 'premium' })}
-                          disabled={!!pending}
-                        >
-                          <Smartphone className="h-4 w-4" />
-                          {pending ? 'Demande en cours…' : `Payer ${plan?.name} avec Wave`}
+                  {(() => {
+                    const targetOrder = PLAN_ORDER[tier];
+                    const currentOrder = PLAN_ORDER[currentTier];
+                    const isUpgrade = user && targetOrder > currentOrder && !isFree;
+                    const isDowngrade = user && targetOrder < currentOrder;
+
+                    if (isCurrent) {
+                      return (
+                        <Button variant="outline" disabled className="w-full">
+                          Plan actuel
                         </Button>
-                      ) : (
-                        <Button asChild className={cn('w-full gap-2', isHighlight && 'bg-primary hover:bg-primary/90')}>
-                          <Link to="/auth">
-                            <Sparkles className="h-4 w-4" />
-                            Se connecter pour choisir {plan?.name}
-                          </Link>
+                      );
+                    }
+                    if (!user && isFree) {
+                      return (
+                        <Button asChild variant="outline" className="w-full">
+                          <Link to="/auth">Commencer gratuitement</Link>
                         </Button>
-                      )}
-                      <p className="text-center text-[10px] text-muted-foreground">Paiement Wave (FCFA) — validation sous 24h</p>
-                    </div>
-                  )}
+                      );
+                    }
+                    if (isDowngrade) {
+                      return (
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setDowngradeTarget(tier as 'free' | 'essentiel')}
+                          >
+                            Passer à {plan?.name ?? tier}
+                          </Button>
+                          <p className="text-center text-[10px] text-muted-foreground">
+                            Effectif à la fin de ta période payée
+                          </p>
+                        </div>
+                      );
+                    }
+                    // Upgrade or new paid subscription (or free for logged-in user = no-op)
+                    if (isFree) {
+                      return (
+                        <Button asChild variant="outline" className="w-full">
+                          <Link to="/auth">Commencer gratuitement</Link>
+                        </Button>
+                      );
+                    }
+                    return (
+                      <div className="flex flex-col gap-2">
+                        {user ? (
+                          <Button
+                            className={cn('w-full gap-2', isHighlight && 'bg-primary hover:bg-primary/90')}
+                            onClick={() => setWaveOpen({ tier: tier as 'essentiel' | 'premium' })}
+                            disabled={!!pending}
+                          >
+                            <Smartphone className="h-4 w-4" />
+                            {pending
+                              ? 'Demande en cours…'
+                              : isUpgrade
+                                ? `Upgrader vers ${plan?.name}`
+                                : `Payer ${plan?.name} avec Wave`}
+                          </Button>
+                        ) : (
+                          <Button asChild className={cn('w-full gap-2', isHighlight && 'bg-primary hover:bg-primary/90')}>
+                            <Link to="/auth">
+                              <Sparkles className="h-4 w-4" />
+                              Se connecter pour choisir {plan?.name}
+                            </Link>
+                          </Button>
+                        )}
+                        <p className="text-center text-[10px] text-muted-foreground">Paiement Wave (FCFA) — validation sous 24h</p>
+                      </div>
+                    );
+                  })()}
                 </div>
               </Card>
             );
