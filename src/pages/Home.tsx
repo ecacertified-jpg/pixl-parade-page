@@ -78,7 +78,7 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-violet-50/30 to-rose-50/20">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
-        <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-md mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={logoJV} alt="Joie de Vivre" className="h-10 w-auto" />
             <CountryBadgeHeader />
@@ -118,7 +118,7 @@ const Home = () => {
       {user && <FriendsCircleReminderCard compact />}
 
       {/* Main Content */}
-      <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-md mx-auto px-3 sm:px-4 py-8 space-y-8">
         {/* Install Banner */}
         <InstallBanner />
 
