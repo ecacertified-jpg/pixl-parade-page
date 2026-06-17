@@ -9,9 +9,10 @@ const corsHeaders = {
 const VALID_TIERS = new Set(['essentiel', 'premium']);
 const VALID_CYCLES = new Set(['monthly', 'yearly']);
 
-function buildWaveLink(recipient: string, amountXof: number): string {
-  const phone = encodeURIComponent(recipient);
-  return `https://pay.wave.com/?recipient=${phone}&amount=${amountXof}&currency=XOF`;
+const WAVE_MERCHANT_URL = 'https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/';
+
+function buildWaveLink(amountXof: number): string {
+  return `${WAVE_MERCHANT_URL}?amount=${amountXof}`;
 }
 
 Deno.serve(async (req) => {
@@ -64,7 +65,8 @@ Deno.serve(async (req) => {
     );
     if (!amount_xof || amount_xof <= 0) throw new Error('Invalid plan amount');
 
-    // Get platform Wave phone
+    // Platform Wave merchant link (fixed). platform_wave_phone is kept for
+    // internal payout/reference purposes only.
     const { data: setting } = await supabaseAdmin
       .from('platform_settings')
       .select('setting_value')
@@ -73,7 +75,7 @@ Deno.serve(async (req) => {
     const platformWavePhone: string =
       (setting?.setting_value as any)?.value || '+2250707467445';
 
-    const wave_link = buildWaveLink(platformWavePhone, amount_xof);
+    const wave_link = buildWaveLink(amount_xof);
 
     const { data: request, error: insertErr } = await supabaseAdmin
       .from('wave_subscription_requests')

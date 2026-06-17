@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Check, ExternalLink, Smartphone, ArrowRight, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-const WAVE_MERCHANT_URL = "https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/";
+import { WAVE_MERCHANT_URL, buildWaveMerchantLink } from "@/lib/waveConfig";
 
 interface WavePaymentRedirectProps {
   open: boolean;
@@ -27,9 +26,7 @@ export function WavePaymentRedirect({
 }: WavePaymentRedirectProps) {
   const [step, setStep] = useState<Step>("info");
 
-  const waveUrl = freeAmount
-    ? WAVE_MERCHANT_URL
-    : `${WAVE_MERCHANT_URL}?amount=${Math.round(amount)}`;
+  const waveUrl = freeAmount ? WAVE_MERCHANT_URL : buildWaveMerchantLink(amount);
 
   const handleOpenWave = () => {
     window.open(waveUrl, "_blank", "noopener,noreferrer");
