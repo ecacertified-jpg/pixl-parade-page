@@ -1,4 +1,4 @@
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { memo, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
