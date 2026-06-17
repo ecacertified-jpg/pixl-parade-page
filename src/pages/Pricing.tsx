@@ -343,6 +343,23 @@ export default function Pricing() {
           />
         );
       })()}
+
+      <AlertDialog open={!!downgradeTarget} onOpenChange={(v) => !v && setDowngradeTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Programmer le passage à {downgradeTarget === 'free' ? 'Gratuit' : 'Essentiel'} ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tu gardes tes avantages actuels jusqu'à la fin de la période déjà payée. À cette date, ton plan passera automatiquement à {downgradeTarget === 'free' ? 'Gratuit' : 'Essentiel'}. Tu peux changer d'avis avant.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={downgrading}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDowngrade} disabled={downgrading}>
+              {downgrading ? 'Programmation…' : 'Confirmer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
