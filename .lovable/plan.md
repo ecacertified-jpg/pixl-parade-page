@@ -1,34 +1,24 @@
-## Objectif
-Ajouter une page `/rooms` qui liste les `live_rooms` visibles et permet d'en créer une nouvelle, puis de rejoindre `/live/:roomId`.
+## Problème
+Postgres retourne `infinite recursion detected in policy for relation "live_rooms"` car :
+- La policy SELECT de `live_rooms` fait un `EXISTS` sur `live_participants`
+- La policy SELECT de `live_participants` fait un `EXISTS` sur `live_rooms`
+Chaque sous-requête re-déclenche l'autre policy → boucle.
 
-## 1. Page `src/pages/Rooms.tsx`
-- Protégée (route enveloppée par `ProtectedRoute`).
-- Chargement via `supabase.from('live_rooms').select(...)` filtré sur `status in ('live','scheduled')` (exclut `ended`), trié par `created_at desc`, limite 50. RLS gère déjà la visibilité (public / host / participant).
-- Realtime: souscription `postgres_changes` sur `live_rooms` dans un `useEffect` avec cleanup `removeChannel`, pour rafraîchir la liste en live.
-- UI mobile-first, design system du projet (Poppins/Nunito, tokens HSL, `Card`, `Button`):
-  - Header avec titre "Rooms en direct" + bouton **"Nouvelle room"** (ouvre `Dialog`).
-  - Grille de `Card` (1 col mobile, 2 col md): titre, badge statut (`live` / `scheduled` / `ended`), host (toi / autre), `max_participants`, date de création.
-  - Bouton **"Rejoindre"** → `navigate(\`/live/\${room.id}\`)`.
-  - Si host: petit bouton "Terminer" (UPDATE `status='ended'`, `ended_at=now()`).
-  - États: loading (Loader2), vide ("Aucune room pour le moment"), erreur (toast).
+## Correction (migration SQL)
+Remplacer les deux policies récursives par des appels à des fonctions `SECURITY DEFINER` (pattern recommandé Supabase, déjà utilisé dans le projet pour `has_role`).
 
-## 2. Modal de création
-- `Dialog` shadcn avec `Form` (react-hook-form + zod):
-  - `title` (text, requis, max 80)
-  - `is_public` (Switch, défaut `true`)
-  - `max_participants` (Input number, défaut 20, min 2 / max 100)
-- À la soumission: `INSERT` dans `live_rooms` avec `host_id = user.id`, `livekit_room_name = 'room-' + crypto.randomUUID()`, `status = 'live'`, `started_at = now()`, puis `navigate(\`/live/\${data.id}\`)`.
-- Toast succès/erreur via `sonner`.
+1. Créer deux fonctions :
+   - `public.is_live_room_member(_room_id uuid, _user_id uuid) returns boolean` — lit `live_participants` sans passer par RLS.
+   - `public.is_live_room_host(_room_id uuid, _user_id uuid) returns boolean` — lit `live_rooms` sans passer par RLS.
+   Les deux : `language sql stable security definer set search_path = public`.
 
-## 3. Routing — `src/App.tsx`
-- Ajouter route lazy: `<Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />`.
-- Pas d'autre changement (la route `/live/:roomId` existe déjà).
+2. Drop + recreate les policies SELECT :
+   - `live_rooms` SELECT : `is_public = true OR auth.uid() = host_id OR public.is_live_room_member(id, auth.uid())`
+   - `live_participants` SELECT : `user_id = auth.uid() OR public.is_live_room_host(room_id, auth.uid()) OR EXISTS(... is_public via fonction)` → simplifier en ajoutant `public.is_live_room_public(_room_id)` ou en combinant : `user_id = auth.uid() OR public.is_live_room_host(room_id, auth.uid()) OR public.is_live_room_public(room_id, auth.uid())`.
 
-## 4. Validation
-- Aller sur `/rooms`, créer une room → redirection auto vers `/live/:id` et connexion LiveKit (valide encore les secrets via `livekit-token`).
-- Revenir sur `/rooms` → la room créée apparaît avec statut `live`. Bouton "Terminer" fonctionne (disparaît / passe en `ended`).
+3. Idem pour la policy ALL `Host can manage participants` sur `live_participants` → utiliser `public.is_live_room_host(room_id, auth.uid())` au lieu d'`EXISTS (SELECT FROM live_rooms ...)`.
 
-## Notes techniques
-- Pas de migration DB nécessaire: table, RLS et grants existent déjà; politique INSERT autorise `host_id = auth.uid()`.
-- Aucun nouveau secret. Aucun nouvel package.
-- Pas de lien depuis le menu principal dans ce lot — page accessible directement par URL (ajout au menu = lot séparé si souhaité).
+Aucun changement côté frontend ni edge function — la migration suffit à débloquer la création de room et le chargement de la liste.
+
+## Vérification
+Après migration : recréer une room depuis `/rooms`, vérifier que le toast d'erreur disparaît et que la room s'affiche dans la grille temps réel.
