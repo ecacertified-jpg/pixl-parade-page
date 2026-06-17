@@ -701,6 +701,23 @@ export default function Dashboard() {
           <BirthdayStatsCard />
         </div>
 
+        {/* Carte d'accès au module Souvenirs */}
+        <button
+          onClick={() => navigate('/souvenirs')}
+          className="w-full mb-4 text-left bg-gradient-to-br from-primary/15 via-accent/15 to-secondary/30 rounded-2xl p-4 hover:shadow-card transition-shadow"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <BookOpen className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-poppins font-semibold text-sm">Souvenirs</p>
+              <p className="text-xs text-muted-foreground">Tes moments heureux, gardés pour toujours</p>
+            </div>
+            <span className="text-xs font-medium text-primary">Ouvrir →</span>
+          </div>
+        </button>
+
         {/* Section Aide rapide */}
         <Card className="p-4 mb-4 bg-muted/30">
           <div className="flex items-center gap-2 mb-3">
