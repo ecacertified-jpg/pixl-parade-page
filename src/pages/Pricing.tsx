@@ -7,11 +7,24 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { usePlan } from '@/features/subscription/usePlan';
-import { PlanTier } from '@/features/subscription/types';
+import { PLAN_ORDER, PlanTier } from '@/features/subscription/types';
 import { WaveCheckoutModal } from '@/features/subscription/WaveCheckoutModal';
 import { usePendingWaveRequest } from '@/features/subscription/useWaveCheckout';
 import { WavePendingCard } from '@/features/subscription/WavePendingCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useState as useReactState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type Currency = 'EUR' | 'XOF';
 
@@ -69,6 +82,29 @@ export default function Pricing() {
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [waveOpen, setWaveOpen] = useState<{ tier: 'essentiel' | 'premium' } | null>(null);
+  const [downgradeTarget, setDowngradeTarget] = useReactState<'free' | 'essentiel' | null>(null);
+  const [downgrading, setDowngrading] = useReactState(false);
+
+  const handleDowngrade = async () => {
+    if (!downgradeTarget) return;
+    setDowngrading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('schedule-plan-downgrade', {
+        body: { target_tier: downgradeTarget },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const when = (data as any)?.effective_at
+        ? new Date((data as any).effective_at).toLocaleDateString('fr-FR')
+        : 'la fin de période';
+      toast.success(`Changement programmé pour le ${when} 💛`);
+      setDowngradeTarget(null);
+    } catch (e: any) {
+      toast.error(e?.message || 'Impossible de programmer le changement');
+    } finally {
+      setDowngrading(false);
+    }
+  };
 
   const ordered = useMemo(
     () => [...allPlans].sort((a, b) => a.sort_order - b.sort_order),
