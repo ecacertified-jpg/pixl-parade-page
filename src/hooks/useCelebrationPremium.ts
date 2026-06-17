@@ -24,11 +24,13 @@ export const VIP_OPTIONS = [
   { days: 365, amount_xof: 25000, label: "1 an" },
 ];
 
-const SUPPORT_WAVE_LINK = "https://pay.wave.com/m/Mer8ZpZpQZpQZ"; // placeholder
+import { WAVE_MERCHANT_URL } from "@/lib/waveConfig";
 
-export function buildWaveLink(amount: number, reference: string) {
-  // Project memory: Wave preferred, pre-filled amount
-  return `${SUPPORT_WAVE_LINK}?amount=${amount}&ref=${encodeURIComponent(reference)}`;
+export function buildWaveLink(amount: number, _reference: string) {
+  // Project memory: Wave preferred, pre-filled amount. Reference is tracked
+  // server-side via celebration_premium_orders.id (Wave doesn't propagate
+  // custom query params back to us).
+  return `${WAVE_MERCHANT_URL}?amount=${Math.round(amount)}`;
 }
 
 /** Returns the set of user_ids currently VIP (expires_at > now). */
