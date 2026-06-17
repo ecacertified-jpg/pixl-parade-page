@@ -648,10 +648,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {reciprocityScore && (
-          <ReciprocityNotificationsSection />
-        )}
-
         {/* Section Rappels d'anniversaires intelligents */}
         <div className="mb-4">
           <SmartBirthdayReminders hideViewAllButton contacts={friends} />
