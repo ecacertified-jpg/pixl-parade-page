@@ -222,6 +222,16 @@ export function CoverVideoCarousel({
           >
             <Maximize2 className="h-4 w-4" />
           </button>
+          {onLiveClick && (
+            <button
+              type="button"
+              onClick={onLiveClick}
+              className="h-9 w-9 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center hover:bg-black/65 transition-colors"
+              aria-label="Aller aux rooms"
+            >
+              <Radio className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Tap-to-unmute hint (only when muted, auto-hides) */}

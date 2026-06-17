@@ -240,6 +240,7 @@ const EventPage = () => {
           birthday={page?.event_date ?? null}
           fallbackImageUrl={page?.cover_image_url ?? null}
           context="wedding"
+          onLiveClick={() => navigate('/rooms')}
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
             page ? (
