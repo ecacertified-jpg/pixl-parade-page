@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX, Maximize2, X } from "lucide-react";
+import { Volume2, VolumeX, Maximize2, X, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,8 @@ interface Props {
   isOwner?: boolean;
   /** 'birthday' (default) or 'wedding' — switches playlist scheduling kinds. */
   context?: CoverVideoContext;
+  /** Optional callback when the "Live / Rooms" icon is tapped. */
+  onLiveClick?: () => void;
 }
 
 export function CoverVideoCarousel({
@@ -38,6 +40,7 @@ export function CoverVideoCarousel({
   children,
   isOwner = false,
   context = "birthday",
+  onLiveClick,
 }: Props) {
   const { user } = useAuth();
   const { playlist } = useCoverVideoPlaylist({
