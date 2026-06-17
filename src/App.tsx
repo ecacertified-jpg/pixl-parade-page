@@ -342,6 +342,7 @@ const App = () => (
             <Route path="/admin/settings" element={<AdminRoute requiredRole="super_admin"><L><Settings /></L></AdminRoute>} />
             <Route path="/admin/admins" element={<AdminRoute requiredRole="super_admin"><L><AdminManagement /></L></AdminRoute>} />
             <Route path="/admin/audit" element={<AdminRoute><L><AuditLogs /></L></AdminRoute>} />
+            <Route path="/admin/emotional-campaigns" element={<AdminRoute><L><EmotionalCampaigns /></L></AdminRoute>} />
             <Route path="/admin/my-assignments" element={<AdminRoute><L><MyAssignments /></L></AdminRoute>} />
             <Route path="/admin/performance" element={<AdminRoute><L><AdminPerformanceDashboard /></L></AdminRoute>} />
             <Route path="/admin/countries" element={<AdminRoute><L><CountryPerformanceDashboard /></L></AdminRoute>} />
