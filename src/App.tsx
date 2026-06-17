@@ -159,6 +159,7 @@ const AdminFundDetail = lazy(() => import("./pages/Admin/AdminFundDetail"));
 const OnboardingProgressDashboard = lazy(() => import("./pages/Admin/OnboardingProgressDashboard"));
 const WaveSubscriptionsAdmin = lazy(() => import("./pages/Admin/WaveSubscriptionsAdmin"));
 const CelebrationPremiumOrders = lazy(() => import("./pages/Admin/CelebrationPremiumOrders"));
+const LiveRoom = lazy(() => import("./pages/LiveRoom"));
 
 // Deep link redirect that preserves query params (e.g. ?for=Name)
 const DeepLinkRedirect = ({ occasion }: { occasion: string }) => {
@@ -247,6 +248,7 @@ const App = () => (
             <Route path="/birthday/:slug" element={<L><BirthdayPage /></L>} />
             <Route path="/anniversaire/:slug" element={<L><BirthdayPage /></L>} />
             <Route path="/event/create" element={<ProtectedRoute><L><CreateEventPage /></L></ProtectedRoute>} />
+            <Route path="/live/:roomId" element={<ProtectedRoute><L><LiveRoom /></L></ProtectedRoute>} />
             <Route path="/event/:slug" element={<L><EventPage /></L>} />
             <Route path="/evenement/:slug" element={<L><EventPage /></L>} />
             <Route path="/organisation/accept/:token" element={<L><OrganizerAccept /></L>} />
