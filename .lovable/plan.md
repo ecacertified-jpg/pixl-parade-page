@@ -1,24 +1,42 @@
-## Problème
-Postgres retourne `infinite recursion detected in policy for relation "live_rooms"` car :
-- La policy SELECT de `live_rooms` fait un `EXISTS` sur `live_participants`
-- La policy SELECT de `live_participants` fait un `EXISTS` sur `live_rooms`
-Chaque sous-requête re-déclenche l'autre policy → boucle.
+## Objectif
+Utiliser `https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/` comme **unique** lien Wave pour tous les paiements (abonnements, premium célébrations, cagnottes, etc.), avec montant pré-rempli quand connu.
 
-## Correction (migration SQL)
-Remplacer les deux policies récursives par des appels à des fonctions `SECURITY DEFINER` (pattern recommandé Supabase, déjà utilisé dans le projet pour `has_role`).
+## Constat
+Plusieurs constructions de liens Wave coexistent :
+- ✅ `src/components/WavePaymentRedirect.tsx` : utilise déjà le bon lien marchand.
+- ❌ `supabase/functions/create-wave-subscription/index.ts` : construit `https://pay.wave.com/?recipient=<phone>&amount=...` à partir de `platform_wave_phone` (setting admin).
+- ❌ `src/hooks/useCelebrationPremium.ts` : `SUPPORT_WAVE_LINK` est un placeholder bidon (`Mer8ZpZpQZpQZ`).
+- ℹ️ `src/pages/FundPreview.tsx` : lien générique `https://pay.wave.com/` sans marchand.
 
-1. Créer deux fonctions :
-   - `public.is_live_room_member(_room_id uuid, _user_id uuid) returns boolean` — lit `live_participants` sans passer par RLS.
-   - `public.is_live_room_host(_room_id uuid, _user_id uuid) returns boolean` — lit `live_rooms` sans passer par RLS.
-   Les deux : `language sql stable security definer set search_path = public`.
+## Changements
 
-2. Drop + recreate les policies SELECT :
-   - `live_rooms` SELECT : `is_public = true OR auth.uid() = host_id OR public.is_live_room_member(id, auth.uid())`
-   - `live_participants` SELECT : `user_id = auth.uid() OR public.is_live_room_host(room_id, auth.uid()) OR EXISTS(... is_public via fonction)` → simplifier en ajoutant `public.is_live_room_public(_room_id)` ou en combinant : `user_id = auth.uid() OR public.is_live_room_host(room_id, auth.uid()) OR public.is_live_room_public(room_id, auth.uid())`.
+### 1. Centraliser le lien
+Créer `src/lib/waveConfig.ts` :
+```ts
+export const WAVE_MERCHANT_URL = "https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/";
+export function buildWaveMerchantLink(amount?: number) {
+  return amount && amount > 0
+    ? `${WAVE_MERCHANT_URL}?amount=${Math.round(amount)}`
+    : WAVE_MERCHANT_URL;
+}
+```
+Faire pointer `WavePaymentRedirect.tsx` dessus (suppression de la constante locale).
 
-3. Idem pour la policy ALL `Host can manage participants` sur `live_participants` → utiliser `public.is_live_room_host(room_id, auth.uid())` au lieu d'`EXISTS (SELECT FROM live_rooms ...)`.
+### 2. Abonnements (edge function)
+Dans `supabase/functions/create-wave-subscription/index.ts` :
+- Remplacer `buildWaveLink(recipient, amount)` par un lien marchand fixe :
+  `https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/?amount=<amount_xof>`
+- Garder la lecture de `platform_wave_phone` uniquement comme info de référence (ou la retirer si plus utile), mais le lien renvoyé au front utilise le marchand.
 
-Aucun changement côté frontend ni edge function — la migration suffit à débloquer la création de room et le chargement de la liste.
+### 3. Premium célébrations
+Dans `src/hooks/useCelebrationPremium.ts` :
+- Remplacer `SUPPORT_WAVE_LINK` placeholder par le lien marchand officiel.
+- `buildWaveLink(amount, reference)` devient :
+  `${WAVE_MERCHANT_URL}?amount=${amount}` (Wave marchand ne propage pas de `ref` custom ; on garde la référence côté DB via `celebration_premium_orders.id` déjà inséré avant redirection).
 
-## Vérification
-Après migration : recréer une room depuis `/rooms`, vérifier que le toast d'erreur disparaît et que la room s'affiche dans la grille temps réel.
+### 4. FundPreview
+Remplacer `https://pay.wave.com/` par `WAVE_MERCHANT_URL` (sans montant car contribution libre).
+
+## Hors périmètre
+- Les champs `wave_merchant_phone` des comptes business (lien Wave propre au vendeur) restent inchangés — ce sont les liens marchands des prestataires, pas la plateforme.
+- L'UI admin "platform_wave_phone" reste (utilisé pour les payouts/splits internes), mais n'est plus utilisé pour générer le lien de paiement client.
