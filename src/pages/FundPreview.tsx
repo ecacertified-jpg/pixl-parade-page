@@ -446,7 +446,7 @@ export default function FundPreview() {
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button asChild className="flex-1 gap-1.5 bg-[#1DC8FF] hover:bg-[#19b3e6] text-white">
-                  <a href="https://pay.wave.com/" target="_blank" rel="noopener noreferrer">
+                  <a href="https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/" target="_blank" rel="noopener noreferrer">
                     <Wallet className="h-4 w-4" />
                     Recevoir mes fonds (Wave)
                   </a>
