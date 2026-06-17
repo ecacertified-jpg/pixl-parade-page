@@ -6289,6 +6289,48 @@ export type Database = {
         }
         Relationships: []
       }
+      memory_capsules: {
+        Row: {
+          created_at: string
+          id: string
+          is_unlocked: boolean
+          media_refs: Json
+          message: string
+          notified_at: string | null
+          recipients: Json
+          title: string
+          unlock_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_unlocked?: boolean
+          media_refs?: Json
+          message?: string
+          notified_at?: string | null
+          recipients?: Json
+          title: string
+          unlock_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_unlocked?: boolean
+          media_refs?: Json
+          message?: string
+          notified_at?: string | null
+          recipients?: Json
+          title?: string
+          unlock_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ml_forecast_results: {
         Row: {
           anomaly_detected: boolean | null
