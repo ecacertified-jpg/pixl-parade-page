@@ -145,6 +145,7 @@ const CountryObjectivesPage = lazy(() => import("./pages/Admin/CountryObjectives
 const CountryMonthlyComparisonPage = lazy(() => import("./pages/Admin/CountryMonthlyComparisonPage"));
 const ForecastPage = lazy(() => import("./pages/Admin/ForecastPage"));
 const AdminBirthdays = lazy(() => import("./pages/Admin/AdminBirthdays"));
+const EmotionalCampaigns = lazy(() => import("./pages/Admin/EmotionalCampaigns"));
 const AdminCoverVideos = lazy(() => import("./pages/Admin/AdminCoverVideos"));
 const OrdersManagement = lazy(() => import("./pages/Admin/OrdersManagement"));
 const AdminNotificationsPage = lazy(() => import("./pages/Admin/AdminNotificationsPage"));
@@ -341,6 +342,7 @@ const App = () => (
             <Route path="/admin/settings" element={<AdminRoute requiredRole="super_admin"><L><Settings /></L></AdminRoute>} />
             <Route path="/admin/admins" element={<AdminRoute requiredRole="super_admin"><L><AdminManagement /></L></AdminRoute>} />
             <Route path="/admin/audit" element={<AdminRoute><L><AuditLogs /></L></AdminRoute>} />
+            <Route path="/admin/emotional-campaigns" element={<AdminRoute><L><EmotionalCampaigns /></L></AdminRoute>} />
             <Route path="/admin/my-assignments" element={<AdminRoute><L><MyAssignments /></L></AdminRoute>} />
             <Route path="/admin/performance" element={<AdminRoute><L><AdminPerformanceDashboard /></L></AdminRoute>} />
             <Route path="/admin/countries" element={<AdminRoute><L><CountryPerformanceDashboard /></L></AdminRoute>} />
