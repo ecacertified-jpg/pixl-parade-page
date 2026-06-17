@@ -128,7 +128,7 @@ const Home = () => {
 
         {/* Section 1b: Live Rooms */}
         <button
-          onClick={requireAuth("go_to_rooms", () => navigate("/rooms"))}
+          onClick={requireAuth("open_protected", () => navigate("/rooms"))}
           className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 border border-primary/20 text-sm font-semibold text-primary hover:from-primary/15 hover:to-accent/10 transition-all flex items-center justify-center gap-2"
         >
           <Video className="h-5 w-5" />
