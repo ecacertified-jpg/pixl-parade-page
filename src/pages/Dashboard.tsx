@@ -40,7 +40,7 @@ import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { useReciprocityScore } from "@/hooks/useReciprocityScore";
 import { ReciprocityBadge } from "@/components/ReciprocityBadge";
-import { ReciprocityNotificationsSection } from "@/components/ReciprocityNotificationsSection";
+
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 import { SearchExistingFundsModal } from "@/components/SearchExistingFundsModal";
 import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
@@ -569,7 +569,7 @@ export default function Dashboard() {
     <SEOHead {...SEO_CONFIGS.dashboard} />
     <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
-        <div className="max-w-md mx-auto px-4 py-4">
+        <div className="max-w-md mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center gap-3">
             {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
             <div>
@@ -580,7 +580,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6">
+      <main className="max-w-md mx-auto px-3 sm:px-4 py-8">
         {/* Premium offert — bandeau émotionnel global */}
         <PremiumTrialBanner className="mb-4" />
 
