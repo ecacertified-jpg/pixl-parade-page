@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, Plus, Radio, Users } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Radio, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -123,13 +123,23 @@ export default function Rooms() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-5xl px-4 py-6">
         <header className="mb-6 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="font-poppins text-2xl font-semibold text-foreground">
-              Rooms en direct
-            </h1>
-            <p className="font-nunito text-sm text-muted-foreground">
-              Rejoins une room ou démarre la tienne.
-            </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              aria-label="Retour"
+            >
+              <ArrowLeft />
+            </Button>
+            <div>
+              <h1 className="font-poppins text-2xl font-semibold text-foreground">
+                Rooms en direct
+              </h1>
+              <p className="font-nunito text-sm text-muted-foreground">
+                Rejoins une room ou démarre la tienne.
+              </p>
+            </div>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>

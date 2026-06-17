@@ -14,7 +14,6 @@ import { FeaturedVideoProductsCarousel } from "@/components/FeaturedVideoProduct
 import { FeaturedExperiencesCarousel } from "@/components/FeaturedExperiencesCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
 
-import { UserSuggestionsSection } from "@/components/UserSuggestionsSection";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { InstallBanner } from "@/components/InstallBanner";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
@@ -125,9 +124,6 @@ const Home = () => {
 
         {/* Section 1: What do you want card */}
         <WhatDoYouWantCard />
-
-        {/* Section 2: User Suggestions */}
-        <UserSuggestionsSection />
 
         {/* Section 3: Public Funds Carousel */}
         <PublicFundsCarousel />
