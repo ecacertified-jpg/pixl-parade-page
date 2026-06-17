@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Crown, Sparkles, Star, ArrowRight } from 'lucide-react';
+import { Crown, Sparkles, Star, ArrowRight, FileText } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,8 +83,19 @@ export default function Subscription() {
               )}
 
               {tier !== 'free' && !pending && (
-                <Button asChild variant="outline" className="mt-2">
-                  <Link to="/pricing">Changer de plan</Link>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <Button asChild variant="outline">
+                    <Link to="/pricing">Changer de plan</Link>
+                  </Button>
+                  <Button asChild variant="ghost" className="gap-2">
+                    <Link to="/invoices"><FileText className="h-4 w-4" /> Mes factures</Link>
+                  </Button>
+                </div>
+              )}
+
+              {tier === 'free' && (
+                <Button asChild variant="ghost" size="sm" className="gap-2">
+                  <Link to="/invoices"><FileText className="h-4 w-4" /> Historique de facturation</Link>
                 </Button>
               )}
             </div>
