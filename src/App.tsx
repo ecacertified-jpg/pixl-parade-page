@@ -269,6 +269,10 @@ const App = () => (
             <Route path="/home" element={<PublicRoute><L><Home /></L></PublicRoute>} />
             <Route path="/index" element={<PublicRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Index /></AnimatedPageTransition></L></PublicRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Dashboard /></AnimatedPageTransition></L></ProtectedRoute>} />
+            <Route path="/souvenirs" element={<ProtectedRoute><L><Souvenirs /></L></ProtectedRoute>} />
+            <Route path="/memories" element={<ProtectedRoute><L><Souvenirs /></L></ProtectedRoute>} />
+            <Route path="/souvenirs/retrospective/:year" element={<ProtectedRoute><L><SouvenirsRetrospective /></L></ProtectedRoute>} />
+            <Route path="/souvenirs/capsule/:id" element={<ProtectedRoute><L><SouvenirsCapsule /></L></ProtectedRoute>} />
             <Route path="/publications" element={<PublicRoute><L><Publications /></L></PublicRoute>} />
             <Route path="/business-account" element={<ProtectedRoute><L><BusinessAccount /></L></ProtectedRoute>} />
             <Route path="/business/setup" element={<ProtectedRoute><L><BusinessSetup /></L></ProtectedRoute>} />
