@@ -248,6 +248,7 @@ const App = () => (
             <Route path="/birthday/:slug" element={<L><BirthdayPage /></L>} />
             <Route path="/anniversaire/:slug" element={<L><BirthdayPage /></L>} />
             <Route path="/event/create" element={<ProtectedRoute><L><CreateEventPage /></L></ProtectedRoute>} />
+            <Route path="/live/:roomId" element={<ProtectedRoute><L><LiveRoom /></L></ProtectedRoute>} />
             <Route path="/event/:slug" element={<L><EventPage /></L>} />
             <Route path="/evenement/:slug" element={<L><EventPage /></L>} />
             <Route path="/organisation/accept/:token" element={<L><OrganizerAccept /></L>} />
