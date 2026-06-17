@@ -1,51 +1,34 @@
 ## Objectif
-Implémenter le Lot 4 minimal pour valider la connexion réelle à LiveKit : edge function `livekit-token` + écran `/live/:roomId` qui se connecte vraiment à la room.
+Ajouter une page `/rooms` qui liste les `live_rooms` visibles et permet d'en créer une nouvelle, puis de rejoindre `/live/:roomId`.
 
-## 1. Edge function `livekit-token`
-Fichier : `supabase/functions/livekit-token/index.ts`
+## 1. Page `src/pages/Rooms.tsx`
+- Protégée (route enveloppée par `ProtectedRoute`).
+- Chargement via `supabase.from('live_rooms').select(...)` filtré sur `status in ('live','scheduled')` (exclut `ended`), trié par `created_at desc`, limite 50. RLS gère déjà la visibilité (public / host / participant).
+- Realtime: souscription `postgres_changes` sur `live_rooms` dans un `useEffect` avec cleanup `removeChannel`, pour rafraîchir la liste en live.
+- UI mobile-first, design system du projet (Poppins/Nunito, tokens HSL, `Card`, `Button`):
+  - Header avec titre "Rooms en direct" + bouton **"Nouvelle room"** (ouvre `Dialog`).
+  - Grille de `Card` (1 col mobile, 2 col md): titre, badge statut (`live` / `scheduled` / `ended`), host (toi / autre), `max_participants`, date de création.
+  - Bouton **"Rejoindre"** → `navigate(\`/live/\${room.id}\`)`.
+  - Si host: petit bouton "Terminer" (UPDATE `status='ended'`, `ended_at=now()`).
+  - États: loading (Loader2), vide ("Aucune room pour le moment"), erreur (toast).
 
-- Auth obligatoire : extrait le JWT du header `Authorization`, valide via `supabase.auth.getUser(token)`.
-- Body : `{ roomId: string }` (UUID de `live_rooms`). Validé avec Zod.
-- Vérifie que la room existe, qu'elle n'est pas `ended` et que l'utilisateur a le droit (host OU `is_public=true` OU déjà dans `live_participants`).
-- Détermine le rôle :
-  - `host` si `host_id = user.id`
-  - sinon `guest` (publier audio/vidéo)
-  - les "viewers" non-publishers seront ajoutés plus tard
-- Génère un access token LiveKit signé avec `LIVEKIT_API_KEY` + `LIVEKIT_API_SECRET` via `npm:livekit-server-sdk@2`, avec grants :
-  - `roomJoin: true`, `room: livekit_room_name`
-  - `canPublish: true` (host + guest), `canSubscribe: true`, `canPublishData: true`
-  - identity = `user.id`, name = profile display name
-- Upsert dans `live_participants` (host/guest, `joined_at = now()`, `left_at = null`).
-- Retourne `{ token, wsUrl: LIVEKIT_WS_URL, identity, role, roomName }`.
-- CORS standard via `npm:@supabase/supabase-js@2/cors`.
+## 2. Modal de création
+- `Dialog` shadcn avec `Form` (react-hook-form + zod):
+  - `title` (text, requis, max 80)
+  - `is_public` (Switch, défaut `true`)
+  - `max_participants` (Input number, défaut 20, min 2 / max 100)
+- À la soumission: `INSERT` dans `live_rooms` avec `host_id = user.id`, `livekit_room_name = 'room-' + crypto.randomUUID()`, `status = 'live'`, `started_at = now()`, puis `navigate(\`/live/\${data.id}\`)`.
+- Toast succès/erreur via `sonner`.
 
-## 2. Page `/live/:roomId`
-Fichier : `src/pages/LiveRoom.tsx`
+## 3. Routing — `src/App.tsx`
+- Ajouter route lazy: `<Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />`.
+- Pas d'autre changement (la route `/live/:roomId` existe déjà).
 
-- Charge la room (`supabase.from('live_rooms').select().eq('id', roomId).single()`).
-- Appelle `supabase.functions.invoke('livekit-token', { body: { roomId } })`.
-- Utilise `@livekit/components-react` (`LiveKitRoom`, `VideoConference`, `RoomAudioRenderer`, styles `@livekit/components-styles`) pour faire la vraie connexion + UI prête à l'emploi.
-- États : loading / erreur (token introuvable, room ended) / connecté.
-- Bouton "Quitter" : déconnecte et update `live_participants.left_at`, puis `navigate(-1)`.
-- Header simple avec titre de la room.
-
-## 3. Câblage routing
-Fichier : `src/App.tsx`
-- Ajouter `const LiveRoom = lazy(() => import("./pages/LiveRoom"));`
-- Route protégée : `<Route path="/live/:roomId" element={<ProtectedRoute><LiveRoom /></ProtectedRoute>} />`
-
-## 4. Dépendances à installer
-- `livekit-client`
-- `@livekit/components-react`
-- `@livekit/components-styles`
-
-## 5. Validation
-- Créer manuellement une row dans `live_rooms` (host = user courant, `livekit_room_name` = `'test-' || gen_random_uuid()`).
-- Naviguer vers `/live/<id>`, autoriser micro/caméra → si la vidéo locale s'affiche et qu'on voit "Connected" → secrets LiveKit OK.
-- Vérifier les logs de l'edge function en cas d'erreur (signature, WS URL).
+## 4. Validation
+- Aller sur `/rooms`, créer une room → redirection auto vers `/live/:id` et connexion LiveKit (valide encore les secrets via `livekit-token`).
+- Revenir sur `/rooms` → la room créée apparaît avec statut `live`. Bouton "Terminer" fonctionne (disparaît / passe en `ended`).
 
 ## Notes techniques
-- Pas de modification de schéma DB (tables déjà créées au tour précédent).
-- `livekit-server-sdk` côté Deno : import via `npm:livekit-server-sdk@2`.
-- Pas de touche au `verify_jwt` (défaut `false` côté config, on valide en code).
-- Aucun secret côté client : le WS URL revient via la réponse de l'edge function.
+- Pas de migration DB nécessaire: table, RLS et grants existent déjà; politique INSERT autorise `host_id = auth.uid()`.
+- Aucun nouveau secret. Aucun nouvel package.
+- Pas de lien depuis le menu principal dans ce lot — page accessible directement par URL (ajout au menu = lot séparé si souhaité).
