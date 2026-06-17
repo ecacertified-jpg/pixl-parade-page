@@ -3993,6 +3993,63 @@ export type Database = {
         }
         Relationships: []
       }
+      emotional_campaigns: {
+        Row: {
+          audience_filter: Json
+          channel: string
+          cooldown_hours: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          last_run_at: string | null
+          last_run_stats: Json | null
+          name: string
+          payload: Json
+          template_key: string | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          audience_filter?: Json
+          channel?: string
+          cooldown_hours?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          last_run_at?: string | null
+          last_run_stats?: Json | null
+          name: string
+          payload?: Json
+          template_key?: string | null
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          audience_filter?: Json
+          channel?: string
+          cooldown_hours?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          last_run_at?: string | null
+          last_run_stats?: Json | null
+          name?: string
+          payload?: Json
+          template_key?: string | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_budget_items: {
         Row: {
           category: string
@@ -6730,6 +6787,33 @@ export type Database = {
           expires_at?: string | null
           id?: string
           storage_path?: string
+        }
+        Relationships: []
+      }
+      on_this_day_log: {
+        Row: {
+          id: string
+          memory_date: string
+          sent_at: string
+          source_id: string
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          memory_date: string
+          sent_at?: string
+          source_id: string
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          memory_date?: string
+          sent_at?: string
+          source_id?: string
+          source_type?: string
+          user_id?: string
         }
         Relationships: []
       }
