@@ -3,6 +3,9 @@ project_id = "vaimfeurvzokepqqqrsl"
 [functions.indexnow-notify]
 verify_jwt = false
 
+[functions.wave-subscription-auto-renew]
+verify_jwt = false
+
 [functions.notify-premium-trial-phases]
 verify_jwt = false
 

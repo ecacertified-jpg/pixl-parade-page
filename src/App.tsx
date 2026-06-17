@@ -116,6 +116,7 @@ const OrganizerAccept = lazy(() => import("./pages/OrganizerAccept"));
 const RsvpPage = lazy(() => import("./pages/RsvpPage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Subscription = lazy(() => import("./pages/Subscription"));
+const Invoices = lazy(() => import("./pages/Invoices"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
@@ -293,6 +294,8 @@ const App = () => (
             <Route path="/tarifs" element={<L><Pricing /></L>} />
             <Route path="/subscription" element={<ProtectedRoute><L><Subscription /></L></ProtectedRoute>} />
             <Route path="/abonnement" element={<ProtectedRoute><L><Subscription /></L></ProtectedRoute>} />
+            <Route path="/invoices" element={<ProtectedRoute><L><Invoices /></L></ProtectedRoute>} />
+            <Route path="/factures" element={<ProtectedRoute><L><Invoices /></L></ProtectedRoute>} />
             <Route path="/checkout" element={<ProtectedRoute><L><Checkout /></L></ProtectedRoute>} />
             <Route path="/collective-checkout" element={<ProtectedRoute><L><CollectiveCheckout /></L></ProtectedRoute>} />
             <Route path="/collective-order-confirmation" element={<ProtectedRoute><L><CollectiveOrderConfirmation /></L></ProtectedRoute>} />
