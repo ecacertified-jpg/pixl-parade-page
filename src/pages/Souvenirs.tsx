@@ -11,6 +11,9 @@ import { MemoriesAlbumsGrid } from '@/components/souvenirs/MemoriesAlbumsGrid';
 import { MemoriesTimeline } from '@/components/souvenirs/MemoriesTimeline';
 import { SealCapsuleModal } from '@/components/souvenirs/SealCapsuleModal';
 import { CapsuleCard } from '@/components/souvenirs/CapsuleCard';
+import { SouvenirBookCard } from '@/components/souvenirs/SouvenirBookCard';
+import { FamilyVaultSection } from '@/components/souvenirs/FamilyVaultSection';
+import { QuotaBar } from '@/features/subscription/QuotaBar';
 import { SEOHead } from '@/components/SEOHead';
 
 export default function Souvenirs() {
@@ -98,6 +101,22 @@ export default function Souvenirs() {
             </div>
           </section>
         )}
+
+        <SouvenirBookCard year={new Date().getFullYear()} />
+
+        <FamilyVaultSection />
+
+        <section className="bg-card rounded-2xl p-4 border border-border/40">
+          <h3 className="font-poppins font-medium text-sm text-muted-foreground mb-3">
+            Archivage cloud
+          </h3>
+          <QuotaBar feature="storage_mb" />
+          {!isPremium && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Passe en Premium pour 50 Go de stockage sécurisé.
+            </p>
+          )}
+        </section>
 
         <Tabs defaultValue="gallery" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
