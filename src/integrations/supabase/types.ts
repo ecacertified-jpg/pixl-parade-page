@@ -4914,6 +4914,33 @@ export type Database = {
           },
         ]
       }
+      family_vault_shares: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          memory_id: string
+          memory_source: string
+          owner_user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          memory_id: string
+          memory_source: string
+          owner_user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          memory_id?: string
+          memory_source?: string
+          owner_user_id?: string
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           accept_alternatives: boolean | null
@@ -9094,6 +9121,48 @@ export type Database = {
           original_url?: string
           short_url?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      souvenir_books: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          generated_at: string | null
+          id: string
+          memory_count: number | null
+          page_count: number | null
+          pdf_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          generated_at?: string | null
+          id?: string
+          memory_count?: number | null
+          page_count?: number | null
+          pdf_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          generated_at?: string | null
+          id?: string
+          memory_count?: number | null
+          page_count?: number | null
+          pdf_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
         }
         Relationships: []
       }
