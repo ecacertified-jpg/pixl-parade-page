@@ -1,7 +1,8 @@
-import { Play, Mic } from 'lucide-react';
+import { Play, Mic, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { MemoryItem } from '@/hooks/useAggregatedMemories';
 import { EMOTION_META } from '@/data/memory-emotions';
+import { useFamilyVault } from '@/hooks/useFamilyVault';
 
 interface Props {
   items: MemoryItem[];
@@ -9,6 +10,7 @@ interface Props {
 
 export function MemoriesGallery({ items }: Props) {
   const navigate = useNavigate();
+  const { share } = useFamilyVault();
 
   if (items.length === 0) {
     return (
@@ -25,11 +27,11 @@ export function MemoriesGallery({ items }: Props) {
         const meta = EMOTION_META[it.emotion];
         const goTo = () => navigate(`/${it.source === 'birthday' ? 'birthday' : 'event'}/${it.pageSlug}`);
         return (
-          <button
+          <div
             key={`${it.source}-${it.id}`}
-            onClick={goTo}
             className="relative aspect-square overflow-hidden rounded-lg bg-muted group"
           >
+            <button onClick={goTo} className="absolute inset-0 w-full h-full">
             {it.mediaType === 'audio' ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/30 to-accent/30">
                 <Mic className="h-8 w-8 text-primary-foreground" />
@@ -42,15 +44,27 @@ export function MemoriesGallery({ items }: Props) {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               />
             )}
+            </button>
             {it.mediaType === 'video' && (
-              <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1">
+              <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1 pointer-events-none">
                 <Play className="h-3 w-3 text-white" />
               </div>
             )}
-            <div className="absolute bottom-1 left-1">
+            <div className="absolute bottom-1 left-1 pointer-events-none">
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${meta.color}`}>{meta.emoji}</span>
             </div>
-          </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                share.mutate({ memory_source: it.source, memory_id: it.id });
+              }}
+              title="Ajouter au coffre familial"
+              className="absolute bottom-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+            >
+              <Users className="h-3 w-3" />
+            </button>
+          </div>
         );
       })}
     </div>
