@@ -203,7 +203,7 @@ export const AIChatWidget = () => {
                   ease: "easeInOut"
                 }
               }}
-              className="absolute bottom-20 right-0 mr-2 touch-pan-y"
+              className="absolute bottom-20 left-0 ml-2 touch-pan-y"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.3}
