@@ -10119,6 +10119,36 @@ export type Database = {
         }
         Relationships: []
       }
+      viral_share_events: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          page_id: string | null
+          page_slug: string | null
+          page_type: string
+          sharer_user_id: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          id?: string
+          page_id?: string | null
+          page_slug?: string | null
+          page_type: string
+          sharer_user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          page_id?: string | null
+          page_slug?: string | null
+          page_type?: string
+          sharer_user_id?: string | null
+        }
+        Relationships: []
+      }
       virality_alert_thresholds: {
         Row: {
           created_at: string | null
@@ -11008,6 +11038,16 @@ export type Database = {
           user_id: string | null
           user_name: string | null
           years_celebrated: number[] | null
+        }
+        Relationships: []
+      }
+      viral_trending_pages: {
+        Row: {
+          last_shared_at: string | null
+          page_id: string | null
+          page_slug: string | null
+          page_type: string | null
+          share_count_7d: number | null
         }
         Relationships: []
       }
