@@ -35,6 +35,7 @@ import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBann
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import { ViralShareBar } from "@/components/viral/ViralShareBar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
 import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
@@ -102,6 +103,7 @@ const BirthdayPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showOrgSheet, setShowOrgSheet] = useState(false);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const [showVideosManager, setShowVideosManager] = useState(false);
 
@@ -590,6 +592,8 @@ const BirthdayPage = () => {
           fallbackImageUrl={page?.cover_image_url ?? null}
           isOwner={!!user?.id && user.id === page?.user_id}
           onLiveClick={() => navigate('/rooms')}
+          onCoulissesClick={() => setShowOrgSheet(true)}
+          onShareClick={() => setShowShareMenu(true)}
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
             <div className="absolute inset-x-0 bottom-0 z-10 p-4 md:p-6">
@@ -717,14 +721,8 @@ const BirthdayPage = () => {
             }
           />
         )}
-        {page && (
-          <OrganizationSection
-            pageType="birthday"
-            pageId={page.id}
-            ownerUserId={page.user_id}
-            pageTitle={(page as any).title ?? undefined}
-          />
-        )}
+        {/* "Mes coulisses" est désormais accessible via l'icône ✨ sur la vidéo de couverture
+            (ouvre <OrganizationSection /> dans une fenêtre latérale ci-dessous). */}
         {/* Cagnotte section — toujours visible */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="p-5 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
@@ -871,7 +869,7 @@ const BirthdayPage = () => {
       </div>
 
       {/* Floating share button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className={`fixed ${!user ? 'bottom-28' : 'bottom-6'} right-4 z-50`}>
         <Button
           size="lg"
           className="rounded-full shadow-lg h-14 w-14 p-0 bg-primary hover:bg-primary/90"
@@ -888,6 +886,25 @@ const BirthdayPage = () => {
         pageUrl={pageUrl}
         age={age}
       />
+
+      {/* "Mes coulisses" — ouvert depuis la vidéo de couverture */}
+      {page && (
+        <Sheet open={showOrgSheet} onOpenChange={setShowOrgSheet}>
+          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="font-poppins">Mes coulisses ✨</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              <OrganizationSection
+                pageType="birthday"
+                pageId={page.id}
+                ownerUserId={page.user_id}
+                pageTitle={(page as any).title ?? undefined}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Premium offert : déblocage émotionnel + conversion post-événement */}
       {isOwner && page && (

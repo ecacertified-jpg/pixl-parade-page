@@ -22,6 +22,7 @@ import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBann
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import { ViralShareBar } from "@/components/viral/ViralShareBar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
@@ -76,6 +77,7 @@ const EventPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showOrgSheet, setShowOrgSheet] = useState(false);
   const confettiTriggered = useRef(false);
 
   const theme = useMemo(() => occasionThemes[page?.occasion || 'other'] || occasionThemes.other, [page?.occasion]);
@@ -241,6 +243,8 @@ const EventPage = () => {
           fallbackImageUrl={page?.cover_image_url ?? null}
           context="wedding"
           onLiveClick={() => navigate('/rooms')}
+          onCoulissesClick={() => setShowOrgSheet(true)}
+          onShareClick={() => setShowShareMenu(true)}
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
             page ? (
@@ -294,15 +298,7 @@ const EventPage = () => {
             }
           />
         )}
-        {page && (
-          <OrganizationSection
-            pageType="event"
-            pageId={page.id}
-            ownerUserId={page.creator_id}
-            pageTitle={page.title}
-            defaultEventAt={page.event_date ?? null}
-          />
-        )}
+        {/* "Mes coulisses" est désormais accessible via l'icône ✨ sur la vidéo de couverture. */}
         {page && (
           <EventWishlistSection eventId={page.id} isOwner={isOwner} />
         )}
@@ -437,13 +433,33 @@ const EventPage = () => {
       </div>
 
       {/* Floating share */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className={`fixed ${!user ? 'bottom-28' : 'bottom-6'} right-4 z-50`}>
         <Button size="lg" className="rounded-full shadow-lg h-14 w-14 p-0 bg-primary hover:bg-primary/90" onClick={() => setShowShareMenu(true)}>
           <Share2 className="h-6 w-6" />
         </Button>
       </div>
 
       <EventPageShareButton open={showShareMenu} onOpenChange={setShowShareMenu} title={page?.title || ''} pageUrl={pageUrl} occasionEmoji={theme.emoji} />
+
+      {/* "Mes coulisses" — ouvert depuis la vidéo de couverture */}
+      {page && (
+        <Sheet open={showOrgSheet} onOpenChange={setShowOrgSheet}>
+          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="font-poppins">Mes coulisses ✨</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              <OrganizationSection
+                pageType="event"
+                pageId={page.id}
+                ownerUserId={page.creator_id}
+                pageTitle={page.title}
+                defaultEventAt={page.event_date ?? null}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Visitor conversion CTA — only for non-authenticated visitors */}
       {!user && page && (

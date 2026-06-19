@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX, Maximize2, X, Radio } from "lucide-react";
+import { Volume2, VolumeX, Maximize2, X, Radio, Sparkles, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,10 @@ interface Props {
   context?: CoverVideoContext;
   /** Optional callback when the "Live / Rooms" icon is tapped. */
   onLiveClick?: () => void;
+  /** Optional callback when the "Mes coulisses" icon is tapped. */
+  onCoulissesClick?: () => void;
+  /** Optional callback when the cover "Partage" icon is tapped. */
+  onShareClick?: () => void;
 }
 
 export function CoverVideoCarousel({
@@ -41,6 +45,8 @@ export function CoverVideoCarousel({
   isOwner = false,
   context = "birthday",
   onLiveClick,
+  onCoulissesClick,
+  onShareClick,
 }: Props) {
   const { user } = useAuth();
   const { playlist } = useCoverVideoPlaylist({
@@ -230,6 +236,28 @@ export function CoverVideoCarousel({
               aria-label="Aller aux rooms"
             >
               <Radio className="h-4 w-4" />
+            </button>
+          )}
+          {onCoulissesClick && (
+            <button
+              type="button"
+              onClick={onCoulissesClick}
+              className="h-9 w-9 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center hover:bg-black/65 transition-colors"
+              aria-label="Mes coulisses"
+              title="Mes coulisses"
+            >
+              <Sparkles className="h-4 w-4" />
+            </button>
+          )}
+          {onShareClick && (
+            <button
+              type="button"
+              onClick={onShareClick}
+              className="h-9 w-9 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center hover:bg-black/65 transition-colors"
+              aria-label="Partager"
+              title="Partager"
+            >
+              <Share2 className="h-4 w-4" />
             </button>
           )}
         </div>
