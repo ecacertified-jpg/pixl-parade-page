@@ -35,6 +35,7 @@ import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBann
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import { ViralShareBar } from "@/components/viral/ViralShareBar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
 import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
