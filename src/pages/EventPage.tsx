@@ -298,15 +298,7 @@ const EventPage = () => {
             }
           />
         )}
-        {page && (
-          <OrganizationSection
-            pageType="event"
-            pageId={page.id}
-            ownerUserId={page.creator_id}
-            pageTitle={page.title}
-            defaultEventAt={page.event_date ?? null}
-          />
-        )}
+        {/* "Mes coulisses" est désormais accessible via l'icône ✨ sur la vidéo de couverture. */}
         {page && (
           <EventWishlistSection eventId={page.id} isOwner={isOwner} />
         )}
