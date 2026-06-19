@@ -721,14 +721,8 @@ const BirthdayPage = () => {
             }
           />
         )}
-        {page && (
-          <OrganizationSection
-            pageType="birthday"
-            pageId={page.id}
-            ownerUserId={page.user_id}
-            pageTitle={(page as any).title ?? undefined}
-          />
-        )}
+        {/* "Mes coulisses" est désormais accessible via l'icône ✨ sur la vidéo de couverture
+            (ouvre <OrganizationSection /> dans une fenêtre latérale ci-dessous). */}
         {/* Cagnotte section — toujours visible */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="p-5 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
