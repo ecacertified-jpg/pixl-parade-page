@@ -869,7 +869,7 @@ const BirthdayPage = () => {
       </div>
 
       {/* Floating share button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className={`fixed ${!user ? 'bottom-28' : 'bottom-6'} right-4 z-50`}>
         <Button
           size="lg"
           className="rounded-full shadow-lg h-14 w-14 p-0 bg-primary hover:bg-primary/90"
@@ -886,6 +886,25 @@ const BirthdayPage = () => {
         pageUrl={pageUrl}
         age={age}
       />
+
+      {/* "Mes coulisses" — ouvert depuis la vidéo de couverture */}
+      {page && (
+        <Sheet open={showOrgSheet} onOpenChange={setShowOrgSheet}>
+          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="font-poppins">Mes coulisses ✨</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              <OrganizationSection
+                pageType="birthday"
+                pageId={page.id}
+                ownerUserId={page.user_id}
+                pageTitle={(page as any).title ?? undefined}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Premium offert : déblocage émotionnel + conversion post-événement */}
       {isOwner && page && (
