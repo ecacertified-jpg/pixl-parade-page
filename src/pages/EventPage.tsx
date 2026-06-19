@@ -243,6 +243,8 @@ const EventPage = () => {
           fallbackImageUrl={page?.cover_image_url ?? null}
           context="wedding"
           onLiveClick={() => navigate('/rooms')}
+          onCoulissesClick={() => setShowOrgSheet(true)}
+          onShareClick={() => setShowShareMenu(true)}
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
             page ? (
