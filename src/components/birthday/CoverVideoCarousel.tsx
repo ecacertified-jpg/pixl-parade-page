@@ -238,6 +238,28 @@ export function CoverVideoCarousel({
               <Radio className="h-4 w-4" />
             </button>
           )}
+          {onCoulissesClick && (
+            <button
+              type="button"
+              onClick={onCoulissesClick}
+              className="h-9 w-9 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center hover:bg-black/65 transition-colors"
+              aria-label="Mes coulisses"
+              title="Mes coulisses"
+            >
+              <Sparkles className="h-4 w-4" />
+            </button>
+          )}
+          {onShareClick && (
+            <button
+              type="button"
+              onClick={onShareClick}
+              className="h-9 w-9 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center hover:bg-black/65 transition-colors"
+              aria-label="Partager"
+              title="Partager"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Tap-to-unmute hint (only when muted, auto-hides) */}
