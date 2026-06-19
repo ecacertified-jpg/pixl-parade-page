@@ -77,6 +77,7 @@ const EventPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showOrgSheet, setShowOrgSheet] = useState(false);
   const confettiTriggered = useRef(false);
 
   const theme = useMemo(() => occasionThemes[page?.occasion || 'other'] || occasionThemes.other, [page?.occasion]);
