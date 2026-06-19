@@ -103,6 +103,7 @@ const BirthdayPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showOrgSheet, setShowOrgSheet] = useState(false);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const [showVideosManager, setShowVideosManager] = useState(false);
 
