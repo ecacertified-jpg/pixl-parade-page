@@ -132,10 +132,18 @@ export const AIChatWidget = () => {
     return null;
   }
 
+  // On public celebration pages we lift the FAB so it doesn't overlap the
+  // visitor conversion CTA pinned at the bottom of the viewport.
+  const isCelebrationPage =
+    /^\/(birthday|anniversaire|event|evenement)\//.test(location.pathname);
+  const bottomClass = isCelebrationPage
+    ? 'bottom-28 md:bottom-6'
+    : 'bottom-20 md:bottom-4';
+
   return (
     <>
       {/* Widget Container */}
-      <div className="fixed bottom-20 md:bottom-4 right-4 z-50">
+      <div className={`fixed ${bottomClass} left-4 z-50`}>
         <AnimatePresence>
           {isOpen && (
             <motion.div
