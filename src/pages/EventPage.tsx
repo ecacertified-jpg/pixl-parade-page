@@ -20,8 +20,8 @@ import { FundSelector } from "@/components/birthday/FundSelector";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
 import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBanner";
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
-import { CelebrateWall } from "@/components/celebrate/CelebrateWall";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
+import { ViralShareBar } from "@/components/viral/ViralShareBar";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
@@ -268,7 +268,13 @@ const EventPage = () => {
               ✨ Célébrer
             </h2>
             <CelebrationFeed pageType="event" pageId={page.id} emptyTitle="Sois le premier à célébrer cet événement 💖" />
-            <CelebrateWall pageType="event" pageId={page.id} title="💌 Mur de messages" />
+            <ViralShareBar
+              pageType="event"
+              pageId={page.id}
+              pageSlug={page.slug}
+              url={`${typeof window !== "undefined" ? window.location.origin : "https://joiedevivre-africa.com"}/event/${page.slug}`}
+              text={`🎊 Viens célébrer ${page.title} avec nous sur Joie De Vivre !`}
+            />
           </section>
         )}
         {page && (
