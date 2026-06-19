@@ -592,6 +592,8 @@ const BirthdayPage = () => {
           fallbackImageUrl={page?.cover_image_url ?? null}
           isOwner={!!user?.id && user.id === page?.user_id}
           onLiveClick={() => navigate('/rooms')}
+          onCoulissesClick={() => setShowOrgSheet(true)}
+          onShareClick={() => setShowShareMenu(true)}
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
             <div className="absolute inset-x-0 bottom-0 z-10 p-4 md:p-6">
