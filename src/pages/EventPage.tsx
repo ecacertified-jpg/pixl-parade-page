@@ -22,6 +22,7 @@ import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBann
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
 import { ViralShareBar } from "@/components/viral/ViralShareBar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
 import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
