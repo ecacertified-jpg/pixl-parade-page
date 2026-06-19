@@ -74,6 +74,7 @@ const ReciprocityProfile = lazy(() => import("./pages/ReciprocityProfile"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const Invitations = lazy(() => import("./pages/Invitations"));
 const ReferralCodes = lazy(() => import("./pages/ReferralCodes"));
+const Tendances = lazy(() => import("./pages/Tendances"));
 const ProfileSettings = lazy(() => import("./pages/ProfileSettings"));
 const BusinessProfileSettings = lazy(() => import("./pages/BusinessProfileSettings"));
 const Orders = lazy(() => import("./pages/Orders"));
@@ -310,6 +311,9 @@ const App = () => (
             <Route path="/u/:userId/pages" element={<PublicRoute><L><UserPagesPage /></L></PublicRoute>} />
             <Route path="/invitations" element={<ProtectedRoute><L><Invitations /></L></ProtectedRoute>} />
             <Route path="/referral-codes" element={<ProtectedRoute><L><ReferralCodes /></L></ProtectedRoute>} />
+            <Route path="/parrainage" element={<ProtectedRoute><L><ReferralCodes /></L></ProtectedRoute>} />
+            <Route path="/tendances" element={<PublicRoute><L><Tendances /></L></PublicRoute>} />
+            <Route path="/trending" element={<PublicRoute><L><Tendances /></L></PublicRoute>} />
             <Route path="/profile-settings" element={<ProtectedRoute><L><ProfileSettings /></L></ProtectedRoute>} />
             <Route path="/business-profile-settings" element={<ProtectedRoute><L><BusinessProfileSettings /></L></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute><L><Orders /></L></ProtectedRoute>} />

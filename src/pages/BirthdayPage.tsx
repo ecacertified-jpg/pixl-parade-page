@@ -33,8 +33,8 @@ import { VisitorConversionCTA } from "@/components/VisitorConversionCTA";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
 import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBanner";
 import { CelebrationFeed } from "@/components/celebrate/CelebrationFeed";
-import { CelebrateWall } from "@/components/celebrate/CelebrateWall";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
+import { ViralShareBar } from "@/components/viral/ViralShareBar";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
 import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
@@ -688,7 +688,16 @@ const BirthdayPage = () => {
               ✨ Célébrer
             </h2>
             <CelebrationFeed pageType="birthday" pageId={page.id} emptyTitle="Sois le premier à célébrer 💖" />
-            <CelebrateWall pageType="birthday" pageId={page.id} title="💌 Mur de messages" />
+            <ViralShareBar
+              pageType="birthday"
+              pageId={page.id}
+              pageSlug={page.slug}
+              url={buildBirthdayShareUrl(page.slug, {
+                updatedAt: (page as any).updated_at,
+                socialSharePhotoId: (page as any).social_share_photo_id,
+              })}
+              text={`🎂 Viens célébrer l'anniversaire de ${birthdayPerson.first_name || page.title} sur Joie De Vivre !`}
+            />
           </section>
         )}
         {page && (
