@@ -3014,6 +3014,96 @@ export type Database = {
           },
         ]
       }
+      client_accounts: {
+        Row: {
+          birthday: string | null
+          birthday_page_id: string | null
+          claim_token: string
+          claimed_at: string | null
+          created_at: string
+          created_user_id: string | null
+          email: string | null
+          event_page_id: string | null
+          first_name: string
+          id: string
+          last_name: string | null
+          organizer_user_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          birthday?: string | null
+          birthday_page_id?: string | null
+          claim_token?: string
+          claimed_at?: string | null
+          created_at?: string
+          created_user_id?: string | null
+          email?: string | null
+          event_page_id?: string | null
+          first_name: string
+          id?: string
+          last_name?: string | null
+          organizer_user_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          birthday?: string | null
+          birthday_page_id?: string | null
+          claim_token?: string
+          claimed_at?: string | null
+          created_at?: string
+          created_user_id?: string | null
+          email?: string | null
+          event_page_id?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string | null
+          organizer_user_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_accounts_birthday_page_id_fkey"
+            columns: ["birthday_page_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_accounts_event_page_id_fkey"
+            columns: ["event_page_id"]
+            isOneToOne: false
+            referencedRelation: "event_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_admins: {
+        Row: {
+          admin_user_id: string
+          client_user_id: string
+          granted_at: string
+          id: string
+          revoked_at: string | null
+        }
+        Insert: {
+          admin_user_id: string
+          client_user_id: string
+          granted_at?: string
+          id?: string
+          revoked_at?: string | null
+        }
+        Update: {
+          admin_user_id?: string
+          client_user_id?: string
+          granted_at?: string
+          id?: string
+          revoked_at?: string | null
+        }
+        Relationships: []
+      }
       collective_fund_orders: {
         Row: {
           beneficiary_phone: string
@@ -11679,6 +11769,10 @@ export type Database = {
       }
       is_business_owner_of_fund_order: {
         Args: { p_order_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_client_admin: {
+        Args: { _admin: string; _client: string }
         Returns: boolean
       }
       is_first_payment_to_beneficiary: {
