@@ -93,6 +93,11 @@ export const useOnboarding = () => {
   });
 
   const shouldShow = status?.shouldShow ?? false;
+  // Suppress the blocking onboarding overlay for users who signed up via the
+  // express-birthday flow (their page is already published). They can still
+  // complete steps later via the dashboard / + menu.
+  const expressFlag = user?.id ? localStorage.getItem(`express_birthday_${user.id}`) === '1' : false;
+  const effectiveShouldShow = shouldShow && !expressFlag;
   const firstIncompleteStep = status?.firstIncompleteStep ?? 0;
   const dbFurthestStep = status?.dbFurthestStep ?? 0;
 
@@ -149,7 +154,7 @@ export const useOnboarding = () => {
   }, [user, queryClient]);
 
   return {
-    shouldShowOnboarding: manuallyCompleted ? false : shouldShow,
+    shouldShowOnboarding: manuallyCompleted ? false : effectiveShouldShow,
     isLoading,
     completeOnboarding,
     currentStep: effectiveCurrentStep,
