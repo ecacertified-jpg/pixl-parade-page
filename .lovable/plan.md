@@ -1,97 +1,81 @@
-## 1. Nettoyage — Mur de messages (pages anniv/event uniquement)
 
-Retirer le `<CelebrateWall>` des pages publiques `/birthday/:slug` et `/event/:slug` (les messages d'anniversaire dédiés `MessageWall` restent en place). Le `CelebrateWall` global de `/celebrer` est conservé.
+# Plan — Inscription express & pages anniversaire déléguées
 
-Fichiers ciblés (à ajuster après lecture) : `src/pages/BirthdayPage.tsx`, `src/pages/EventPage.tsx` — retirer l'import + l'usage du composant.
+## 1. Parcours d'inscription express (auto-création de la page)
 
-## 2. Mécanismes viraux
+**Objectif** : raccourcir l'inscription. Dès que le compte est créé (Google OAuth OU OTP WhatsApp validé), JDV crée et publie automatiquement la page d'anniversaire de l'utilisateur pour l'année en cours, puis le redirige vers cette page. L'onboarding complet (goûts, souhaits, amis, cagnotte, partages, photos) reste accessible **plus tard** via :
+- le modal d'onboarding du dashboard (déjà existant) ;
+- l'entrée "Ma page d'anniversaire" du bouton **+** de la bottom bar (déjà existante).
 
-### A. Partage TikTok + WhatsApp boostés
+### Comportement
+- Marqueur `intent=express_birthday` (et alias `create_birthday_page` déjà utilisé par `VisitorConversionCTA`) ajouté à l'URL `/auth`.
+- À la fin de l'inscription **réussie** (Google callback OU OTP vérifié) et **seulement pour ce intent** :
+  1. Vérifier qu'aucune page d'anniversaire n'existe pour l'année en cours.
+  2. Créer la ligne `birthday_pages` minimale : `user_id`, `celebration_year = year(now)`, `slug` auto, `is_active = true`, `published_at = now()`, `published_via_onboarding = false`, `title = "{prénom} fête son anniversaire"`. La date d'anniversaire est déjà collectée en pré-auth (`PreAuthDiscovery`), donc disponible dans les metadata.
+  3. Marquer un flag local `bp_type_${userId} = 'self'` pour cohérence avec `useOnboarding`.
+  4. Rediriger vers `/birthday/{slug}?welcome=1` au lieu de `/dashboard`.
+- L'onboarding obligatoire est **désactivé en bloc** pour ces utilisateurs : `profiles.onboarding_completed = true` n'est **pas** mis à jour ; à la place le hook `useOnboarding` continue de calculer les étapes restantes et de proposer la complétion dans le dashboard. Aucun blocage de navigation.
+- Si la création de page échoue (réseau, doublon), on log et on redirige tout de même vers `/dashboard?bp_express_failed=1` qui ouvrira le `BirthdayPageBuilderModal`.
 
-Composant `ViralShareBar` (réutilisable sur birthday page, event page, profil public, fund) avec 4 actions :
-- **WhatsApp** : `wa.me/?text=` avec message persuasif (utilise déjà la stratégie de copie clipboard existante).
-- **TikTok** : deep link simple — copie texte + URL dans le presse-papier puis `window.open('https://www.tiktok.com/upload?lang=fr')` (ou app scheme `snssdk1233://`). Toast "Texte copié, colle-le dans ta vidéo TikTok".
-- **Story-ready** : bouton "Télécharger la carte" → génère carte virale (voir B).
-- **Lien copié** : fallback universel.
+### Réutilisation par `VisitorConversionCTA`
+- Le CTA visiteur (`src/components/VisitorConversionCTA.tsx`) construit déjà `intent=create_birthday_page`. On le bascule sur `intent=express_birthday` (même comportement côté `/auth`). Texte CTA inchangé.
 
-Tracking : chaque share insère dans `business_share_events`-équivalent → nouvelle table `viral_share_events` (channel, page_type, page_id, sharer_user_id, created_at) pour alimenter les classements.
+## 2. Onglet "Clients" dans Mes coulisses (organisateurs)
 
-### B. Cartes & vidéos virales auto
+**Objectif** : un organisateur d'événement peut créer des pages d'anniversaire **au nom de ses clients**, générer un lien magique d'inscription/connexion, et conserver les droits d'admin sur le compte créé.
 
-- **Carte virale (image)** : edge function `generate-viral-card` réutilise la techno OG (`generate-birthday-og-image` / `generate-og-image`) avec un layout vertical 1080×1920 (story-friendly), photo de profil + prénom + âge/occasion + emoji + watermark "joiedevivre-africa.com". Bucket public `viral-cards`. URL téléchargeable depuis `ViralShareBar`.
-- **Vidéo virale (5s)** : edge function `generate-viral-video` qui assemble côté client via Canvas + MediaRecorder (pas de coût AI) — animation simple : carte virale + confettis + musique optionnelle. MVP : version "carte animée" (Lottie/CSS exportée en WebM). Bouton "Vidéo souvenir" dans `ViralShareBar`.
+### UI
+- Nouveau `TabsTrigger value="clients"` dans `OrganizationSection.tsx` (visible uniquement pour `isOwner` ou rôle `admin`).
+- Nouveau composant `ClientsManager.tsx` listant les clients créés par l'organisateur courant pour cet événement, avec :
+  - Bouton **"Créer une page client"** → formulaire (prénom, nom, téléphone, email facultatif, date d'anniversaire).
+  - Pour chaque client : lien à copier (`Copier`), bouton WhatsApp pré-rempli, statut (`En attente d'activation` / `Réclamé`), bouton **Ouvrir la page**.
 
-### C. Parrainage + invitations sociales
+### Backend
+- Nouvelle table `client_accounts` (organisateur ↔ client) :
+  - `id`, `organizer_user_id`, `event_page_id` (nullable, page d'événement liée), `claim_token` (unique), `first_name`, `last_name`, `phone`, `email`, `birthday`, `created_user_id` (nullable, rempli à la réclamation), `birthday_page_id` (FK), `claimed_at`, timestamps.
+  - RLS : l'organisateur (créateur) lit/écrit ses lignes ; `service_role` plein accès ; `anon` peut lire **uniquement** via token de claim (passe par edge function).
+- Nouvelle table `client_admins` (qui peut administrer quel compte) :
+  - `id`, `client_user_id`, `admin_user_id`, `granted_at`, `revoked_at`.
+  - RLS : l'admin ou l'utilisateur cible peut lire ; aucune écriture client (gérée par edge functions).
+- Édition légère des RLS de `birthday_pages` : un `admin_user_id` listé dans `client_admins` (actif) peut UPDATE/INSERT/DELETE sur les pages d'anniversaire de `client_user_id`. Idem pour `birthday_page_photos`, `collective_funds` créés via la page. Implémenté via `SECURITY DEFINER` `public.is_client_admin(_admin uuid, _client uuid)`.
 
-Le système `referral_codes` + `invitations` existe déjà. Ajouts :
-- **Page `/parrainage`** : affiche le code de l'utilisateur, compteur d'invités acceptés, récompenses débloquées (jours premium offerts via `premium_trial_grants`).
-- **Composant `InviteFriendsModal`** : sélection multi-contacts → envoi WhatsApp en lot via `wa.me` avec message personnalisé contenant le code referral. Track dans `invitations`.
-- **Récompenses** : 3 invités acceptés = 7 jours Premium, 10 = 30 jours. Edge function `award-invitation-rewards` existe — étendre les paliers.
+### Edge functions
+- `create-client-account` :
+  - Auth requis (organisateur). Crée la ligne `client_accounts` + génère `claim_token` aléatoire. Si une page anniversaire doit être pré-créée (`birthday` fourni), crée un **placeholder** `birthday_pages` rattaché à `client_accounts.id` (sans `user_id` encore).
+  - Insère immédiatement une ligne `client_admins` "en attente" qui sera activée à la réclamation.
+  - Retourne `{ claim_url, share_message }`. Le `claim_url` pointe vers `/auth?tab=signup&claim={token}&intent=express_birthday`.
+- `claim-client-account` :
+  - Appelée juste après une inscription/connexion réussie quand un `claim` est présent dans l'URL.
+  - Service role : vérifie le token, rattache `created_user_id`, transfère le `birthday_page` placeholder au nouvel utilisateur, active la ligne `client_admins` (`organizer_user_id` ↔ nouveau user). Idempotent.
 
-### D. Tendances & classements
+### Flux côté `/auth`
+- Si `claim` est présent : après Google OAuth callback **ou** validation OTP, appel à `claim-client-account` avant la redirection. Si la page existe déjà, on saute la création express ; sinon on retombe sur le flux express standard.
 
-- **Page `/tendances`** publique : 
-  - "🔥 Anniversaires du jour" (birthday_pages du jour, triées par vues/partages 24h)
-  - "🏆 Top célébrations de la semaine" (event_pages + birthday_pages, score = vues+partages+messages)
-  - "⭐ Top célébrateurs" (leaderboard `community_scores` existant)
-- **Composant `TrendingBadge`** : badge "🔥 Tendance" affiché sur les pages dans le top 10.
-- View SQL `viral_trending_pages` qui agrège vues + `viral_share_events` + messages sur 7j.
+## 3. Détails techniques
 
-## 3. Schéma BDD (1 migration)
+### Fichiers créés
+- `src/components/organization/ClientsManager.tsx`
+- `src/hooks/useOrganizerClients.ts`
+- `supabase/functions/create-client-account/index.ts`
+- `supabase/functions/claim-client-account/index.ts`
+- Migration SQL : tables `client_accounts`, `client_admins`, fonction `is_client_admin`, policies, GRANTs.
 
-```sql
-CREATE TABLE public.viral_share_events (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  sharer_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  channel text NOT NULL CHECK (channel IN ('whatsapp','tiktok','clipboard','native','card','video')),
-  page_type text NOT NULL CHECK (page_type IN ('birthday','event','profile','fund')),
-  page_id uuid,
-  page_slug text,
-  created_at timestamptz DEFAULT now()
-);
-GRANT SELECT, INSERT ON public.viral_share_events TO authenticated;
-GRANT SELECT, INSERT ON public.viral_share_events TO anon;  -- partage visiteur
-GRANT ALL ON public.viral_share_events TO service_role;
-ALTER TABLE public.viral_share_events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can log share" ON public.viral_share_events FOR INSERT WITH CHECK (true);
-CREATE POLICY "Owner can read own" ON public.viral_share_events FOR SELECT USING (sharer_user_id = auth.uid());
-CREATE INDEX ON public.viral_share_events (page_type, page_id, created_at DESC);
+### Fichiers modifiés
+- `src/pages/Auth.tsx` : à la fin du flux signup/OAuth, si `intent === 'express_birthday'` ou `claim` présent → appeler nouvel helper `runExpressPostSignup(userId, { claim })` (créé dans `src/utils/expressSignup.ts`) qui :
+  - appelle `claim-client-account` si `claim` ;
+  - sinon insère `birthday_pages` (year courante) en utilisant la birthday des metadata ;
+  - redirige vers `/birthday/{slug}?welcome=1`.
+- `src/components/VisitorConversionCTA.tsx` : intent → `express_birthday`.
+- `src/components/organization/OrganizationSection.tsx` : nouvel onglet "👥 Clients" (visible si `isOwner`).
+- `src/hooks/useOnboarding.ts` : ne pas forcer l'ouverture du modal bloquant pour les comptes créés via `express_birthday` (flag `localStorage.express_birthday_${userId} = '1'`). L'onboarding reste accessible et calculable, mais ne s'auto-affiche pas en plein écran ; il apparaît en bannière "Compléter ma page" dans le dashboard.
 
-CREATE OR REPLACE VIEW public.viral_trending_pages AS
-SELECT page_type, page_id, COUNT(*) AS share_count_7d
-FROM public.viral_share_events
-WHERE created_at > now() - interval '7 days'
-GROUP BY page_type, page_id;
-GRANT SELECT ON public.viral_trending_pages TO anon, authenticated;
-```
+### Hors-scope
+- Pas de refonte du `BirthdayPageBuilderModal` lui-même.
+- Pas de modification des autres onglets de Mes coulisses.
+- Pas de gestion multi-organisateurs sur un même client (1 organisateur principal par client pour cette V1, mais l'architecture le permettra plus tard).
 
-Bucket Storage public : `viral-cards` (PNG, 5 Mo max).
+### Risques / points d'attention
+- Les RLS de `birthday_pages` actuelles supposent `user_id = auth.uid()`. L'ajout de la branche `is_client_admin(auth.uid(), birthday_pages.user_id)` doit être testée pour ne pas casser les policies existantes (on **ajoute** une policy permissive supplémentaire, on ne modifie pas l'existante).
+- Le `birthday_pages` placeholder créé avant claim n'a pas de `user_id` valide → on stocke `user_id = organizer_user_id` temporairement avec un flag `is_placeholder=true` (nouvelle colonne nullable) pour rester compatible avec la FK existante. Au claim, on remplace par le `created_user_id`.
 
-## 4. Edge functions
-
-- `generate-viral-card` — génère PNG 1080×1920 via React-PDF/satori (déjà utilisé pour OG). Stocke dans `viral-cards/<page_type>/<id>.png`.
-- (optionnel V2) `generate-viral-video` — assemblage server-side via ffmpeg-wasm. **Reporté** : MVP côté client.
-
-## 5. Fichiers à créer / éditer
-
-**Créer**
-- `src/components/viral/ViralShareBar.tsx`
-- `src/components/viral/InviteFriendsModal.tsx`
-- `src/components/viral/TrendingBadge.tsx`
-- `src/hooks/useViralShare.ts` (log + dispatch)
-- `src/hooks/useTrendingPages.ts`
-- `src/pages/Tendances.tsx`
-- `src/pages/Parrainage.tsx` (ou enrichir `ReferralCodes.tsx` existant)
-- `supabase/functions/generate-viral-card/index.ts`
-- migration SQL ci-dessus
-
-**Éditer**
-- `src/pages/BirthdayPage.tsx` — retirer CelebrateWall, ajouter ViralShareBar + TrendingBadge
-- `src/pages/EventPage.tsx` — idem
-- `src/App.tsx` — routes `/tendances`, `/parrainage`
-- `supabase/functions/award-invitation-rewards/index.ts` — paliers premium
-
-## 6. Hors scope (à confirmer plus tard)
-- Profils publics émotionnels enrichis (existent déjà via `public_profiles`)
-- Pages événements partageables (déjà existantes, juste boostées par ViralShareBar)
-- Vidéo virale server-side (reporté V2)
+Confirme et je passe en build.
