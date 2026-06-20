@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { runExpressPostSignup, readExpressIntent } from '@/utils/expressSignup';
 
 const REDIRECT_TIMEOUT_MS = 3000;
 
@@ -73,6 +74,19 @@ export const resolvePostAuthPath = async (
   user: User,
   opts?: { isNewUser?: boolean }
 ): Promise<string> => {
+  // 0) Express birthday intent (or organizer claim token) — bypass other rules
+  //    so the new user lands directly on their newly-published birthday page.
+  try {
+    const express = readExpressIntent();
+    if (express.intent || express.claim) {
+      const result = await runExpressPostSignup(user, { claim: express.claim });
+      if (result.slug) return `/birthday/${result.slug}?welcome=1`;
+      return '/dashboard?bp_express_failed=1';
+    }
+  } catch (e) {
+    console.warn('[resolvePostAuthPath] express flow failed', e);
+  }
+
   // 1) ?returnTo= URL param
   try {
     const url = new URL(window.location.href);
