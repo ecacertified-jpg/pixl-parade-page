@@ -44,7 +44,7 @@ export function VisitorConversionCTA({
     "Reçois messages, photos souvenirs et cadeaux de tes proches. C'est gratuit.";
 
   const intent =
-    pageKind === "birthday" || !isWedding ? "create_birthday_page" : "create_event_page";
+    pageKind === "birthday" || !isWedding ? "express_birthday" : "create_event_page";
   const returnTo = "/dashboard";
   const authHref = `/auth?tab=signup&returnTo=${encodeURIComponent(returnTo)}&intent=${intent}&ref=visitor_${encodeURIComponent(refSlug)}`;
 
