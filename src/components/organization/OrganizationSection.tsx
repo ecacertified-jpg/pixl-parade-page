@@ -13,6 +13,7 @@ import { GuestsList } from './GuestsList';
 import { SeatingPlan } from './SeatingPlan';
 import { OrganizersManager } from './OrganizersManager';
 import { UrgentMessageTab } from './UrgentMessageTab';
+import { ClientsManager } from './ClientsManager';
 import type { OrganizationPageType, OrganizerRole } from '@/types/organization';
 
 interface Props {
@@ -84,6 +85,7 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle, 
               <TabsTrigger value="seating" className="text-xs">🪑 Plan de table</TabsTrigger>
               <TabsTrigger value="urgent" className="text-xs">📢 Date / Message</TabsTrigger>
               <TabsTrigger value="team" className="text-xs">💛 Équipe</TabsTrigger>
+              {isOwner && <TabsTrigger value="clients" className="text-xs">👥 Clients</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="overview" className="mt-4">
@@ -115,6 +117,14 @@ export const OrganizationSection = ({ pageType, pageId, ownerUserId, pageTitle, 
             <TabsContent value="team" className="mt-4">
               <OrganizersManager pageType={pageType} pageId={pageId} canEdit={isOwner} pageTitle={pageTitle} />
             </TabsContent>
+            {isOwner && (
+              <TabsContent value="clients" className="mt-4">
+                <ClientsManager
+                  eventPageId={pageType === 'event' ? pageId : undefined}
+                  canEdit={isOwner}
+                />
+              </TabsContent>
+            )}
           </Tabs>
         </SheetContent>
       </Sheet>
