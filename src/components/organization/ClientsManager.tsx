@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, Plus, Share2, Trash2, ExternalLink, Loader2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrganizerClients } from '@/hooks/useOrganizerClients';
+import { BirthdayPicker } from '@/components/ui/birthday-picker';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { format } from 'date-fns';
 
 interface Props {
   eventPageId?: string;
@@ -17,7 +20,7 @@ interface Props {
 export const ClientsManager = ({ eventPageId, canEdit }: Props) => {
   const { list, create, remove } = useOrganizerClients(eventPageId);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ first_name: '', last_name: '', phone: '', email: '', birthday: '' });
+  const [form, setForm] = useState({ first_name: '', last_name: '', phone: '', email: '', birthday: undefined as Date | undefined });
 
   const handleCreate = async () => {
     if (!form.first_name.trim()) {
@@ -30,7 +33,7 @@ export const ClientsManager = ({ eventPageId, canEdit }: Props) => {
         last_name: form.last_name.trim() || undefined,
         phone: form.phone.trim() || undefined,
         email: form.email.trim() || undefined,
-        birthday: form.birthday || undefined,
+        birthday: form.birthday ? format(form.birthday, 'yyyy-MM-dd') : undefined,
       });
       try {
         await navigator.clipboard.writeText(res.share_message);
@@ -38,10 +41,14 @@ export const ClientsManager = ({ eventPageId, canEdit }: Props) => {
       } catch {
         toast.success('Page client créée');
       }
-      setForm({ first_name: '', last_name: '', phone: '', email: '', birthday: '' });
+      setForm({ first_name: '', last_name: '', phone: '', email: '', birthday: undefined });
       setOpen(false);
     } catch (e: any) {
-      toast.error(e?.message || 'Erreur création client');
+      const msg =
+        e?.context?.error ||
+        e?.message ||
+        'Erreur création client';
+      toast.error(typeof msg === 'string' ? msg : 'Erreur création client');
     }
   };
 
@@ -161,16 +168,31 @@ export const ClientsManager = ({ eventPageId, canEdit }: Props) => {
             </div>
             <div>
               <Label>Téléphone (WhatsApp)</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+225..." />
+              <PhoneInput
+                value={form.phone}
+                onChange={(v) => setForm({ ...form, phone: v })}
+                placeholder="Numéro WhatsApp"
+              />
             </div>
             <div>
-              <Label>Email</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Label>Email <span className="text-xs text-muted-foreground font-normal">(optionnel)</span></Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="ex: kady@email.com"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Pour lui envoyer le lien aussi par email
+              </p>
             </div>
-            <div>
-              <Label>Date d'anniversaire</Label>
-              <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
-            </div>
+            <BirthdayPicker
+              label="Date d'anniversaire"
+              value={form.birthday}
+              onChange={(d) => setForm({ ...form, birthday: d })}
+              disableFuture={false}
+              helperText="Tapez la date ou utilisez le calendrier"
+            />
             <Button onClick={handleCreate} disabled={create.isPending} className="w-full">
               {create.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
               Créer et générer le lien
