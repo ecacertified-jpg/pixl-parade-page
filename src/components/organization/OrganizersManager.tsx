@@ -8,6 +8,7 @@ import { useEventOrganizers } from '@/hooks/useOrganizationData';
 import { ORGANIZER_ROLE_LABELS, type OrganizationPageType, type OrganizerRole } from '@/types/organization';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 interface Props { pageType: OrganizationPageType; pageId: string; canEdit: boolean; pageTitle?: string; }
 
@@ -57,7 +58,7 @@ export const OrganizersManager = ({ pageType, pageId, canEdit, pageTitle }: Prop
       {canEdit && (
         <Card className="p-3 space-y-2 rounded-2xl">
           <Input placeholder="Nom du co-organisateur" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
-          <Input placeholder="Téléphone (WhatsApp)" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} />
+          <PhoneInput value={phone} onChange={setPhone} placeholder="Téléphone (WhatsApp)" />
           <Select value={role} onValueChange={(v) => setRole(v as OrganizerRole)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
