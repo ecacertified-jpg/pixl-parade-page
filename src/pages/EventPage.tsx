@@ -267,21 +267,6 @@ const EventPage = () => {
           <UrgentMessageBanner pageType="event" pageId={page.id} />
         )}
         {page && (
-          <section className="space-y-4">
-            <h2 className="font-poppins text-xl font-semibold flex items-center gap-2">
-              ✨ Célébrer
-            </h2>
-            <CelebrationFeed pageType="event" pageId={page.id} emptyTitle="Sois le premier à célébrer cet événement 💖" />
-            <ViralShareBar
-              pageType="event"
-              pageId={page.id}
-              pageSlug={page.slug}
-              url={`${typeof window !== "undefined" ? window.location.origin : "https://joiedevivre-africa.com"}/event/${page.slug}`}
-              text={`🎊 Viens célébrer ${page.title} avec nous sur Joie De Vivre !`}
-            />
-          </section>
-        )}
-        {page && (
           <CelebrationArtisansSection
             artisans={((page as any).celebration_artisans ?? []) as CelebrationArtisan[]}
             editable={
