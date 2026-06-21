@@ -687,24 +687,6 @@ const BirthdayPage = () => {
           <UrgentMessageBanner pageType="birthday" pageId={page.id} />
         )}
         {page && (
-          <section className="space-y-4">
-            <h2 className="font-poppins text-xl font-semibold flex items-center gap-2">
-              ✨ Célébrer
-            </h2>
-            <CelebrationFeed pageType="birthday" pageId={page.id} emptyTitle="Sois le premier à célébrer 💖" />
-            <ViralShareBar
-              pageType="birthday"
-              pageId={page.id}
-              pageSlug={page.slug}
-              url={buildBirthdayShareUrl(page.slug, {
-                updatedAt: (page as any).updated_at,
-                socialSharePhotoId: (page as any).social_share_photo_id,
-              })}
-              text={`🎂 Viens célébrer l'anniversaire de ${birthdayPerson.first_name || page.title} sur Joie De Vivre !`}
-            />
-          </section>
-        )}
-        {page && (
           <CelebrationArtisansSection
             artisans={((page as any).celebration_artisans ?? []) as CelebrationArtisan[]}
             editable={
