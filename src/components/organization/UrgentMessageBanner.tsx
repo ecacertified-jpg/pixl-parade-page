@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Info, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -82,6 +82,8 @@ const SingleBanner = ({ m, reducedMotion }: { m: UrgentMessage; reducedMotion: b
 export const UrgentMessageBanner = ({ pageType, pageId }: Props) => {
   const { messages } = usePublicUrgentMessages(pageType, pageId);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -91,13 +93,70 @@ export const UrgentMessageBanner = ({ pageType, pageId }: Props) => {
     return () => mq.removeEventListener?.('change', update);
   }, []);
 
+  // Auto-rotate every 5s when 2+ messages and motion allowed
+  useEffect(() => {
+    if (messages.length < 2 || reducedMotion) return;
+    const id = window.setInterval(() => {
+      setActiveIdx((i) => (i + 1) % messages.length);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [messages.length, reducedMotion]);
+
+  // Sync scroll position with activeIdx
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const child = el.children[activeIdx] as HTMLElement | undefined;
+    if (child) {
+      el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: 'smooth' });
+    }
+  }, [activeIdx]);
+
   if (messages.length === 0) return null;
 
+  // Single message: full width banner
+  if (messages.length === 1) {
+    return (
+      <section className="px-4 py-2" aria-live="polite">
+        <SingleBanner m={messages[0]} reducedMotion={reducedMotion} />
+      </section>
+    );
+  }
+
   return (
-    <section className="px-4 py-2 space-y-2" aria-live="polite">
-      {messages.map((m) => (
-        <SingleBanner key={m.id} m={m} reducedMotion={reducedMotion} />
-      ))}
+    <section className="py-2" aria-live="polite">
+      <div
+        ref={scrollerRef}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 pb-2 scrollbar-none"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const w = el.clientWidth;
+          const idx = Math.round(el.scrollLeft / Math.max(w * 0.85, 1));
+          if (idx !== activeIdx && idx >= 0 && idx < messages.length) setActiveIdx(idx);
+        }}
+      >
+        {messages.map((m) => (
+          <div key={m.id} className="snap-center shrink-0 w-[85%]">
+            <SingleBanner m={m} reducedMotion={reducedMotion} />
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 flex items-center justify-center gap-1.5" role="tablist" aria-label="Messages">
+        {messages.map((m, i) => (
+          <button
+            key={m.id}
+            type="button"
+            role="tab"
+            aria-selected={i === activeIdx}
+            aria-label={`Message ${i + 1} sur ${messages.length}`}
+            onClick={() => setActiveIdx(i)}
+            className={cn(
+              'h-1.5 rounded-full transition-all',
+              i === activeIdx ? 'w-5 bg-primary' : 'w-1.5 bg-muted-foreground/30'
+            )}
+          />
+        ))}
+      </div>
     </section>
   );
 };
