@@ -9,6 +9,7 @@ import { GUEST_STATUS_LABELS, type OrganizationPageType, type EventGuestStatus }
 import { toast } from 'sonner';
 import { getAppBaseUrl } from '@/utils/appUrl';
 import { supabase } from '@/integrations/supabase/client';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 const DIETARY_LABEL: Record<string, string> = {
   vegetarien: '🥗 Végétarien',
@@ -146,7 +147,7 @@ export const GuestsList = ({ pageType, pageId, canEdit }: Props) => {
       {canEdit && (
         <Card className="p-3 space-y-2 rounded-2xl">
           <Input placeholder="Nom de l'invité" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
-          <Input placeholder="Téléphone (optionnel)" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} />
+          <PhoneInput value={phone} onChange={setPhone} placeholder="Téléphone (optionnel)" />
           <Button size="sm" onClick={add} disabled={!name.trim()}><Plus className="h-4 w-4" /> Ajouter</Button>
         </Card>
       )}
