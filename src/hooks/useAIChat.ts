@@ -169,7 +169,19 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
           setMessages(prev => prev.slice(0, -1));
           return;
         }
-        throw new Error(errorData.error || 'Erreur lors de l\'appel à l\'assistant');
+        if (response.status === 402) {
+          toast({
+            title: 'Crédits IA épuisés 💛',
+            description:
+              "L'assistant IA est temporairement indisponible. L'équipe a été notifiée — réessaie un peu plus tard.",
+            variant: 'destructive',
+          });
+          setMessages(prev => prev.slice(0, -1));
+          return;
+        }
+        const err: any = new Error(errorData.error || 'Erreur lors de l\'appel à l\'assistant');
+        err.status = response.status;
+        throw err;
       }
 
       // Traiter le streaming SSE

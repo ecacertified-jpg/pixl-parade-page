@@ -1,81 +1,59 @@
+## 1. Modale "Créer une page client" (ClientsManager)
 
-# Plan — Inscription express & pages anniversaire déléguées
+- **Erreur "Failed to send a request to the Edge Function"** : la fonction `create-client-account` n'est pas joignable. Action : redéployer `create-client-account` et `claim-client-account`, vérifier les logs, puis durcir le hook côté client (affichage du vrai message d'erreur edge).
+- **Champ date** : remplacer le `<Input type="date">` par `BirthdayPicker` (`src/components/ui/birthday-picker.tsx`) — même UX que l'onboarding "C'est quand ton anniversaire ?" (placeholder `jj/mm/aaaa`, bouton calendrier, helper "Tapez la date ou utilisez le calendrier"). `disableFuture=false` (anniv futur autorisé pour la prochaine célébration).
+- **Email optionnel** : retirer la validation bloquante, ajouter `placeholder="ex: kady@email.com"` et un helper text sous le champ "Optionnel — pour lui envoyer le lien aussi par email".
 
-## 1. Parcours d'inscription express (auto-création de la page)
+## 2. Erreur chat Assistant IA
 
-**Objectif** : raccourcir l'inscription. Dès que le compte est créé (Google OAuth OU OTP WhatsApp validé), JDV crée et publie automatiquement la page d'anniversaire de l'utilisateur pour l'année en cours, puis le redirige vers cette page. L'onboarding complet (goûts, souhaits, amis, cagnotte, partages, photos) reste accessible **plus tard** via :
-- le modal d'onboarding du dashboard (déjà existant) ;
-- l'entrée "Ma page d'anniversaire" du bouton **+** de la bottom bar (déjà existante).
+- Symptôme : toast "Une erreur est survenue. Veuillez réessayer." après envoi. Hook `useAIChat` appelle l'edge `ai-chat-assistant` en streaming SSE.
+- Action : redéployer `ai-chat-assistant`, inspecter les logs (clé `LOVABLE_API_KEY` / `OPENAI_API_KEY` / variable d'env manquante, ou erreur de parsing du body). Corriger la cause racine. Améliorer la remontée d'erreur du hook (afficher `errorData.error` exact dans le toast pour debug futur).
 
-### Comportement
-- Marqueur `intent=express_birthday` (et alias `create_birthday_page` déjà utilisé par `VisitorConversionCTA`) ajouté à l'URL `/auth`.
-- À la fin de l'inscription **réussie** (Google callback OU OTP vérifié) et **seulement pour ce intent** :
-  1. Vérifier qu'aucune page d'anniversaire n'existe pour l'année en cours.
-  2. Créer la ligne `birthday_pages` minimale : `user_id`, `celebration_year = year(now)`, `slug` auto, `is_active = true`, `published_at = now()`, `published_via_onboarding = false`, `title = "{prénom} fête son anniversaire"`. La date d'anniversaire est déjà collectée en pré-auth (`PreAuthDiscovery`), donc disponible dans les metadata.
-  3. Marquer un flag local `bp_type_${userId} = 'self'` pour cohérence avec `useOnboarding`.
-  4. Rediriger vers `/birthday/{slug}?welcome=1` au lieu de `/dashboard`.
-- L'onboarding obligatoire est **désactivé en bloc** pour ces utilisateurs : `profiles.onboarding_completed = true` n'est **pas** mis à jour ; à la place le hook `useOnboarding` continue de calculer les étapes restantes et de proposer la complétion dans le dashboard. Aucun blocage de navigation.
-- Si la création de page échoue (réseau, doublon), on log et on redirige tout de même vers `/dashboard?bp_express_failed=1` qui ouvrira le `BirthdayPageBuilderModal`.
+## 3. Page anniversaire / event
 
-### Réutilisation par `VisitorConversionCTA`
-- Le CTA visiteur (`src/components/VisitorConversionCTA.tsx`) construit déjà `intent=create_birthday_page`. On le bascule sur `intent=express_birthday` (même comportement côté `/auth`). Texte CTA inchangé.
+### 3a. Bandeaux d'alerte/info (UrgentMessageBanner) — affichage harmonieux
 
-## 2. Onglet "Clients" dans Mes coulisses (organisateurs)
+Aujourd'hui : `space-y-2` empile verticalement chaque message ⇒ liste longue avec plusieurs messages.
 
-**Objectif** : un organisateur d'événement peut créer des pages d'anniversaire **au nom de ses clients**, générer un lien magique d'inscription/connexion, et conserver les droits d'admin sur le compte créé.
+Refonte :
+- **0 message** : rien (déjà OK).
+- **1 message** : bandeau pleine largeur tel quel.
+- **2+ messages** : carrousel horizontal compact avec snap (`overflow-x-auto snap-x snap-mandatory`), chaque carte fait ~85% de la largeur, indicateurs (dots) sous le carrousel, auto-rotation toutes les 5 s (respect `prefers-reduced-motion`). Hauteur fixe ⇒ pas d'expansion verticale quel que soit le nombre de messages.
 
-### UI
-- Nouveau `TabsTrigger value="clients"` dans `OrganizationSection.tsx` (visible uniquement pour `isOwner` ou rôle `admin`).
-- Nouveau composant `ClientsManager.tsx` listant les clients créés par l'organisateur courant pour cet événement, avec :
-  - Bouton **"Créer une page client"** → formulaire (prénom, nom, téléphone, email facultatif, date d'anniversaire).
-  - Pour chaque client : lien à copier (`Copier`), bouton WhatsApp pré-rempli, statut (`En attente d'activation` / `Réclamé`), bouton **Ouvrir la page**.
+### 3b. Suppression sections doublons
+
+Dans `BirthdayPage.tsx` (≈ l.689-705) et `EventPage.tsx` (≈ l.270-280), supprimer entièrement le bloc `<section>✨ Célébrer</section>` qui contient `<CelebrationFeed>` + `<ViralShareBar>`.
+
+Note : `CelebrationFeed` (mur de célébrations / publications) reste accessible ailleurs ? À vérifier. Si oui, on supprime seulement `ViralShareBar` et on garde `CelebrationFeed`. Sinon on supprime tout le bloc comme demandé.
+
+→ **Choix retenu (interprétation littérale du brief)** : supprimer la section "Célébrer" entière (bouton "Publier une célébration" + feed) ET le bloc "Fais rayonner ce moment" (`ViralShareBar`). Le partage reste assuré par le bouton flottant Partage + le bouton Partage sous le bouton Live de la vidéo de couverture.
+
+## 4. Sélecteur indicatif pays — onglets Invités & Équipe
+
+- Créer un composant réutilisable `PhoneInputWithCountry` (input + Select indicatif basé sur `src/config/countries.ts`).
+- Indicatif par défaut = pays de l'utilisateur connecté (`profile.country_code` → `phonePrefix`). Fallback `+225`.
+- Stocker la valeur normalisée `+XXX XXXXXX` côté DB (rester compatible avec l'existant en concaténant prefix + numéro).
+- Intégration :
+  - `GuestsList.tsx` (champ "Téléphone (optionnel)")
+  - `OrganizersManager.tsx` (champ "Téléphone (WhatsApp)")
+  - Bonus cohérence : `ClientsManager.tsx` (même champ).
+
+## 5. Modale Wave — masquer le numéro
+
+Dans `WaveCheckoutModal.tsx` étape `pay`, supprimer le bloc "Envoie à +225..." (lignes 97-104). Conserver "Montant exact" + bouton "Ouvrir Wave" (le lien Wave pré-remplit déjà destinataire et montant) + "J'ai payé". Le numéro reste invisible côté UI.
+
+---
+
+### Fichiers à modifier
+- `src/components/organization/ClientsManager.tsx` (BirthdayPicker, email optionnel, phone selector, meilleur message d'erreur)
+- `src/components/organization/UrgentMessageBanner.tsx` (carrousel pour 2+)
+- `src/pages/BirthdayPage.tsx`, `src/pages/EventPage.tsx` (retirer section Célébrer + ViralShareBar)
+- `src/components/organization/GuestsList.tsx`, `src/components/organization/OrganizersManager.tsx` (phone selector)
+- `src/features/subscription/WaveCheckoutModal.tsx` (masquer numéro)
+- `src/hooks/useAIChat.ts` (toast d'erreur explicite)
+
+### Fichiers à créer
+- `src/components/ui/phone-input.tsx` (input + selector indicatif)
 
 ### Backend
-- Nouvelle table `client_accounts` (organisateur ↔ client) :
-  - `id`, `organizer_user_id`, `event_page_id` (nullable, page d'événement liée), `claim_token` (unique), `first_name`, `last_name`, `phone`, `email`, `birthday`, `created_user_id` (nullable, rempli à la réclamation), `birthday_page_id` (FK), `claimed_at`, timestamps.
-  - RLS : l'organisateur (créateur) lit/écrit ses lignes ; `service_role` plein accès ; `anon` peut lire **uniquement** via token de claim (passe par edge function).
-- Nouvelle table `client_admins` (qui peut administrer quel compte) :
-  - `id`, `client_user_id`, `admin_user_id`, `granted_at`, `revoked_at`.
-  - RLS : l'admin ou l'utilisateur cible peut lire ; aucune écriture client (gérée par edge functions).
-- Édition légère des RLS de `birthday_pages` : un `admin_user_id` listé dans `client_admins` (actif) peut UPDATE/INSERT/DELETE sur les pages d'anniversaire de `client_user_id`. Idem pour `birthday_page_photos`, `collective_funds` créés via la page. Implémenté via `SECURITY DEFINER` `public.is_client_admin(_admin uuid, _client uuid)`.
-
-### Edge functions
-- `create-client-account` :
-  - Auth requis (organisateur). Crée la ligne `client_accounts` + génère `claim_token` aléatoire. Si une page anniversaire doit être pré-créée (`birthday` fourni), crée un **placeholder** `birthday_pages` rattaché à `client_accounts.id` (sans `user_id` encore).
-  - Insère immédiatement une ligne `client_admins` "en attente" qui sera activée à la réclamation.
-  - Retourne `{ claim_url, share_message }`. Le `claim_url` pointe vers `/auth?tab=signup&claim={token}&intent=express_birthday`.
-- `claim-client-account` :
-  - Appelée juste après une inscription/connexion réussie quand un `claim` est présent dans l'URL.
-  - Service role : vérifie le token, rattache `created_user_id`, transfère le `birthday_page` placeholder au nouvel utilisateur, active la ligne `client_admins` (`organizer_user_id` ↔ nouveau user). Idempotent.
-
-### Flux côté `/auth`
-- Si `claim` est présent : après Google OAuth callback **ou** validation OTP, appel à `claim-client-account` avant la redirection. Si la page existe déjà, on saute la création express ; sinon on retombe sur le flux express standard.
-
-## 3. Détails techniques
-
-### Fichiers créés
-- `src/components/organization/ClientsManager.tsx`
-- `src/hooks/useOrganizerClients.ts`
-- `supabase/functions/create-client-account/index.ts`
-- `supabase/functions/claim-client-account/index.ts`
-- Migration SQL : tables `client_accounts`, `client_admins`, fonction `is_client_admin`, policies, GRANTs.
-
-### Fichiers modifiés
-- `src/pages/Auth.tsx` : à la fin du flux signup/OAuth, si `intent === 'express_birthday'` ou `claim` présent → appeler nouvel helper `runExpressPostSignup(userId, { claim })` (créé dans `src/utils/expressSignup.ts`) qui :
-  - appelle `claim-client-account` si `claim` ;
-  - sinon insère `birthday_pages` (year courante) en utilisant la birthday des metadata ;
-  - redirige vers `/birthday/{slug}?welcome=1`.
-- `src/components/VisitorConversionCTA.tsx` : intent → `express_birthday`.
-- `src/components/organization/OrganizationSection.tsx` : nouvel onglet "👥 Clients" (visible si `isOwner`).
-- `src/hooks/useOnboarding.ts` : ne pas forcer l'ouverture du modal bloquant pour les comptes créés via `express_birthday` (flag `localStorage.express_birthday_${userId} = '1'`). L'onboarding reste accessible et calculable, mais ne s'auto-affiche pas en plein écran ; il apparaît en bannière "Compléter ma page" dans le dashboard.
-
-### Hors-scope
-- Pas de refonte du `BirthdayPageBuilderModal` lui-même.
-- Pas de modification des autres onglets de Mes coulisses.
-- Pas de gestion multi-organisateurs sur un même client (1 organisateur principal par client pour cette V1, mais l'architecture le permettra plus tard).
-
-### Risques / points d'attention
-- Les RLS de `birthday_pages` actuelles supposent `user_id = auth.uid()`. L'ajout de la branche `is_client_admin(auth.uid(), birthday_pages.user_id)` doit être testée pour ne pas casser les policies existantes (on **ajoute** une policy permissive supplémentaire, on ne modifie pas l'existante).
-- Le `birthday_pages` placeholder créé avant claim n'a pas de `user_id` valide → on stocke `user_id = organizer_user_id` temporairement avec un flag `is_placeholder=true` (nouvelle colonne nullable) pour rester compatible avec la FK existante. Au claim, on remplace par le `created_user_id`.
-
-Confirme et je passe en build.
+- Redéployer `create-client-account`, `claim-client-account`, `ai-chat-assistant` et inspecter les logs pour corriger les causes des erreurs.

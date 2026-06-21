@@ -94,15 +94,7 @@ export function WaveCheckoutModal({ open, onClose, planTier, planName, billingCy
         ) : (
           <div className="space-y-4">
             <div className="rounded-2xl border bg-gradient-to-br from-primary/5 via-background to-accent/10 p-5 text-center">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Envoie à</p>
-              <button
-                onClick={() => recipient && handleCopy(recipient, 'Numéro Wave')}
-                className="mt-1 inline-flex items-center gap-2 font-poppins text-lg font-semibold text-foreground hover:text-primary"
-              >
-                {recipient}
-                <Copy className="h-4 w-4" />
-              </button>
-              <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">Montant exact</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Montant exact</p>
               <button
                 onClick={() => handleCopy(String(amountXof), 'Montant')}
                 className="mt-1 inline-flex items-center gap-2 font-poppins text-2xl font-bold text-foreground hover:text-primary"
