@@ -235,6 +235,29 @@ function AdminDashboardContent() {
         {/* Growth Alerts Banner */}
         <GrowthAlertsBanner />
 
+        {/* Confirmation paiements mobiles (Wave abonnements) */}
+        <Card className="border-primary/40 bg-gradient-to-br from-primary/5 via-background to-accent/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Confirmation paiements mobiles</CardTitle>
+            </div>
+            {pendingWaveCount > 0 && (
+              <Badge className="bg-red-600 text-white hover:bg-red-700">
+                {pendingWaveCount} en attente
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Valide les paiements Wave reçus pour activer les abonnements Essentiel et Premium.
+            </p>
+            <Button asChild size="sm" variant={pendingWaveCount > 0 ? 'default' : 'outline'}>
+              <Link to="/admin/abonnements-wave">Ouvrir</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Alerts */}
         <div className="grid gap-4">
           {stats.pendingApprovals > 0 && (
