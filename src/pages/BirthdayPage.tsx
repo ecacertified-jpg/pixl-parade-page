@@ -37,6 +37,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
 import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
+import { PlanExpiredBadge } from "@/features/subscription/PlanExpiredBadge";
 
 interface BirthdayPageData {
   id: string;
@@ -684,6 +685,7 @@ const BirthdayPage = () => {
         {page && (
           <UrgentMessageBanner pageType="birthday" pageId={page.id} />
         )}
+        <PlanExpiredBadge visible={isOwner} className="mx-auto" />
         {page && (
           <CelebrationArtisansSection
             artisans={((page as any).celebration_artisans ?? []) as CelebrationArtisan[]}

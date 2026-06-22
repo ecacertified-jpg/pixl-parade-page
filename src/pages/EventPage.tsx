@@ -20,6 +20,7 @@ import { FundSelector } from "@/components/birthday/FundSelector";
 import { CelebrationArtisansSection } from "@/components/birthday/CelebrationArtisansSection";
 import { UrgentMessageBanner } from "@/components/organization/UrgentMessageBanner";
 import { OrganizationSection } from "@/components/organization/OrganizationSection";
+import { PlanExpiredBadge } from "@/features/subscription/PlanExpiredBadge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { MyOtherPagesSection } from "@/components/MyOtherPagesSection";
@@ -264,6 +265,7 @@ const EventPage = () => {
         {page && (
           <UrgentMessageBanner pageType="event" pageId={page.id} />
         )}
+        <PlanExpiredBadge visible={isOwner} className="mx-auto" />
         {page && (
           <CelebrationArtisansSection
             artisans={((page as any).celebration_artisans ?? []) as CelebrationArtisan[]}
