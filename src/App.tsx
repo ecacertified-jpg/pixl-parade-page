@@ -13,6 +13,7 @@ import { CountryProvider } from "@/contexts/CountryContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PublicRoute } from "@/components/PublicRoute";
 import { AuthGateProvider } from "@/contexts/AuthGateContext";
+import { UpgradePromptProvider } from "@/features/subscription/useUpgradePrompt";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { UpdateToast } from "@/components/pwa/UpdateToast";
 import { NetworkQualityHint } from "@/components/pwa/NetworkQualityHint";
@@ -211,6 +212,7 @@ const App = () => (
             <BrowserRouter>
               <GoogleAnalytics />
             <AuthGateProvider>
+            <UpgradePromptProvider>
             <AnimatedRoutes>
             <Route path="/" element={<Landing />} />
             <Route path="/privacy-policy" element={<L><PrivacyPolicy /></L>} />
