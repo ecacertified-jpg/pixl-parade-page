@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Store, DollarSign, TrendingUp, AlertCircle, CheckCircle, Clock, CheckCheck, Loader2 } from 'lucide-react';
+import { Users, Store, DollarSign, TrendingUp, AlertCircle, CheckCircle, Clock, CheckCheck, Loader2, Smartphone } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +53,17 @@ export default function AdminDashboard() {
 // Inner component that can safely use useAdminCountry
 function AdminDashboardContent() {
   const { selectedCountry } = useAdminCountry();
+  const { data: pendingWaveCount = 0 } = useQuery({
+    queryKey: ['admin-wave-pending-count'],
+    queryFn: async () => {
+      const { count } = await (supabase as any)
+        .from('wave_subscription_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      return count ?? 0;
+    },
+    refetchInterval: 30_000,
+  });
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     activeClients: 0,
