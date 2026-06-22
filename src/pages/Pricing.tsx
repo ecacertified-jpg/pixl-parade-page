@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { FEATURE_CATALOG, type FeatureId } from '@/features/subscription/featureCatalog';
 import { Check, Crown, Sparkles, Star, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -78,6 +80,9 @@ export default function Pricing() {
   const { allPlans, tier: currentTier, isLoading } = usePlan();
   const { user } = useAuth();
   const { data: pending } = usePendingWaveRequest();
+  const [params] = useSearchParams();
+  const fromFeature = params.get('from') as FeatureId | null;
+  const fromMeta = fromFeature && FEATURE_CATALOG[fromFeature] ? FEATURE_CATALOG[fromFeature] : null;
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [waveOpen, setWaveOpen] = useState<{ tier: 'essentiel' | 'premium' } | null>(null);
@@ -132,6 +137,12 @@ export default function Pricing() {
           Choisis le plan qui te ressemble — pour préparer, célébrer et garder en
           souvenir chaque moment heureux.
         </p>
+        {fromMeta && (
+          <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground/90">
+            ✨ Pour débloquer <strong>{fromMeta.label}</strong>, passe au plan
+            <strong className="capitalize"> {fromMeta.requires}</strong>. {fromMeta.benefit}
+          </div>
+        )}
 
         <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <div className="flex items-center gap-3 rounded-full border bg-background/60 px-4 py-2 shadow-soft">

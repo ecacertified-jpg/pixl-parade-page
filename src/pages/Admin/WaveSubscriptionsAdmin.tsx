@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X, Loader2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +63,24 @@ export default function WaveSubscriptionsAdmin() {
   const { data: rows = [], isLoading, refetch } = useWaveRequests(tab);
   const qc = useQueryClient();
 
+  // Realtime : rafraîchit la liste dès qu'une nouvelle demande Wave arrive
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-wave-requests')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'wave_subscription_requests' },
+        () => {
+          qc.invalidateQueries({ queryKey: ['admin-wave-requests'] });
+          qc.invalidateQueries({ queryKey: ['admin-wave-pending-count'] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
   const [confirmRow, setConfirmRow] = useState<WaveRow | null>(null);
   const [rejectRow, setRejectRow] = useState<WaveRow | null>(null);
   const [txRef, setTxRef] = useState('');
@@ -121,9 +139,9 @@ export default function WaveSubscriptionsAdmin() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <header className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="font-poppins text-2xl font-semibold">Abonnements Wave</h1>
+          <h1 className="font-poppins text-2xl font-semibold">Confirmation paiements mobiles</h1>
           <p className="text-sm text-muted-foreground">
-            Valide ou rejette les paiements Wave reçus pour activer les abonnements JDV.
+            Valide les paiements Wave reçus pour activer les abonnements Essentiel et Premium des utilisateurs.
           </p>
         </div>
         <div className="flex items-center gap-2">
