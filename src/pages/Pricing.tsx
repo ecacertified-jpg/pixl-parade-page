@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FEATURE_CATALOG, type FeatureId } from '@/features/subscription/featureCatalog';
 import { Check, Crown, Sparkles, Star, Smartphone, Lock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -81,6 +81,7 @@ export default function Pricing() {
   const { user } = useAuth();
   const { data: pending } = usePendingWaveRequest();
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const fromFeature = params.get('from') as FeatureId | null;
   const fromMeta = fromFeature && FEATURE_CATALOG[fromFeature] ? FEATURE_CATALOG[fromFeature] : null;
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -386,6 +387,11 @@ export default function Pricing() {
           <WaveCheckoutModal
             open
             onClose={() => setWaveOpen(null)}
+            onSuccess={() => {
+              if (params.get('from')) {
+                navigate('/pricing', { replace: true });
+              }
+            }}
             planTier={waveOpen.tier}
             planName={p.name}
             billingCycle={cycle}

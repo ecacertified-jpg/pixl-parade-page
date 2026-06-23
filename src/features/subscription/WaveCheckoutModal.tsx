@@ -9,13 +9,14 @@ import { useCreateWaveRequest } from './useWaveCheckout';
 interface Props {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   planTier: 'essentiel' | 'premium';
   planName: string;
   billingCycle: 'monthly' | 'yearly';
   amountXof: number;
 }
 
-export function WaveCheckoutModal({ open, onClose, planTier, planName, billingCycle, amountXof }: Props) {
+export function WaveCheckoutModal({ open, onClose, onSuccess, planTier, planName, billingCycle, amountXof }: Props) {
   const createReq = useCreateWaveRequest();
   const [step, setStep] = useState<'review' | 'pay'>('review');
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function WaveCheckoutModal({ open, onClose, planTier, planName, billingCy
 
   const handleDone = () => {
     toast.success('Demande enregistrée — on vérifie ton paiement sous 24h 💛');
+    onSuccess?.();
     onClose();
   };
 
