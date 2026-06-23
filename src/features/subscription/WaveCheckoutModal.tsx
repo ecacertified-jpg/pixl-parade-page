@@ -51,6 +51,7 @@ export function WaveCheckoutModal({ open, onClose, onSuccess, planTier, planName
 
   const handleDone = () => {
     toast.success('Demande enregistrée — on vérifie ton paiement sous 24h 💛');
+    onSuccess?.();
     onClose();
   };
 
