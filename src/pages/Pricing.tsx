@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FEATURE_CATALOG, type FeatureId } from '@/features/subscription/featureCatalog';
-import { Check, Crown, Sparkles, Star, Smartphone } from 'lucide-react';
+import { Check, Crown, Sparkles, Star, Smartphone, Lock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -88,6 +88,17 @@ export default function Pricing() {
   const [waveOpen, setWaveOpen] = useState<{ tier: 'essentiel' | 'premium' } | null>(null);
   const [downgradeTarget, setDowngradeTarget] = useState<'free' | 'essentiel' | null>(null);
   const [downgrading, setDowngrading] = useState(false);
+  const targetCardRef = useRef<HTMLDivElement | null>(null);
+
+  const highlightedTier: PlanTier | null = fromMeta?.requires ?? null;
+
+  useEffect(() => {
+    if (!highlightedTier || !targetCardRef.current) return;
+    const t = setTimeout(() => {
+      targetCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
+    return () => clearTimeout(t);
+  }, [highlightedTier]);
 
   const handleDowngrade = async () => {
     if (!downgradeTarget) return;
@@ -124,27 +135,52 @@ export default function Pricing() {
     return cycle === 'monthly' ? plan.price_xof_monthly : plan.price_xof_yearly;
   };
 
+  const tierLabel = (t: PlanTier) =>
+    ordered.find((p) => p.tier === t)?.name ?? (t === 'free' ? 'Gratuit' : t === 'essentiel' ? 'Essentiel' : 'Premium');
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-secondary/30 to-background">
-      <header className="mx-auto max-w-5xl px-4 pt-12 pb-8 text-center md:pt-20">
-        <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/15">
-          Joie de Vivre Africa
-        </Badge>
-        <h1 className="font-poppins text-3xl font-semibold text-foreground md:text-5xl">
-          Célèbre les tiens. <span className="text-primary">Sans limite.</span>
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground md:text-lg">
-          Choisis le plan qui te ressemble — pour préparer, célébrer et garder en
-          souvenir chaque moment heureux.
-        </p>
-        {fromMeta && (
-          <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground/90">
-            ✨ Pour débloquer <strong>{fromMeta.label}</strong>, passe au plan
-            <strong className="capitalize"> {fromMeta.requires}</strong>. {fromMeta.benefit}
+    <div className="min-h-screen bg-gradient-to-b from-background via-secondary/20 to-background">
+      <header
+        className={cn(
+          'mx-auto max-w-5xl px-4 text-center',
+          fromMeta ? 'pt-6 pb-4 md:pt-10' : 'pt-10 pb-6 md:pt-14'
+        )}
+      >
+        {fromMeta ? (
+          <div className="mx-auto max-w-xl rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-accent/10 p-5 text-left shadow-soft">
+            <div className="flex items-center gap-2 text-xs font-medium text-primary">
+              <Lock className="h-3.5 w-3.5" /> Fonctionnalité {tierLabel(fromMeta.requires)}
+            </div>
+            <h1 className="mt-2 font-poppins text-xl font-semibold text-foreground md:text-2xl">
+              Débloque <span className="text-primary">{fromMeta.label}</span>
+            </h1>
+            <p className="mt-1 text-sm text-foreground/80">{fromMeta.benefit}</p>
+            {user && fromMeta.requires !== 'free' && (
+              <Button
+                className="mt-4 w-full gap-2 sm:w-auto"
+                onClick={() =>
+                  setWaveOpen({ tier: fromMeta.requires as 'essentiel' | 'premium' })
+                }
+                disabled={!!pending}
+              >
+                <Sparkles className="h-4 w-4" />
+                Passer {tierLabel(fromMeta.requires)} maintenant
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
+        ) : (
+          <>
+            <h1 className="font-poppins text-2xl font-semibold text-foreground md:text-3xl">
+              Nos plans
+            </h1>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+              Pour préparer, célébrer et garder en souvenir chaque moment heureux.
+            </p>
+          </>
         )}
 
-        <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <div className="flex items-center gap-3 rounded-full border bg-background/60 px-4 py-2 shadow-soft">
             <span className={cn('text-sm', cycle === 'monthly' && 'font-semibold')}>Mensuel</span>
             <Switch
@@ -186,23 +222,27 @@ export default function Pricing() {
           {FEATURE_ROWS.map(({ tier, lines }) => {
             const plan = ordered.find((p) => p.tier === tier);
             const isCurrent = currentTier === tier;
-            const isHighlight = tier === 'premium';
+            const isRecommended = highlightedTier ? tier === highlightedTier : tier === 'premium';
+            const isHighlight = isRecommended;
             const price = priceFor(tier);
             const isFree = tier === 'free';
 
             return (
               <Card
                 key={tier}
+                ref={tier === highlightedTier ? targetCardRef : undefined}
                 className={cn(
                   'relative flex flex-col gap-5 p-6 transition',
                   isHighlight
-                    ? 'border-primary/60 bg-gradient-to-br from-primary/5 via-background to-accent/10 shadow-soft md:scale-[1.03]'
+                    ? 'border-primary/60 bg-gradient-to-br from-primary/5 via-background to-accent/10 shadow-soft md:scale-[1.03] ring-2 ring-primary/40'
                     : 'bg-background/80'
                 )}
               >
                 {isHighlight && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-                    Le plus choisi
+                    {highlightedTier && tier === highlightedTier
+                      ? `Recommandé pour ${fromMeta?.label ?? 'toi'}`
+                      : 'Le plus choisi'}
                   </Badge>
                 )}
 
