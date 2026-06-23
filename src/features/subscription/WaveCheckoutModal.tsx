@@ -16,7 +16,7 @@ interface Props {
   amountXof: number;
 }
 
-export function WaveCheckoutModal({ open, onClose, planTier, planName, billingCycle, amountXof }: Props) {
+export function WaveCheckoutModal({ open, onClose, onSuccess, planTier, planName, billingCycle, amountXof }: Props) {
   const createReq = useCreateWaveRequest();
   const [step, setStep] = useState<'review' | 'pay'>('review');
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
