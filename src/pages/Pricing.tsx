@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FEATURE_CATALOG, type FeatureId } from '@/features/subscription/featureCatalog';
 import { Check, Crown, Sparkles, Star, Smartphone, Lock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
