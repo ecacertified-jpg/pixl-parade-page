@@ -9,6 +9,7 @@ import { useCreateWaveRequest } from './useWaveCheckout';
 interface Props {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   planTier: 'essentiel' | 'premium';
   planName: string;
   billingCycle: 'monthly' | 'yearly';
