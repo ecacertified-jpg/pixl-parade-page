@@ -387,6 +387,11 @@ export default function Pricing() {
           <WaveCheckoutModal
             open
             onClose={() => setWaveOpen(null)}
+            onSuccess={() => {
+              if (params.get('from')) {
+                navigate('/pricing', { replace: true });
+              }
+            }}
             planTier={waveOpen.tier}
             planName={p.name}
             billingCycle={cycle}
