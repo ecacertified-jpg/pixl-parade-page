@@ -80,7 +80,8 @@ export default function Pricing() {
   const { allPlans, tier: currentTier, isLoading } = usePlan();
   const { user } = useAuth();
   const { data: pending } = usePendingWaveRequest();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const fromFeature = params.get('from') as FeatureId | null;
   const fromMeta = fromFeature && FEATURE_CATALOG[fromFeature] ? FEATURE_CATALOG[fromFeature] : null;
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
