@@ -388,7 +388,10 @@ export default function Pricing() {
             open
             onClose={() => setWaveOpen(null)}
             onSuccess={() => {
-              if (params.get('from')) {
+              const returnTo = params.get('return_to');
+              if (returnTo) {
+                navigate(decodeURIComponent(returnTo), { replace: true });
+              } else if (params.get('from')) {
                 navigate('/pricing', { replace: true });
               }
             }}

@@ -74,7 +74,7 @@ export function UpgradePromptModal({ feature, reason, onClose }: Props) {
           <div className="flex flex-col gap-2 pt-2">
             <Button asChild className="w-full gap-2">
               <Link
-                to={`/pricing?from=${feature}`}
+                to={`/pricing?from=${feature}&return_to=${encodeURIComponent(window.location.pathname + window.location.search)}`}
                 onClick={onClose}
               >
                 <Sparkles className="h-4 w-4" /> Découvrir le plan {TIER_LABEL[targetTier]}
