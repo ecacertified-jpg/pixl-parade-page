@@ -40,15 +40,21 @@ export function EventCountdown({ eventDate, prefixLabel = "Dans" }: Props) {
     "mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-background/70 backdrop-blur border border-primary/20 shadow-soft";
 
   if (diff <= 0) {
+    // Same calendar day → "Aujourd'hui"; otherwise → "Terminé".
+    const today = new Date();
+    const isToday =
+      today.getFullYear() === target.getFullYear() &&
+      today.getMonth() === target.getMonth() &&
+      today.getDate() === target.getDate();
     return (
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         className={pillClass}
-        aria-label="Le grand jour est arrivé"
+        aria-label={isToday ? "Le grand jour est arrivé" : "Événement terminé"}
       >
         <span className="font-poppins font-semibold text-sm md:text-base text-primary">
-          🎉 C'est aujourd'hui !
+          {isToday ? "🎉 C'est aujourd'hui !" : "✅ Terminé"}
         </span>
       </motion.div>
     );
