@@ -23,68 +23,68 @@ interface Props {
   emoji: string;
 }
 
-/** Bottom-anchored hero overlay shared by event pages (mariage, etc.). */
+/**
+ * Bottom-anchored hero overlay for event pages (mariage, diplôme, baptême, …).
+ * Mirrors the birthday hero layout: avatars on the left, title + countdown on the right.
+ */
 export function EventHeroOverlay({ page, creatorProfile, isWedding, emoji }: Props) {
+  const hasSpouse = isWedding && !!page.spouse_first_name;
+  const initial = (creatorProfile?.first_name || page.title || "?").charAt(0).toUpperCase();
+
   return (
     <div className="absolute inset-x-0 bottom-0 z-10 p-4 md:p-6">
-      <div className="flex flex-col items-center text-center">
-        {(creatorProfile || page.spouse_first_name) && (
-          <div className="flex items-center justify-center gap-2 mb-3">
-            {creatorProfile && (
+      <div className="flex items-end gap-3">
+        {/* Avatar(s) */}
+        <div className="relative flex items-center">
+          <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
+            {creatorProfile?.avatar_url ? (
+              <img
+                src={creatorProfile.avatar_url}
+                alt={creatorProfile.first_name || ""}
+                className="h-full w-full object-cover rounded-full"
+              />
+            ) : (
+              <AvatarFallback className="bg-primary/20 text-primary font-poppins font-bold text-lg">
+                {initial}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          {hasSpouse && (
+            <>
+              <Heart className="h-4 w-4 md:h-5 md:w-5 text-heart drop-shadow mx-1" />
               <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
-                {creatorProfile.avatar_url && (
+                {page.spouse_avatar_url ? (
                   <img
-                    src={creatorProfile.avatar_url}
-                    alt={creatorProfile.first_name || ""}
+                    src={page.spouse_avatar_url}
+                    alt={page.spouse_first_name || ""}
                     className="h-full w-full object-cover rounded-full"
                   />
-                )}
-                <AvatarFallback className="bg-primary/20 text-primary font-poppins font-bold text-lg">
-                  {(creatorProfile.first_name || "?").charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-            )}
-            {isWedding && page.spouse_first_name && (
-              <>
-                <Heart className="h-5 w-5 text-heart drop-shadow" />
-                <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
-                  {page.spouse_avatar_url && (
-                    <img
-                      src={page.spouse_avatar_url}
-                      alt={page.spouse_first_name}
-                      className="h-full w-full object-cover rounded-full"
-                    />
-                  )}
+                ) : (
                   <AvatarFallback className="bg-accent/20 text-accent font-poppins font-bold text-lg">
-                    {page.spouse_first_name.charAt(0)}
+                    {(page.spouse_first_name || "?").charAt(0).toUpperCase()}
                   </AvatarFallback>
-                </Avatar>
-              </>
-            )}
-          </div>
-        )}
+                )}
+              </Avatar>
+            </>
+          )}
+        </div>
 
-        <motion.h1
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, type: "spring" }}
-          className="text-2xl md:text-4xl font-bold font-poppins text-white drop-shadow-lg"
-        >
-          {emoji} {page.title}
-        </motion.h1>
-
-        {page.description && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-sm md:text-base text-white/90 mt-1 font-nunito drop-shadow"
+        {/* Title + countdown */}
+        <div className="flex-1 min-w-0 pb-1">
+          <motion.h1
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl md:text-3xl font-bold font-poppins text-white drop-shadow-lg truncate"
           >
-            {page.description}
-          </motion.p>
-        )}
-
-        {page.event_date && <EventCountdown eventDate={page.event_date} />}
+            {emoji} {page.title}
+          </motion.h1>
+          {page.event_date && (
+            <div className="mt-1">
+              <EventCountdown eventDate={page.event_date} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
