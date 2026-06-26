@@ -229,10 +229,10 @@ export function BirthdayAlbumFlickr({
       [item.id]: Math.max(0, (prev[item.id] || 0) + (isFav ? -1 : 1)),
     }));
     if (isFav) {
-      await supabase.from(binding.favoritesTable as any).delete()
+      await (supabase as any).from(binding.favoritesTable).delete()
         .eq("photo_id", item.id).eq("user_id", user.id);
     } else {
-      await supabase.from(binding.favoritesTable as any).insert({ photo_id: item.id, user_id: user.id });
+      await (supabase as any).from(binding.favoritesTable).insert({ photo_id: item.id, user_id: user.id });
     }
   };
 
