@@ -165,7 +165,7 @@ export function BirthdayAlbumFlickr({
         .select("photo_id, user_id, reaction_type")
         .in("photo_id", ids),
       supabase
-        .from("birthday_page_photo_favorites")
+        .from(binding.favoritesTable as any)
         .select("photo_id, user_id")
         .in("photo_id", ids),
       supabase
@@ -229,10 +229,10 @@ export function BirthdayAlbumFlickr({
       [item.id]: Math.max(0, (prev[item.id] || 0) + (isFav ? -1 : 1)),
     }));
     if (isFav) {
-      await supabase.from("birthday_page_photo_favorites").delete()
+      await supabase.from(binding.favoritesTable as any).delete()
         .eq("photo_id", item.id).eq("user_id", user.id);
     } else {
-      await supabase.from("birthday_page_photo_favorites").insert({ photo_id: item.id, user_id: user.id });
+      await supabase.from(binding.favoritesTable as any).insert({ photo_id: item.id, user_id: user.id });
     }
   };
 
@@ -348,9 +348,9 @@ export function BirthdayAlbumFlickr({
       const { data: urlData } = supabase.storage.from("birthday-page-photos").getPublicUrl(path);
       const name = await getProfileName();
       const { data, error } = await supabase
-        .from("birthday_page_photos")
+        .from(binding.photosTable)
         .insert({
-          birthday_page_id: pageId,
+          [binding.fkCol]: pageId,
           uploader_id: user.id,
           uploader_name: name,
           image_url: urlData.publicUrl,
@@ -398,9 +398,9 @@ export function BirthdayAlbumFlickr({
       } catch { /* ignore */ }
       const name = await getProfileName();
       const { data, error } = await supabase
-        .from("birthday_page_photos")
+        .from(binding.photosTable)
         .insert({
-          birthday_page_id: pageId,
+          [binding.fkCol]: pageId,
           uploader_id: user.id,
           uploader_name: name,
           image_url: urlData.publicUrl,
@@ -430,9 +430,9 @@ export function BirthdayAlbumFlickr({
     try {
       const name = await getProfileName();
       const { data, error } = await supabase
-        .from("birthday_page_photos")
+        .from(binding.photosTable)
         .insert({
-          birthday_page_id: pageId,
+          [binding.fkCol]: pageId,
           uploader_id: user!.id,
           uploader_name: name,
           image_url: null as unknown as string,
@@ -466,9 +466,9 @@ export function BirthdayAlbumFlickr({
       const { data: urlData } = supabase.storage.from("birthday-page-photos").getPublicUrl(path);
       const name = await getProfileName();
       const { data, error } = await supabase
-        .from("birthday_page_photos")
+        .from(binding.photosTable)
         .insert({
-          birthday_page_id: pageId,
+          [binding.fkCol]: pageId,
           uploader_id: user!.id,
           uploader_name: name,
           image_url: null as unknown as string,
@@ -528,7 +528,7 @@ export function BirthdayAlbumFlickr({
         }
       }
       const { error } = await supabase
-        .from("birthday_page_photos").delete().eq("id", deletingItem.id);
+        .from(binding.photosTable).delete().eq("id", deletingItem.id);
       if (error) throw error;
       onItemRemoved?.(deletingItem.id);
       toast.success("Supprimé");
@@ -550,7 +550,7 @@ export function BirthdayAlbumFlickr({
     const isSel = socialSharePhotoId === item.id;
     const newVal = isSel ? null : item.id;
     const { error } = await supabase
-      .from("birthday_pages").update({ social_share_photo_id: newVal }).eq("id", pageId);
+      .from(binding.pagesTable).update({ social_share_photo_id: newVal }).eq("id", pageId);
     if (error) { toast.error("Impossible de mettre à jour"); return; }
     onSocialSharePhotoChanged?.(newVal);
     supabase.functions.invoke("purge-birthday-og-cache", { body: { slug } }).catch(() => {});
