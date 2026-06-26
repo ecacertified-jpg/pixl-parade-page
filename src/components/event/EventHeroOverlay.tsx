@@ -34,8 +34,8 @@ export function EventHeroOverlay({ page, creatorProfile, isWedding, emoji }: Pro
   return (
     <div className="absolute inset-x-0 bottom-0 z-10 p-4 md:p-6">
       <div className="flex items-end gap-3">
-        {/* Avatar(s) */}
-        <div className="relative flex items-center">
+        {/* Avatar(s) — same sizing/ring as BirthdayPage hero */}
+        <div className={hasSpouse ? "relative flex items-center" : "relative"}>
           <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
             {creatorProfile?.avatar_url ? (
               <img
