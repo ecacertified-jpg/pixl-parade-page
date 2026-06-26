@@ -348,7 +348,7 @@ export function BirthdayAlbumFlickr({
       const { data: urlData } = supabase.storage.from("birthday-page-photos").getPublicUrl(path);
       const name = await getProfileName();
       const { data, error } = await supabase
-        .from(binding.photosTable)
+        .from(binding.photosTable as any)
         .insert({
           [binding.fkCol]: pageId,
           uploader_id: user.id,
@@ -398,7 +398,7 @@ export function BirthdayAlbumFlickr({
       } catch { /* ignore */ }
       const name = await getProfileName();
       const { data, error } = await supabase
-        .from(binding.photosTable)
+        .from(binding.photosTable as any)
         .insert({
           [binding.fkCol]: pageId,
           uploader_id: user.id,
@@ -430,7 +430,7 @@ export function BirthdayAlbumFlickr({
     try {
       const name = await getProfileName();
       const { data, error } = await supabase
-        .from(binding.photosTable)
+        .from(binding.photosTable as any)
         .insert({
           [binding.fkCol]: pageId,
           uploader_id: user!.id,
@@ -466,7 +466,7 @@ export function BirthdayAlbumFlickr({
       const { data: urlData } = supabase.storage.from("birthday-page-photos").getPublicUrl(path);
       const name = await getProfileName();
       const { data, error } = await supabase
-        .from(binding.photosTable)
+        .from(binding.photosTable as any)
         .insert({
           [binding.fkCol]: pageId,
           uploader_id: user!.id,
@@ -528,7 +528,7 @@ export function BirthdayAlbumFlickr({
         }
       }
       const { error } = await supabase
-        .from(binding.photosTable).delete().eq("id", deletingItem.id);
+        .from(binding.photosTable as any).delete().eq("id", deletingItem.id);
       if (error) throw error;
       onItemRemoved?.(deletingItem.id);
       toast.success("Supprimé");
