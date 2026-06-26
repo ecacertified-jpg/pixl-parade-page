@@ -30,7 +30,6 @@ import { CoverVideoCarousel } from "@/components/birthday/CoverVideoCarousel";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
 import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
 import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
-import { CountdownWidget } from "@/components/event/CountdownWidget";
 import { EventWishlistSection } from "@/components/event/EventWishlistSection";
 import { EventAIAssistant } from "@/components/event/EventAIAssistant";
 
@@ -260,9 +259,6 @@ const EventPage = () => {
       </motion.div>
 
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
-        {page?.event_date && (
-          <CountdownWidget eventDate={page.event_date} occasionEmoji={theme.emoji} />
-        )}
         {page && (
           <UrgentMessageBanner pageType="event" pageId={page.id} />
         )}
