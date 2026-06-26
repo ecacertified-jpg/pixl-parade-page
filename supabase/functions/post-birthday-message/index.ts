@@ -78,6 +78,7 @@ serve(async (req) => {
     const salt = Deno.env.get("VISITOR_PHONE_SALT") ?? "";
 
     const body = await req.json();
+    const pageKind: "birthday" | "event" = body?.page_kind === "event" ? "event" : "birthday";
     const slug = String(body?.slug ?? "").trim();
     const messageText = String(body?.message_text ?? "").trim().slice(0, 500);
     const mediaType = ALLOWED_MEDIA.includes(body?.media_type) ? body.media_type : "text";
@@ -97,15 +98,18 @@ serve(async (req) => {
     // Service role client
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-    // Find page
+    // Find page (birthday or event)
+    const pagesTable = pageKind === "event" ? "event_pages" : "birthday_pages";
+    const ownerCol = pageKind === "event" ? "creator_id" : "user_id";
     const { data: page, error: pageErr } = await admin
-      .from("birthday_pages")
-      .select("id, user_id, is_active")
+      .from(pagesTable)
+      .select(`id, ${ownerCol}, is_active`)
       .eq("slug", slug)
       .maybeSingle();
-    if (pageErr || !page || !page.is_active) {
+    if (pageErr || !page || !(page as any).is_active) {
       return json(404, { error: "Page introuvable ou inactive" });
     }
+    const ownerId = (page as any)[ownerCol];
 
     // Auth context (optional)
     let senderId: string | null = null;
@@ -173,9 +177,7 @@ serve(async (req) => {
       });
     }
 
-    const insertPayload = {
-      birthday_user_id: page.user_id,
-      birthday_page_id: page.id,
+    const baseInsert: Record<string, unknown> = {
       sender_id: senderId,
       sender_name: senderName,
       message_text: messageText || null,
@@ -190,13 +192,23 @@ serve(async (req) => {
       tone,
       moderation_status: mod.status,
       moderation_reason: mod.reason ?? null,
-      celebration_year: new Date().getUTCFullYear(),
     };
 
+    const messagesTable = pageKind === "event" ? "event_wishes_messages" : "birthday_wishes_messages";
+    const insertPayload =
+      pageKind === "event"
+        ? { ...baseInsert, event_page_id: page.id }
+        : {
+            ...baseInsert,
+            birthday_user_id: ownerId,
+            birthday_page_id: page.id,
+            celebration_year: new Date().getUTCFullYear(),
+          };
+
     const { data: inserted, error: insErr } = await admin
-      .from("birthday_wishes_messages")
+      .from(messagesTable)
       .insert(insertPayload)
-      .select("id, sender_name, message_text, media_type, media_url, media_metadata, audio_url, tone, moderation_status, created_at")
+      .select("id, sender_id, sender_name, message_text, media_type, media_url, media_metadata, audio_url, card_template_id, tone, moderation_status, is_hidden, reactions_count, created_at")
       .single();
     if (insErr) {
       console.error("insert error", insErr);
