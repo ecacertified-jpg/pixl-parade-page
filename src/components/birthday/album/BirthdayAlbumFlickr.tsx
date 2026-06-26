@@ -359,7 +359,7 @@ export function BirthdayAlbumFlickr({
         })
         .select(ALBUM_COLS).single();
       if (error) throw error;
-      onItemAdded(data as AlbumItem);
+      onItemAdded(data as unknown as AlbumItem);
       toast.success("Photo ajoutée ! 📸");
       setUploadSheet(null);
     } catch (err) {
@@ -411,7 +411,7 @@ export function BirthdayAlbumFlickr({
         })
         .select(ALBUM_COLS).single();
       if (error) throw error;
-      onItemAdded(data as AlbumItem);
+      onItemAdded(data as unknown as AlbumItem);
       toast.success("Vidéo ajoutée ! 🎬");
       setUploadSheet(null);
     } catch (err) {
@@ -441,7 +441,7 @@ export function BirthdayAlbumFlickr({
         })
         .select(ALBUM_COLS).single();
       if (error) throw error;
-      onItemAdded(data as AlbumItem);
+      onItemAdded(data as unknown as AlbumItem);
       setMemoryText("");
       setMemorySheet(null);
       toast.success("Souvenir partagé ! 💖");
@@ -478,7 +478,7 @@ export function BirthdayAlbumFlickr({
         })
         .select(ALBUM_COLS).single();
       if (error) throw error;
-      onItemAdded(data as AlbumItem);
+      onItemAdded(data as unknown as AlbumItem);
       setMemorySheet(null);
       toast.success("Souvenir audio partagé ! 🎙️");
     } catch (e) {
