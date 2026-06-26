@@ -4369,45 +4369,112 @@ export type Database = {
         }
         Relationships: []
       }
+      event_page_photo_favorites: {
+        Row: {
+          created_at: string
+          photo_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          photo_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          photo_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_page_photo_favorites_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "event_page_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_page_photo_views: {
+        Row: {
+          created_at: string
+          photo_id: string
+          viewer_fingerprint: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          photo_id: string
+          viewer_fingerprint?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          photo_id?: string
+          viewer_fingerprint?: string | null
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_page_photo_views_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "event_page_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_page_photos: {
         Row: {
           caption: string | null
           created_at: string
+          event_kind: string | null
           event_page_id: string
           id: string
           image_url: string
           media_type: string
+          memory_audio_duration: number | null
+          memory_audio_url: string | null
           memory_text: string | null
           uploader_id: string
           uploader_name: string | null
           video_thumbnail_url: string | null
           video_url: string | null
+          view_count: number
         }
         Insert: {
           caption?: string | null
           created_at?: string
+          event_kind?: string | null
           event_page_id: string
           id?: string
           image_url: string
           media_type?: string
+          memory_audio_duration?: number | null
+          memory_audio_url?: string | null
           memory_text?: string | null
           uploader_id: string
           uploader_name?: string | null
           video_thumbnail_url?: string | null
           video_url?: string | null
+          view_count?: number
         }
         Update: {
           caption?: string | null
           created_at?: string
+          event_kind?: string | null
           event_page_id?: string
           id?: string
           image_url?: string
           media_type?: string
+          memory_audio_duration?: number | null
+          memory_audio_url?: string | null
           memory_text?: string | null
           uploader_id?: string
           uploader_name?: string | null
           video_thumbnail_url?: string | null
           video_url?: string | null
+          view_count?: number
         }
         Relationships: [
           {
@@ -4432,6 +4499,7 @@ export type Database = {
           is_active: boolean
           occasion: string
           slug: string
+          social_share_photo_id: string | null
           spouse_avatar_url: string | null
           spouse_first_name: string | null
           spouse_user_id: string | null
@@ -4450,6 +4518,7 @@ export type Database = {
           is_active?: boolean
           occasion?: string
           slug: string
+          social_share_photo_id?: string | null
           spouse_avatar_url?: string | null
           spouse_first_name?: string | null
           spouse_user_id?: string | null
@@ -4468,6 +4537,7 @@ export type Database = {
           is_active?: boolean
           occasion?: string
           slug?: string
+          social_share_photo_id?: string | null
           spouse_avatar_url?: string | null
           spouse_first_name?: string | null
           spouse_user_id?: string | null
@@ -4789,28 +4859,67 @@ export type Database = {
       }
       event_wishes_messages: {
         Row: {
+          audio_url: string | null
+          card_template_id: string | null
           created_at: string
           event_page_id: string
           id: string
-          message_text: string
+          is_hidden: boolean
+          media_metadata: Json | null
+          media_type: string
+          media_url: string | null
+          message_text: string | null
+          moderation_reason: string | null
+          moderation_status: string
+          reactions_count: number
           sender_id: string | null
           sender_name: string | null
+          tone: string | null
+          visitor_first_name: string | null
+          visitor_phone_country: string | null
+          visitor_phone_hash: string | null
         }
         Insert: {
+          audio_url?: string | null
+          card_template_id?: string | null
           created_at?: string
           event_page_id: string
           id?: string
-          message_text: string
+          is_hidden?: boolean
+          media_metadata?: Json | null
+          media_type?: string
+          media_url?: string | null
+          message_text?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
+          reactions_count?: number
           sender_id?: string | null
           sender_name?: string | null
+          tone?: string | null
+          visitor_first_name?: string | null
+          visitor_phone_country?: string | null
+          visitor_phone_hash?: string | null
         }
         Update: {
+          audio_url?: string | null
+          card_template_id?: string | null
           created_at?: string
           event_page_id?: string
           id?: string
-          message_text?: string
+          is_hidden?: boolean
+          media_metadata?: Json | null
+          media_type?: string
+          media_url?: string | null
+          message_text?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
+          reactions_count?: number
           sender_id?: string | null
           sender_name?: string | null
+          tone?: string | null
+          visitor_first_name?: string | null
+          visitor_phone_country?: string | null
+          visitor_phone_hash?: string | null
         }
         Relationships: [
           {

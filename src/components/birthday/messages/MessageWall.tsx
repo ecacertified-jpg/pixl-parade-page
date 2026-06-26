@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBirthdayMessages } from "@/hooks/useBirthdayMessages";
+import { useBirthdayMessages, type MessagePageKind } from "@/hooks/useBirthdayMessages";
 import { MessageCard } from "./MessageCard";
 import { NewPostModal } from "./NewPostModal";
 
@@ -14,24 +14,38 @@ interface Props {
   slug: string;
   firstName: string;
   pageOwnerUserId: string;
+  pageKind?: MessagePageKind;
+  /** Optional custom title (defaults to "Messages d'anniversaire"). */
+  title?: string;
+  /** Optional emoji prefixed in the textarea placeholder of NewPostModal. */
+  occasionEmoji?: string;
 }
 
-export function MessageWall({ pageId, slug, firstName, pageOwnerUserId }: Props) {
+export function MessageWall({
+  pageId,
+  slug,
+  firstName,
+  pageOwnerUserId,
+  pageKind = "birthday",
+  title,
+  occasionEmoji,
+}: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const {
     messages, total, loading,
     search, setSearch, sort, setSort, prepend, remove,
-  } = useBirthdayMessages(pageId);
+  } = useBirthdayMessages(pageId, pageKind);
 
   const isOwner = user?.id === pageOwnerUserId;
+  const heading = title ?? (pageKind === "event" ? "Vœux & messages" : "Messages d'anniversaire");
 
   return (
     <Card className="p-5">
       <div className="mb-3 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Heart className="h-5 w-5 text-heart shrink-0" />
-          <h2 className="font-bold font-poppins truncate">Messages d'anniversaire</h2>
+          <h2 className="font-bold font-poppins truncate">{heading}</h2>
           <span className="text-xs text-muted-foreground shrink-0">({total})</span>
         </div>
         <Button
@@ -91,6 +105,8 @@ export function MessageWall({ pageId, slug, firstName, pageOwnerUserId }: Props)
         onOpenChange={setModalOpen}
         slug={slug}
         firstName={firstName}
+        pageKind={pageKind}
+        occasionEmoji={occasionEmoji}
         onPublished={(m) => prepend(m as any)}
       />
     </Card>

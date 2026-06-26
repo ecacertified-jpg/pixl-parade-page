@@ -43,6 +43,8 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   slug: string;
   firstName: string;
+  pageKind?: "birthday" | "event";
+  occasionEmoji?: string;
   onPublished: (m: BirthdayMessage) => void;
 }
 
@@ -67,7 +69,7 @@ function extractYoutubeId(url: string): string | null {
   return null;
 }
 
-export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished }: Props) {
+export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished, pageKind = "birthday", occasionEmoji }: Props) {
   const { user } = useAuth();
   const [tab, setTab] = useState("gif");
   const [text, setText] = useState("");
@@ -169,6 +171,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
       const mediaType: MediaType | "audio" = hasSelection ? selection!.media_type : (hasAudio ? "audio" : "text");
       const payload: any = {
         slug,
+        page_kind: pageKind,
         message_text: text.trim(),
         media_type: mediaType,
         media_url: selection?.media_url ?? null,
@@ -326,7 +329,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished 
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 500))}
-              placeholder="Votre message ✨"
+              placeholder={`Votre message ${occasionEmoji ?? "✨"}`}
               className="resize-none min-h-[80px] pr-10"
               maxLength={500}
             />
