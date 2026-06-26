@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Heart, Gift, Send, Share2, MessageCircle, Sparkles, Loader2, ArrowLeft } from "lucide-react";
-import { EventAlbum } from "@/components/EventAlbum";
+import { BirthdayAlbumFlickr, type AlbumItem as AlbumItemRich } from "@/components/birthday/album/BirthdayAlbumFlickr";
+import { MessageWall } from "@/components/birthday/messages/MessageWall";
 import { EventPageShareButton } from "@/components/EventPageShareButton";
 import { useEventPageSEO } from "@/hooks/useEventPageSEO";
 import { useSchemaInjector } from "@/components/schema";
@@ -56,7 +57,7 @@ interface EventPageData {
 }
 
 interface WishMessage { id: string; sender_name: string | null; message_text: string; created_at: string; }
-interface AlbumItem { id: string; uploader_name: string | null; image_url: string; caption: string | null; created_at: string; media_type: string; video_url: string | null; video_thumbnail_url: string | null; memory_text: string | null; }
+type AlbumItem = AlbumItemRich;
 interface FundInfo { id: string; title: string; target_amount: number; current_amount: number; share_token: string | null; }
 
 const EventPage = () => {
@@ -129,7 +130,7 @@ const EventPage = () => {
   const reloadAlbum = async (pageData: EventPageData) => {
     const { data: pics } = await supabase
       .from('event_page_photos')
-      .select('id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
+      .select('id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text, event_kind, view_count, memory_audio_url, memory_audio_duration')
       .eq('event_page_id', pageData.id)
       .order('created_at', { ascending: false });
 
@@ -144,7 +145,7 @@ const EventPage = () => {
       const ids = ownBdayPages.map((p: any) => p.id);
       const { data: bp } = await supabase
         .from('birthday_page_photos')
-        .select('id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
+        .select('id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text, event_kind, view_count, memory_audio_url, memory_audio_duration')
         .in('birthday_page_id', ids)
         .order('created_at', { ascending: false });
       if (bp) bdayPics = bp;
@@ -357,54 +358,42 @@ const EventPage = () => {
           </Card>
         </motion.div>
 
-        {/* Messages */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Heart className="h-5 w-5 text-heart" />
-              <h2 className="font-bold font-poppins">Vœux & messages</h2>
-              <span className="text-xs text-muted-foreground ml-auto">{messages.length}</span>
-            </div>
-            <div className="mb-4">
-              {user ? (
-                <div className="space-y-2">
-                  <Textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder={`Écris un message... ${theme.emoji}`} className="resize-none min-h-[80px]" maxLength={500} />
-                  <Button size="sm" className="w-full" disabled={!newMessage.trim() || sendingMessage} onClick={handleSendMessage}>
-                    {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />} Envoyer
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" className="w-full border-dashed" onClick={() => navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=post_message&invited=true`)}>
-                  <MessageCircle className="h-4 w-4 mr-2" /> Créer un compte pour écrire un message
-                </Button>
-              )}
-            </div>
-            <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              <AnimatePresence>
-                {messages.map((msg, i) => (
-                  <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="flex items-start gap-3 p-3 rounded-xl bg-muted/50">
-                    <Avatar className="h-8 w-8 flex-shrink-0"><AvatarFallback className="bg-primary/10 text-primary text-xs">{(msg.sender_name || '?').charAt(0)}</AvatarFallback></Avatar>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-semibold text-sm">{msg.sender_name || 'Un ami'}</span>
-                      <p className="text-sm text-muted-foreground mt-1">{msg.message_text}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {messages.length === 0 && (
-                <div className="text-center py-8">
-                  <Sparkles className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
-                  <p className="text-sm text-muted-foreground">Sois le premier à écrire un message !</p>
-                </div>
-              )}
-            </div>
-          </Card>
-        </motion.div>
+        {/* Messages — same UX as birthday page */}
+        {page && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+            <MessageWall
+              pageId={page.id}
+              slug={page.slug}
+              firstName={page.title}
+              pageOwnerUserId={page.creator_id}
+              pageKind="event"
+              title="Vœux & messages"
+              occasionEmoji={theme.emoji}
+            />
+          </motion.div>
+        )}
 
-        {/* Album */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <EventAlbum eventPageId={page!.id} slug={slug!} title={page!.title} user={user} items={albumItems} onItemAdded={(item) => setAlbumItems(prev => [item, ...prev])} />
-        </motion.div>
+        {/* Album — uses the rich birthday album UI (Galerie / Événements / Souvenirs) */}
+        {page && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+            <BirthdayAlbumFlickr
+              pageId={page.id}
+              slug={page.slug}
+              firstName={page.title}
+              user={user}
+              items={albumItems}
+              pageOwnerUserId={page.creator_id}
+              pageKind="event"
+              onItemAdded={(item) => setAlbumItems((prev) => [item, ...prev])}
+              onItemRemoved={(id) => setAlbumItems((prev) => prev.filter((i) => i.id !== id))}
+              onItemUpdated={(item) => setAlbumItems((prev) => prev.map((i) => (i.id === item.id ? item : i)))}
+              socialSharePhotoId={(page as any).social_share_photo_id ?? null}
+              onSocialSharePhotoChanged={(photoId) =>
+                setPage((prev) => (prev ? ({ ...prev, social_share_photo_id: photoId } as any) : prev))
+              }
+            />
+          </motion.div>
+        )}
 
         {/* Les autres pages du créateur */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}>
