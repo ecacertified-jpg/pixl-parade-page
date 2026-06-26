@@ -66,6 +66,8 @@ interface Props {
   onItemUpdated?: (item: AlbumItem) => void;
   socialSharePhotoId?: string | null;
   onSocialSharePhotoChanged?: (photoId: string | null) => void;
+  /** Page kind selects which table set the album reads/writes. Defaults to "birthday". */
+  pageKind?: "birthday" | "event";
 }
 
 type MainTab = "gallery" | "events" | "memories" | "favorites";
@@ -95,7 +97,23 @@ export function BirthdayAlbumFlickr({
   onItemAdded, pageOwnerUserId = null,
   onItemRemoved, onItemUpdated,
   socialSharePhotoId = null, onSocialSharePhotoChanged,
+  pageKind = "birthday",
 }: Props) {
+  // ----- Polymorphic table binding (birthday vs event). Storage bucket is shared. -----
+  const binding =
+    pageKind === "event"
+      ? {
+          photosTable: "event_page_photos" as const,
+          favoritesTable: "event_page_photo_favorites" as const,
+          pagesTable: "event_pages" as const,
+          fkCol: "event_page_id" as const,
+        }
+      : {
+          photosTable: "birthday_page_photos" as const,
+          favoritesTable: "birthday_page_photo_favorites" as const,
+          pagesTable: "birthday_pages" as const,
+          fkCol: "birthday_page_id" as const,
+        };
   const navigate = useNavigate();
   const location = useLocation();
   const photoInputRef = useRef<HTMLInputElement>(null);
