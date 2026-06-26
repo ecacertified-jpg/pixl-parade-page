@@ -20,8 +20,21 @@ export interface BirthdayMessage {
 }
 
 export type SortMode = "recent" | "oldest";
+export type MessagePageKind = "birthday" | "event";
 
-export function useBirthdayMessages(pageId: string | undefined) {
+interface Binding {
+  table: "birthday_wishes_messages" | "event_wishes_messages";
+  fkCol: "birthday_page_id" | "event_page_id";
+  channel: string;
+}
+
+const BINDINGS: Record<MessagePageKind, Binding> = {
+  birthday: { table: "birthday_wishes_messages", fkCol: "birthday_page_id", channel: "birthday-msgs" },
+  event: { table: "event_wishes_messages", fkCol: "event_page_id", channel: "event-msgs" },
+};
+
+export function useBirthdayMessages(pageId: string | undefined, pageKind: MessagePageKind = "birthday") {
+  const binding = BINDINGS[pageKind];
   const [messages, setMessages] = useState<BirthdayMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -31,24 +44,24 @@ export function useBirthdayMessages(pageId: string | undefined) {
     if (!pageId) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from("birthday_wishes_messages")
+      .from(binding.table as any)
       .select("id, sender_id, sender_name, message_text, media_type, media_url, media_metadata, audio_url, card_template_id, tone, moderation_status, is_hidden, reactions_count, is_from_fund, created_at")
-      .eq("birthday_page_id", pageId)
+      .eq(binding.fkCol, pageId)
       .eq("is_hidden", false)
       .neq("moderation_status", "unsafe")
       .order("created_at", { ascending: false })
       .limit(200);
     if (!error && data) setMessages(data as any);
     setLoading(false);
-  }, [pageId]);
+  }, [pageId, binding.table, binding.fkCol]);
 
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     if (!pageId) return;
     const channel = supabase
-      .channel(`birthday-msgs-${pageId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "birthday_wishes_messages", filter: `birthday_page_id=eq.${pageId}` },
+      .channel(`${binding.channel}-${pageId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: binding.table, filter: `${binding.fkCol}=eq.${pageId}` },
         (payload) => {
           const m = payload.new as any;
           if (m.is_hidden || m.moderation_status === "unsafe") return;
@@ -56,7 +69,7 @@ export function useBirthdayMessages(pageId: string | undefined) {
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [pageId]);
+  }, [pageId, binding.channel, binding.table, binding.fkCol]);
 
   const filtered = (() => {
     let arr = messages;
@@ -78,7 +91,7 @@ export function useBirthdayMessages(pageId: string | undefined) {
   const remove = async (id: string) => {
     const prev = messages;
     setMessages(prev.filter(m => m.id !== id));
-    const { error } = await supabase.from("birthday_wishes_messages").delete().eq("id", id);
+    const { error } = await supabase.from(binding.table as any).delete().eq("id", id);
     if (error) setMessages(prev);
   };
 
