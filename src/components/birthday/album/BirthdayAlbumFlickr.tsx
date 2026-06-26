@@ -164,8 +164,8 @@ export function BirthdayAlbumFlickr({
         .from("album_photo_reactions")
         .select("photo_id, user_id, reaction_type")
         .in("photo_id", ids),
-      supabase
-        .from(binding.favoritesTable as any)
+      (supabase as any)
+        .from(binding.favoritesTable)
         .select("photo_id, user_id")
         .in("photo_id", ids),
       supabase
