@@ -329,7 +329,7 @@ export function NewPostModal({ open, onOpenChange, slug, firstName, onPublished,
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 500))}
-              placeholder="Votre message ✨"
+              placeholder={`Votre message ${occasionEmoji ?? "✨"}`}
               className="resize-none min-h-[80px] pr-10"
               maxLength={500}
             />
