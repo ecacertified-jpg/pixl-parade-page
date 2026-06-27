@@ -47,15 +47,24 @@ export function EventCountdown({ eventDate, prefixLabel = "Dans" }: Props) {
       today.getFullYear() === target.getFullYear() &&
       today.getMonth() === target.getMonth() &&
       today.getDate() === target.getDate();
+    const gradient = isToday
+      ? "from-celebration via-accent to-primary"
+      : "from-primary to-accent";
     return (
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={pillClass}
+        initial={{ opacity: 0, y: 8, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 240, damping: 18 }}
+        className={`mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r ${gradient} border border-white/40 shadow-soft`}
         aria-label={isToday ? "Le grand jour est arrivé" : "Événement terminé"}
       >
-        <span className="font-poppins font-semibold text-sm md:text-base text-primary">
-          {isToday ? "🎉 C'est aujourd'hui !" : "✅ Terminé"}
+        {isToday ? (
+          <PartyPopper className="h-4 w-4 md:h-5 md:w-5 text-white drop-shadow" />
+        ) : (
+          <Check className="h-4 w-4 md:h-5 md:w-5 text-white drop-shadow" strokeWidth={3} />
+        )}
+        <span className="font-poppins font-bold text-sm md:text-base text-white tracking-wide drop-shadow">
+          {isToday ? "C'est aujourd'hui !" : "Événement terminé"}
         </span>
       </motion.div>
     );
