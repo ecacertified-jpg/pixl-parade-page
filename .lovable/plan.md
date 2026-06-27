@@ -1,36 +1,31 @@
-## Objectif
-Modifier le hero des pages d'événement mariage pour :
-1. Positionner **verticalement** les 2 avatars de profil avec une légère superposition (au lieu de l'alignement horizontal actuel)
-2. **Supprimer l'icône Cœur** entre les deux photos
-3. **Libérer de l'espace horizontal** pour que le titre de l'événement soit moins tronqué
-4. Rendre le titre **cliquable** pour afficher son texte complet (tooltip ou expansion)
+## 1. Photos de profil uploadables sur la page d'événement
 
-## Fichiers concernés
-- `src/components/event/EventHeroOverlay.tsx`
+Sur `EventHeroOverlay` (mariage et événements solo), rendre les avatars cliquables **uniquement pour le propriétaire** (`isOwner`).
 
-## Implémentation
+- **Avatar principal (créateur)** : clic → ouvre le `EditAvatarModal` existant qui upload dans le bucket `avatars` et met à jour `profiles.avatar_url`. Le `creatorProfile` local est mis à jour via le callback `onAvatarUpdate`.
+- **Avatar du/de la conjoint·e (mariage)** : clic → ouvre un nouveau composant léger `SpouseAvatarUploader` (réutilise la logique de `EditAvatarModal` : caméra + upload fichier, max 5 Mo). Upload dans `avatars/<creator_id>/spouse-<timestamp>.<ext>` puis `UPDATE event_pages SET spouse_avatar_url = ... WHERE id = page.id`. Met à jour le state local `page`.
+- **Indication visuelle** : si `isOwner`, un petit badge caméra (icône `Camera` Lucide, fond `bg-primary` rond, ring blanc) s'affiche en bas à droite de chaque `Avatar`. Curseur `cursor-pointer` + `aria-label` "Modifier la photo".
+- **Visiteurs** : aucun changement — avatars purement décoratifs.
 
-### 1. Repositionnement vertical des avatars mariage
-- Remplacer le conteneur flex horizontal (`flex items-center`) par une colonne (`flex flex-col items-center`)
-- Appliquer un `margin-top: -8px` (ou `-0.5rem`) au second avatar pour créer la superposition harmonieuse
-- Supprimer le composant `<Heart />` et son import
-- Réduire légèrement la taille des avatars si nécessaire pour s'adapter à la nouvelle orientation sans augmenter la hauteur totale du hero
+Props ajoutées à `EventHeroOverlay` : `isOwner: boolean`, `pageId: string`, `onCreatorAvatarChange(url)`, `onSpouseAvatarChange(url)`. `EventPage.tsx` câble ces callbacks pour mettre à jour `creatorProfile` et `page`.
 
-### 2. Adaptation du layout titre + countdown
-- Le conteneur parent du hero (`flex items-end gap-3`) reste en horizontal : avatars à gauche, texte à droite
-- La zone texte (`flex-1 min-w-0 pb-1`) gagne en largeur utilisable car les avatars occupent moins d'espace horizontal
-- Le titre conserve ses classes (`text-xl md:text-3xl font-bold font-poppins text-white drop-shadow-lg truncate`)
+## 2. Style « Terminé » distinctif dans `EventCountdown`
 
-### 3. Titre cliquable pour lecture complète
-- Envelopper le `<h1>` du titre dans un `<button>` ou un élément cliquable
-- Au clic, afficher le titre complet dans une petite modale / tooltip / toast (ex. `sonner` toast ou un état local d'expansion)
-- Conserver le `truncate` par défaut ; l'état "expand" n'est activé que temporairement ou via un overlay
-- Si solution la plus légère : utiliser l'attribut HTML natif `title` sur le h1 pour le tooltip navigateur, ou un composant Tooltip de shadcn/ui
+Aujourd'hui « ✅ Terminé » utilise la même pilule discrète que le compte à rebours actif. À remplacer par une variante dédiée :
 
-### 4. Gestion responsive
-- S'assurer que sur mobile (largeur < md), le titre ait suffisamment d'espace avec le nouvel empilement vertical des avatars
-- Vérifier que le countdown reste bien positionné sous le titre sans chevauchement
+- Fond : `bg-gradient-to-r from-primary to-accent` (gradient violet de la marque) avec `shadow-soft`.
+- Texte : `text-white` (sur dégradé, donc OK), font Poppins **bold** `text-base md:text-lg`, tracking légèrement large.
+- Forme : pilule plus haute (`px-5 py-2.5`), bord blanc semi-transparent `border border-white/30`.
+- Icône : remplacer l'emoji par `<Check className="h-4 w-4" />` (Lucide) + libellé « Événement terminé » pour qu'il se distingue du « 🎉 C'est aujourd'hui ! » (qui reste, mais reçoit aussi son propre traitement : gradient `from-celebration to-accent`).
+- Animation : `motion` avec léger `scale` initial 0.9 → 1 pour le faire ressortir à l'apparition.
 
-## Non régression
-- Les événements non-mariage (baptême, diplôme, etc.) conservent leur avatar unique horizontal existant
-- Le style visuel global du hero (ombres, rings, couleurs) reste identique
+Aucun changement de logique (seuil 48 h, "Dans X jours", HH:MM:SS) — uniquement les classes de présentation des deux états terminaux.
+
+## Fichiers touchés
+
+- `src/components/event/EventHeroOverlay.tsx` — avatars cliquables + badge caméra + props owner.
+- `src/components/event/SpouseAvatarUploader.tsx` *(nouveau)* — modal d'upload pour le conjoint.
+- `src/pages/EventPage.tsx` — passe `isOwner`, `pageId`, callbacks à `EventHeroOverlay`.
+- `src/components/EventCountdown.tsx` — nouveau styling pour les états « Terminé » et « Aujourd'hui ».
+
+Aucune migration DB nécessaire (la colonne `spouse_avatar_url` et le bucket `avatars` existent déjà ; RLS sur `event_pages` autorise déjà le créateur à update sa page).
