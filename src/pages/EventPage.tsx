@@ -252,6 +252,15 @@ const EventPage = () => {
                 creatorProfile={creatorProfile}
                 isWedding={isWedding}
                 emoji={theme.emoji}
+                isOwner={isOwner}
+                pageId={page.id}
+                creatorId={page.creator_id}
+                onCreatorAvatarChange={(url) =>
+                  setCreatorProfile((p) => (p ? { ...p, avatar_url: url } : p))
+                }
+                onSpouseAvatarChange={(url) =>
+                  setPage((p) => (p ? { ...p, spouse_avatar_url: url } : p))
+                }
               />
             ) : null
           }
