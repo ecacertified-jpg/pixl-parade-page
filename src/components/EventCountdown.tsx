@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Check, PartyPopper } from "lucide-react";
 
 interface Props {
   /** Local 'YYYY-MM-DD' event date. */
