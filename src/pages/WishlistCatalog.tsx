@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Heart, SlidersHorizontal, X, AlertCircle, RotateCcw, Loader2, ShoppingBag } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Search, Heart, SlidersHorizontal, X, AlertCircle, RotateCcw, Loader2, ShoppingBag, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,10 @@ const SEARCH_SUGGESTIONS = ["robe", "chemise", "parfum", "bijoux", "gâteau", "c
 export default function WishlistCatalog() {
   const { countryCode, profileCountryCode, isVisiting, resetToHomeCountry, profileLoadError, isLoadingProfile, retryProfileLoad, retryAttempts, maxRetries, cooldownRemaining, canRetry } = useCountry();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const rawReturnTo = searchParams.get("returnTo") || "";
+  // Only allow internal (same-origin) paths to avoid open redirects.
+  const returnTo = rawReturnTo.startsWith("/") && !rawReturnTo.startsWith("//") ? rawReturnTo : "";
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const [selectedTaste, setSelectedTaste] = useState<string>("tous");
@@ -134,9 +138,17 @@ export default function WishlistCatalog() {
         if (favId) await removeFavorite(favId);
       } else {
         await addFavorite(productId);
+        if (returnTo) {
+          toast.success("Ajouté à votre liste 🎁", {
+            action: {
+              label: "Retour à l'événement",
+              onClick: () => navigate(returnTo),
+            },
+          });
+        }
       }
     },
-    [isFavorite, getFavoriteId, removeFavorite, addFavorite],
+    [isFavorite, getFavoriteId, removeFavorite, addFavorite, returnTo, navigate],
   );
 
   const allTastes = [ALL_TASTE, ...TASTE_CATEGORIES];
