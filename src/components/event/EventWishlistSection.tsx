@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ interface Props {
 
 export function EventWishlistSection({ eventId, isOwner }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -91,7 +93,11 @@ export function EventWishlistSection({ eventId, isOwner }: Props) {
           <h2 className="font-bold font-poppins">Liste de souhaits</h2>
         </div>
         {isOwner && (
-          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate(`/wishlist-catalog?eventId=${eventId}&from=event`)}
+          >
             <Plus className="h-4 w-4 mr-1" /> Ajouter
           </Button>
         )}
