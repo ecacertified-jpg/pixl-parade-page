@@ -438,6 +438,19 @@ export default function WishlistCatalog() {
         countryCode={countryCode}
       />
 
+      {returnTo && (
+        <div className="fixed bottom-4 inset-x-4 z-20 flex justify-center pointer-events-none">
+          <Button
+            size="lg"
+            className="pointer-events-auto shadow-lg gap-2"
+            onClick={() => navigate(returnTo)}
+          >
+            Retour à l'événement
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       <ExternalProductFundModal
         isOpen={!!fundPreset}
         onClose={() => setFundPreset(null)}
