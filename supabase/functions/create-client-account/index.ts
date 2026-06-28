@@ -98,6 +98,7 @@ Deno.serve(async (req) => {
         email: body.email ?? null,
         birthday: body.birthday ?? null,
         birthday_page_id: pageId,
+        birthday_page_slug: slug,
       })
       .select('id, claim_token')
       .single();
