@@ -105,7 +105,7 @@ export const ClientsManager = ({ eventPageId, canEdit }: Props) => {
           const url = claimUrlOf(c.claim_token);
           const msg = buildShareMessage(c.first_name, url);
           const claimed = !!c.claimed_at;
-          const slug = c.birthday_page?.slug;
+          const slug = c.birthday_page_slug || c.birthday_page?.slug || null;
           return (
             <Card key={c.id} className="p-3 flex flex-col gap-2">
               <div className="flex items-center justify-between gap-2">

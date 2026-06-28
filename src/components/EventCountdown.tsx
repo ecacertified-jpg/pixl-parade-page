@@ -55,15 +55,15 @@ export function EventCountdown({ eventDate, prefixLabel = "Dans" }: Props) {
         initial={{ opacity: 0, y: 8, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 240, damping: 18 }}
-        className={`mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r ${gradient} border border-white/40 shadow-soft`}
+        className={`mt-2 md:mt-3 inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-full bg-gradient-to-r ${gradient} ring-1 ring-white/30 shadow-[0_4px_18px_-4px_hsl(var(--primary)/0.55)] max-w-full whitespace-nowrap`}
         aria-label={isToday ? "Le grand jour est arrivé" : "Événement terminé"}
       >
         {isToday ? (
-          <PartyPopper className="h-4 w-4 md:h-5 md:w-5 text-white drop-shadow" />
+          <PartyPopper className="h-5 w-5 text-white drop-shadow shrink-0" />
         ) : (
-          <Check className="h-4 w-4 md:h-5 md:w-5 text-white drop-shadow" strokeWidth={3} />
+          <Check className="h-5 w-5 text-white drop-shadow shrink-0" strokeWidth={3} />
         )}
-        <span className="font-poppins font-bold text-sm md:text-base text-white tracking-wide drop-shadow">
+        <span className="font-poppins font-bold text-[15px] md:text-base leading-none tracking-tight text-white drop-shadow">
           {isToday ? "C'est aujourd'hui !" : "Événement terminé"}
         </span>
       </motion.div>

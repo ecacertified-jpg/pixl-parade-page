@@ -63,7 +63,11 @@ Deno.serve(async (req) => {
     if (!client.created_user_id) {
       await admin
         .from('client_accounts')
-        .update({ created_user_id: user.id, claimed_at: new Date().toISOString() })
+        .update({
+          created_user_id: user.id,
+          claimed_at: new Date().toISOString(),
+          ...(slug ? { birthday_page_slug: slug } : {}),
+        })
         .eq('id', client.id);
     }
 

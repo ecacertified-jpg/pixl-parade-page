@@ -3018,6 +3018,7 @@ export type Database = {
         Row: {
           birthday: string | null
           birthday_page_id: string | null
+          birthday_page_slug: string | null
           claim_token: string
           claimed_at: string | null
           created_at: string
@@ -3034,6 +3035,7 @@ export type Database = {
         Insert: {
           birthday?: string | null
           birthday_page_id?: string | null
+          birthday_page_slug?: string | null
           claim_token?: string
           claimed_at?: string | null
           created_at?: string
@@ -3050,6 +3052,7 @@ export type Database = {
         Update: {
           birthday?: string | null
           birthday_page_id?: string | null
+          birthday_page_slug?: string | null
           claim_token?: string
           claimed_at?: string | null
           created_at?: string

@@ -256,7 +256,10 @@ const EventPage = () => {
                 pageId={page.id}
                 creatorId={page.creator_id}
                 onCreatorAvatarChange={(url) =>
-                  setCreatorProfile((p) => (p ? { ...p, avatar_url: url } : p))
+                  setCreatorProfile((p) => ({
+                    first_name: p?.first_name ?? '',
+                    avatar_url: url ? `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}` : null,
+                  }))
                 }
                 onSpouseAvatarChange={(url) =>
                   setPage((p) => (p ? { ...p, spouse_avatar_url: url } : p))

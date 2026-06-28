@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera } from "lucide-react";
 import {
   Tooltip,
@@ -81,17 +81,17 @@ export function EventHeroOverlay({
             className={`relative rounded-full ${isOwner ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary" : "cursor-default"}`}
           >
             <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
-            {creatorProfile?.avatar_url ? (
-              <img
-                src={creatorProfile.avatar_url}
-                alt={creatorProfile.first_name || ""}
-                className="h-full w-full object-cover rounded-full"
-              />
-            ) : (
+              {creatorProfile?.avatar_url && (
+                <AvatarImage
+                  src={creatorProfile.avatar_url}
+                  alt={creatorProfile.first_name || ""}
+                  referrerPolicy="no-referrer"
+                  className="object-cover"
+                />
+              )}
               <AvatarFallback className="bg-primary/20 text-primary font-poppins font-bold text-lg">
                 {initial}
               </AvatarFallback>
-            )}
             </Avatar>
             {isOwner && <CameraBadge />}
           </button>
@@ -104,17 +104,17 @@ export function EventHeroOverlay({
               className={`relative -mt-3 md:-mt-4 rounded-full ${isOwner ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary" : "cursor-default"}`}
             >
               <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-white shadow-soft ring-2 ring-white/20">
-              {page.spouse_avatar_url ? (
-                <img
-                  src={page.spouse_avatar_url}
-                  alt={page.spouse_first_name || ""}
-                  className="h-full w-full object-cover rounded-full"
-                />
-              ) : (
+                {page.spouse_avatar_url && (
+                  <AvatarImage
+                    src={page.spouse_avatar_url}
+                    alt={page.spouse_first_name || ""}
+                    referrerPolicy="no-referrer"
+                    className="object-cover"
+                  />
+                )}
                 <AvatarFallback className="bg-accent/20 text-accent font-poppins font-bold text-lg">
                   {(page.spouse_first_name || "?").charAt(0).toUpperCase()}
                 </AvatarFallback>
-              )}
               </Avatar>
               {isOwner && <CameraBadge />}
             </button>
