@@ -24,10 +24,11 @@ interface Item {
 
 interface Props {
   eventId: string;
+  eventSlug?: string;
   isOwner: boolean;
 }
 
-export function EventWishlistSection({ eventId, isOwner }: Props) {
+export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Item[]>([]);
@@ -96,7 +97,12 @@ export function EventWishlistSection({ eventId, isOwner }: Props) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => navigate(`/wishlist-catalog?eventId=${eventId}&from=event`)}
+            onClick={() => {
+              const returnTo = eventSlug ? `/event/${eventSlug}` : '';
+              const params = new URLSearchParams({ eventId, from: 'event' });
+              if (returnTo) params.set('returnTo', returnTo);
+              navigate(`/wishlist-catalog?${params.toString()}`);
+            }}
           >
             <Plus className="h-4 w-4 mr-1" /> Ajouter
           </Button>
