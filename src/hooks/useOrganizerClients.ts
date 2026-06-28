@@ -11,6 +11,7 @@ export interface ClientAccountRow {
   birthday: string | null;
   claim_token: string;
   birthday_page_id: string | null;
+  birthday_page_slug: string | null;
   created_user_id: string | null;
   claimed_at: string | null;
   event_page_id: string | null;
