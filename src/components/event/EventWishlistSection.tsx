@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
+import { useFavorites } from '@/hooks/useFavorites';
 
 interface Item {
   id: string;
@@ -32,6 +33,7 @@ interface Props {
 export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { favorites } = useFavorites();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -52,6 +54,20 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
   };
 
   useEffect(() => { fetchItems(); }, [eventId]);
+
+  const favoriteItems: Item[] = (favorites || []).map((f) => ({
+    id: `fav-${f.id}`,
+    title: f.product?.name || 'Article',
+    description: f.product?.description || null,
+    image_url: f.product?.image_url || null,
+    product_url: null,
+    price_estimate: f.product?.price ?? null,
+    currency: f.product?.currency || 'XOF',
+    reserved_by: null,
+    reserved_by_name: null,
+  }));
+  const allItems: Item[] = [...items, ...(isOwner ? favoriteItems : [])];
+  const totalCount = allItems.length;
 
   const addItem = async () => {
     if (!form.title.trim()) { toast.error('Titre requis'); return; }
@@ -90,21 +106,22 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
 
   return (
     <Card className="p-5 border-primary/20">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Gift className="h-5 w-5 text-primary" />
-          <h2 className="font-bold font-poppins">Liste de souhaits</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2 min-w-0">
+          <Gift className="h-5 w-5 text-primary shrink-0" />
+          <h2 className="font-bold font-poppins text-base truncate">Liste de souhaits</h2>
         </div>
-        <div className="flex items-center gap-2">
-          {isOwner && user && (
-            <Button size="sm" variant="ghost" onClick={() => setShowPicker(true)} title="Voir ma liste">
-              <Eye className="h-4 w-4 mr-1" /> Voir la liste
-            </Button>
-          )}
-          {isOwner && (
+        {isOwner && (
+          <div className="flex items-center gap-1 ml-auto">
+            {user && totalCount > 0 && (
+              <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setShowPicker(true)} title="Voir ma liste">
+                <Eye className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Voir</span>
+              </Button>
+            )}
             <Button
               size="sm"
               variant="outline"
+              className="h-8 px-2"
               onClick={() => {
                 const returnTo = eventSlug ? `/event/${eventSlug}` : '';
                 const params = new URLSearchParams({ eventId, from: 'event' });
@@ -112,23 +129,24 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
                 navigate(`/wishlist-catalog?${params.toString()}`);
               }}
             >
-              <Plus className="h-4 w-4 mr-1" /> Ajouter
+              <Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Ajouter</span>
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
-      ) : items.length === 0 ? (
+      ) : allItems.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">
           {isOwner ? 'Aucun souhait pour l\'instant. Ajoute ce que tu rêverais de recevoir 💝' : 'Pas encore de liste de souhaits.'}
         </p>
       ) : (
         <div className="space-y-3">
-          {items.map((item) => {
+          {allItems.map((item) => {
             const isReservedByMe = user && item.reserved_by === user.id;
             const isReserved = !!item.reserved_by;
+            const isFav = item.id.startsWith('fav-');
             return (
               <div key={item.id} className="flex gap-3 p-3 rounded-lg border bg-card">
                 {item.image_url && (
@@ -154,12 +172,12 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  {!isOwner && (isReservedByMe || !isReserved) && (
+                  {!isOwner && !isFav && (isReservedByMe || !isReserved) && (
                     <Button size="sm" variant={isReservedByMe ? 'outline' : 'default'} onClick={() => reserve(item)}>
                       {isReservedByMe ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />}
                     </Button>
                   )}
-                  {isOwner && (
+                  {isOwner && !isFav && (
                     <Button size="sm" variant="ghost" onClick={() => removeItem(item.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
