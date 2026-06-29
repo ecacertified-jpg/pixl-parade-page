@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Gift, Plus, Trash2, ExternalLink, Check, X } from 'lucide-react';
+import { Gift, Plus, Trash2, ExternalLink, Check, X, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 
 interface Item {
   id: string;
@@ -34,6 +35,7 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', image_url: '', product_url: '', price_estimate: '' });
 
   const fetchItems = async () => {
@@ -93,20 +95,27 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
           <Gift className="h-5 w-5 text-primary" />
           <h2 className="font-bold font-poppins">Liste de souhaits</h2>
         </div>
-        {isOwner && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              const returnTo = eventSlug ? `/event/${eventSlug}` : '';
-              const params = new URLSearchParams({ eventId, from: 'event' });
-              if (returnTo) params.set('returnTo', returnTo);
-              navigate(`/wishlist-catalog?${params.toString()}`);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Ajouter
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isOwner && user && (
+            <Button size="sm" variant="ghost" onClick={() => setShowPicker(true)} title="Voir ma liste">
+              <Eye className="h-4 w-4 mr-1" /> Voir la liste
+            </Button>
+          )}
+          {isOwner && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const returnTo = eventSlug ? `/event/${eventSlug}` : '';
+                const params = new URLSearchParams({ eventId, from: 'event' });
+                if (returnTo) params.set('returnTo', returnTo);
+                navigate(`/wishlist-catalog?${params.toString()}`);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Ajouter
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -178,6 +187,11 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <WishlistFundPickerModal
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+      />
     </Card>
   );
 }

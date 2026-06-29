@@ -32,6 +32,7 @@ import { PostEventConversionCard } from "@/features/subscription/PostEventConver
 import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
 import { EventWishlistSection } from "@/components/event/EventWishlistSection";
 import { EventAIAssistant } from "@/components/event/EventAIAssistant";
+import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
 
 const occasionThemes: Record<string, { emoji: string; gradient: string; label: string }> = {
   wedding: { emoji: '💍', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage' },
@@ -77,6 +78,7 @@ const EventPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showOrgSheet, setShowOrgSheet] = useState(false);
+  const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const confettiTriggered = useRef(false);
 
   const theme = useMemo(() => occasionThemes[page?.occasion || 'other'] || occasionThemes.other, [page?.occasion]);
@@ -323,7 +325,7 @@ const EventPage = () => {
                         .single();
                       if (f) setFund(f as FundInfo);
                     }}
-                    onCreateNew={() => navigate('/gifts')}
+                     onCreateNew={() => setShowWishlistPicker(true)}
                   />
                 )}
                 <p className="text-sm text-muted-foreground mb-3">{fund.title}</p>
@@ -353,18 +355,24 @@ const EventPage = () => {
                         .single();
                       if (f) setFund(f as FundInfo);
                     }}
-                    onCreateNew={() => navigate('/gifts')}
+                     onCreateNew={() => setShowWishlistPicker(true)}
                   />
                 )}
                 <div className="text-4xl">🎁</div>
                 <p className="text-sm text-muted-foreground font-nunito">Réunissez-vous pour offrir un cadeau collectif !</p>
-                <Button className="w-full" onClick={() => { if (!user) { navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=create_fund&invited=true`); return; } navigate('/gifts'); }}>
+                <Button className="w-full" onClick={() => { if (!user) { navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(authReturnTo)}&intent=create_fund&invited=true`); return; } setShowWishlistPicker(true); }}>
                   <Gift className="h-4 w-4 mr-2" /> Créer une cagnotte
                 </Button>
               </div>
             )}
           </Card>
         </motion.div>
+
+        <WishlistFundPickerModal
+          isOpen={showWishlistPicker}
+          onClose={() => setShowWishlistPicker(false)}
+          onFundCreated={() => setShowWishlistPicker(false)}
+        />
 
         {/* Messages — same UX as birthday page */}
         {page && (
