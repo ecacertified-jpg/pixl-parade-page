@@ -296,7 +296,13 @@ const EventPage = () => {
         )}
         {/* "Mes coulisses" est désormais accessible via l'icône ✨ sur la vidéo de couverture. */}
         {page && (
-          <EventWishlistSection eventId={page.id} eventSlug={page.slug} isOwner={isOwner} />
+          <EventWishlistSection
+            eventId={page.id}
+            eventSlug={page.slug}
+            isOwner={isOwner}
+            ownerUserId={page.creator_id}
+            ownerName={creatorProfile?.first_name || null}
+          />
         )}
         {page && isOwner && (
           <EventAIAssistant eventId={page.id} isOwner={isOwner} />
