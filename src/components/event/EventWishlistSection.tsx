@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Gift, Plus, Trash2, ExternalLink, Check, X, Eye } from 'lucide-react';
+import { Gift, Plus, Trash2, ExternalLink, Check, X, Eye, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -28,9 +28,11 @@ interface Props {
   eventId: string;
   eventSlug?: string;
   isOwner: boolean;
+  ownerUserId?: string;
+  ownerName?: string | null;
 }
 
-export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
+export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId, ownerName }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { favorites } = useFavorites();
@@ -38,6 +40,7 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [creatingFor, setCreatingFor] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', description: '', image_url: '', product_url: '', price_estimate: '' });
 
   const fetchItems = async () => {
@@ -104,6 +107,46 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
     fetchItems();
   };
 
+  const createFundForItem = async (item: Item) => {
+    if (!ownerUserId) { toast.error('Bénéficiaire introuvable'); return; }
+    if (!user) {
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(returnTo)}&intent=create_fund`);
+      return;
+    }
+    setCreatingFor(item.id);
+    try {
+      const beneficiary = ownerName?.trim() || 'le célébré';
+      const { data: fundData, error } = await (supabase as any)
+        .from('collective_funds')
+        .insert({
+          creator_id: user.id,
+          title: `${item.title} pour ${beneficiary}`,
+          description: item.description || `Cadeau collectif pour ${beneficiary}`,
+          target_amount: item.price_estimate || 0,
+          currency: item.currency || 'XOF',
+          occasion: 'other',
+          status: 'active',
+          is_public: true,
+          is_external_product: !!item.product_url,
+          external_product_url: item.product_url || null,
+          external_product_name: item.title,
+          external_product_image_url: item.image_url || null,
+        })
+        .select('id')
+        .single();
+      if (error || !fundData) {
+        console.error(error);
+        toast.error("Impossible de créer la cagnotte");
+        return;
+      }
+      toast.success(`Cagnotte créée pour ${beneficiary} ✨`);
+      navigate(`/f/${fundData.id}`);
+    } finally {
+      setCreatingFor(null);
+    }
+  };
+
   return (
     <Card className="p-5 border-primary/20">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
@@ -142,7 +185,7 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
           {isOwner ? 'Aucun souhait pour l\'instant. Ajoute ce que tu rêverais de recevoir 💝' : 'Pas encore de liste de souhaits.'}
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 sm:max-h-none sm:overflow-visible sm:pr-0">
           {allItems.map((item) => {
             const isReservedByMe = user && item.reserved_by === user.id;
             const isReserved = !!item.reserved_by;
@@ -172,6 +215,23 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner }: Props) {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
+                  {!isOwner && !isFav && ownerUserId && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-8 gap-1"
+                      disabled={creatingFor === item.id}
+                      onClick={() => createFundForItem(item)}
+                      title="Créer une cagnotte pour cet article"
+                    >
+                      {creatingFor === item.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Gift className="h-3 w-3" />
+                      )}
+                      <span className="text-xs">Créer</span>
+                    </Button>
+                  )}
                   {!isOwner && !isFav && (isReservedByMe || !isReserved) && (
                     <Button size="sm" variant={isReservedByMe ? 'outline' : 'default'} onClick={() => reserve(item)}>
                       {isReservedByMe ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />}
