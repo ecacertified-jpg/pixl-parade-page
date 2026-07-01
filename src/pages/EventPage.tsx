@@ -378,6 +378,9 @@ const EventPage = () => {
           isOpen={showWishlistPicker}
           onClose={() => setShowWishlistPicker(false)}
           onFundCreated={() => setShowWishlistPicker(false)}
+          beneficiaryUserId={page?.creator_id}
+          beneficiaryFirstName={creatorProfile?.first_name || page?.title}
+          beneficiaryAvatarUrl={creatorProfile?.avatar_url || undefined}
         />
 
         {/* Messages — same UX as birthday page */}

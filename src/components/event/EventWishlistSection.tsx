@@ -14,12 +14,14 @@ import { useFavorites } from '@/hooks/useFavorites';
 
 interface Item {
   id: string;
+  product_id?: string | null;
   title: string;
   description: string | null;
   image_url: string | null;
   product_url: string | null;
   price_estimate: number | null;
   currency: string;
+  business_account_id?: string | null;
   reserved_by: string | null;
   reserved_by_name: string | null;
 }
@@ -37,7 +39,9 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId,
   const navigate = useNavigate();
   const { favorites } = useFavorites();
   const [items, setItems] = useState<Item[]>([]);
+  const [ownerFavorites, setOwnerFavorites] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ownerFavoritesLoading, setOwnerFavoritesLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
@@ -58,19 +62,72 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId,
 
   useEffect(() => { fetchItems(); }, [eventId]);
 
+  useEffect(() => {
+    if (!ownerUserId || isOwner) {
+      setOwnerFavorites([]);
+      return;
+    }
+
+    let cancelled = false;
+    const fetchOwnerFavorites = async () => {
+      setOwnerFavoritesLoading(true);
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .select(`
+          id,
+          product_id,
+          notes,
+          products (id, name, description, price, currency, image_url, business_account_id)
+        `)
+        .eq('user_id', ownerUserId)
+        .order('priority_level', { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error('Error loading event owner wishlist:', error);
+        setOwnerFavorites([]);
+      } else {
+        const mapped = (data || [])
+          .map((f: any) => ({
+            id: `fav-${f.id}`,
+            product_id: f.product_id,
+            title: f.products?.name || 'Article',
+            description: f.notes || f.products?.description || null,
+            image_url: f.products?.image_url || null,
+            product_url: null,
+            price_estimate: f.products?.price ?? null,
+            currency: f.products?.currency || 'XOF',
+            business_account_id: f.products?.business_account_id || null,
+            reserved_by: null,
+            reserved_by_name: null,
+          }))
+          .filter((item) => item.title && item.title !== 'Article');
+        setOwnerFavorites(mapped);
+      }
+      setOwnerFavoritesLoading(false);
+    };
+
+    fetchOwnerFavorites();
+    return () => { cancelled = true; };
+  }, [ownerUserId, isOwner]);
+
   const favoriteItems: Item[] = (favorites || []).map((f) => ({
     id: `fav-${f.id}`,
+    product_id: f.product_id,
     title: f.product?.name || 'Article',
     description: f.product?.description || null,
     image_url: f.product?.image_url || null,
     product_url: null,
     price_estimate: f.product?.price ?? null,
     currency: f.product?.currency || 'XOF',
+    business_account_id: null,
     reserved_by: null,
     reserved_by_name: null,
   }));
-  const allItems: Item[] = [...items, ...(isOwner ? favoriteItems : [])];
+  const allItems: Item[] = [...items, ...(isOwner ? favoriteItems : ownerFavorites)];
   const totalCount = allItems.length;
+  const isListLoading = loading || ownerFavoritesLoading;
 
   const addItem = async () => {
     if (!form.title.trim()) { toast.error('Titre requis'); return; }
@@ -132,6 +189,8 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId,
           external_product_url: item.product_url || null,
           external_product_name: item.title,
           external_product_image_url: item.image_url || null,
+          business_product_id: item.product_id || null,
+          created_by_business_id: item.business_account_id || null,
         })
         .select('id')
         .single();
@@ -178,14 +237,15 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId,
         )}
       </div>
 
-      {loading ? (
+      {isListLoading ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
       ) : allItems.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">
           {isOwner ? 'Aucun souhait pour l\'instant. Ajoute ce que tu rêverais de recevoir 💝' : 'Pas encore de liste de souhaits.'}
         </p>
       ) : (
-        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 sm:max-h-none sm:overflow-visible sm:pr-0">
+        <div className="relative -mr-1">
+          <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 md:max-h-none md:overflow-visible md:pr-0">
           {allItems.map((item) => {
             const isReservedByMe = user && item.reserved_by === user.id;
             const isReserved = !!item.reserved_by;
@@ -215,7 +275,7 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId,
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  {!isOwner && !isFav && ownerUserId && (
+                  {!isOwner && ownerUserId && (
                     <Button
                       size="sm"
                       variant="default"
@@ -246,6 +306,10 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId,
               </div>
             );
           })}
+          </div>
+          {allItems.length > 3 && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-card to-transparent md:hidden" aria-hidden />
+          )}
         </div>
       )}
 
