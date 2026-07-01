@@ -245,7 +245,7 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId,
         </p>
       ) : (
         <div className="relative -mr-1">
-          <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 sm:max-h-none sm:overflow-visible sm:pr-0">
+          <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 md:max-h-none md:overflow-visible md:pr-0">
           {allItems.map((item) => {
             const isReservedByMe = user && item.reserved_by === user.id;
             const isReserved = !!item.reserved_by;
@@ -308,7 +308,7 @@ export function EventWishlistSection({ eventId, eventSlug, isOwner, ownerUserId,
           })}
           </div>
           {allItems.length > 3 && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-card to-transparent sm:hidden" aria-hidden />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-card to-transparent md:hidden" aria-hidden />
           )}
         </div>
       )}
