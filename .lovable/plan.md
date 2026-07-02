@@ -1,45 +1,44 @@
-## 1. Bouton "Créer" sur chaque article de la liste de souhaits
 
-Dans `src/components/event/EventWishlistSection.tsx`, ajouter sur chaque carte d'article un bouton **"Créer"** (icône `Gift`) visible pour les **visiteurs non‑propriétaires** (les amis), à côté du bouton réserver. Le bouton ouvre le flux de création de cagnotte ciblant le propriétaire de la page d'événement.
+## Objectif
 
-Implémentation :
-- Récupérer l'`owner_user_id` de l'événement (déjà disponible via `EventPage` — le passer en prop `ownerUserId` au composant).
-- Réutiliser `WishlistFundPickerModal` qui sait déjà créer une cagnotte publique pour un `beneficiaryUserId` externe (logique `handleCreateFund` lignes 134–217). Ouvrir la modale avec `beneficiaryUserId={ownerUserId}` + nom/avatar du propriétaire et préselectionner l'article cliqué via un nouvel état `presetItemId`.
-- Pour un article **interne** (issu de `event_wishlist_items` sans `product_id` lié au catalogue), router à la place vers `ExternalProductFundModal` préfillé avec le titre/prix/image/URL de l'article (création de cagnotte produit externe pour le bénéficiaire).
-- Le bouton "Créer" remplace l'absence d'action pour les visiteurs et coexiste avec les actions propriétaire.
+Chaque message "Passe à un plan supérieur" doit devenir un CTA cliquable qui ouvre la modale d'upgrade (ou `/pricing`) en conservant l'URL d'origine, pour ramener l'utilisateur exactement là où il était après paiement.
 
-## 2. Liste scrollable (≈ 3 articles visibles) sur mobile
+## Rappel de l'infra existante (à réutiliser, ne pas dupliquer)
 
-Toujours dans `EventWishlistSection.tsx` :
-- Encapsuler la `div.space-y-3` des articles dans un conteneur scrollable avec hauteur max responsive :
-  - mobile : `max-h-[360px]` (≈ 3 cartes), `sm:max-h-none`
-  - `overflow-y-auto pr-1`
-  - Ajouter un léger fade en bas et `scrollbar-thin` pour indiquer le scroll.
-- Garder le rendu complet sur desktop.
+- `useUpgradePrompt()` → ouvre `UpgradePromptModal`, qui construit déjà un lien vers `/pricing?from={feature}&return_to={pathname+search}`.
+- `Pricing.tsx` gère déjà `return_to` : après succès `WaveCheckoutModal`, il fait `navigate(decodeURIComponent(return_to), { replace: true })`. ✅ Rien à changer côté paiement.
+- Il manque juste : appeler cette infra partout où l'on affiche encore un simple toast/label statique.
 
-## 3. Réponse à la question sur la personnalisation des vidéos de couverture
+## Changements
 
-Oui, c'est déjà rattaché à un plan dans `src/features/subscription/featureCatalog.ts` :
+### 1. `src/pages/CreateEventPage.tsx` — quota événements
+- Remplacer le `toast.error("Quota d'événements atteint...")` (ligne 59) par `upgrade.open({ feature: 'event_pages', reason: "Ton plan inclut déjà toutes tes pages actives." })`.
+- Dans le bloc "Quota atteint" (ligne 105-118), remplacer le `<Link to="/pricing">Voir les plans</Link>` par un bouton qui appelle `upgrade.open({ feature: 'event_pages' })` — cohérence + `return_to` auto.
+- Ajouter `const upgrade = useUpgradePrompt();`.
 
-```
-cover_video_custom → requires: 'essentiel'
-```
+### 2. `src/features/subscription/FeatureGate.tsx` — carte lock générique
+- Le `<Link to="/pricing">` (ligne 72) perd le contexte. Le remplacer par `to={`/pricing?return_to=${encodeURIComponent(location.pathname + location.search)}`}` via `useLocation()`.
+- Si la prop `feature` (FeatureId) est fournie, ajouter aussi `from=<feature>` pour afficher la bannière contextuelle sur `/pricing`. Ajouter une prop optionnelle `featureId?: FeatureId` (non-cassante) pour le passage explicite.
 
-Donc :
-- **Gratuit** : vidéos par défaut uniquement.
-- **Essentiel & Premium** : upload des vidéos personnalisées (matin, après-midi, soir, nuit, fête calendaire, anniversaire).
+### 3. `src/pages/Subscription.tsx` (lignes 82, 91) & `src/pages/Invoices.tsx` (ligne 92)
+- Remplacer les `<Link to="/pricing">` par `<Link to={`/pricing?return_to=${encodeURIComponent(location.pathname)}`}>` pour un retour cohérent.
 
-Action complémentaire dans la modale "Vidéos de couverture" (`CoverVideoCarousel` / modale d'upload) : envelopper chaque bouton **Uploader** avec `FeatureGate feature="cover_video_custom"` afin d'ouvrir `UpgradePromptModal` (avec `?from=cover_video_custom`) quand un utilisateur Gratuit tente l'upload — la fonctionnalité est mappée mais non encore verrouillée à l'UI. (Vérifier rapidement le composant de la modale d'upload et ajouter le gate, sinon laisser tel quel si déjà gating ailleurs.)
+### 4. `src/features/subscription/PremiumTrialBanner.tsx` (ligne 56) & `PostEventConversionCard.tsx` (ligne 77) & `PremiumTrialUnlockModal.tsx` (ligne 106)
+- Idem : ajouter `?return_to=` à partir de `useLocation()` pour ramener sur la page d'origine (banner ou page événement).
 
-## Fichiers touchés
+### 5. `src/components/souvenirs/SouvenirBookCard.tsx` (ligne 68 "Débloquer avec Premium")
+- Le rendre CTA : `onClick` → `useUpgradePrompt().open({ feature: 'souvenirs_premium' })` (ou lien `/pricing?from=souvenirs_premium&return_to=...`).
 
-- `src/components/event/EventWishlistSection.tsx` — nouveau bouton "Créer", scroll mobile, prop `ownerUserId`, intégration `WishlistFundPickerModal` + `ExternalProductFundModal` préfillé.
-- `src/pages/EventPage.tsx` — passer `ownerUserId` au composant.
-- (Optionnel) Composant de la modale "Vidéos de couverture" — wrapper `FeatureGate` autour des actions Uploader.
+### 6. Audit final
+- Rechercher tout autre `toast.*plan` ou label statique "Passe à un plan" restant et les convertir de la même manière (`useUpgradePrompt` si dans un flux d'action, sinon Link avec `from` + `return_to`).
 
 ## Détails techniques
 
-- Le bouton "Créer" est masqué pour le propriétaire (`!isOwner`) et nécessite un `ownerUserId` valide (sinon caché).
-- Si visiteur non connecté → la modale gère déjà la redirection vers `/auth?...intent=create_fund`.
-- Pour les articles favoris (`fav-*`) → utiliser le flux normal `WishlistFundPickerModal` (product déjà connu).
-- Pour les articles `event_wishlist_items` sans product catalogue → `ExternalProductFundModal` préfillé (titre, prix, image, URL) avec `beneficiary_user_id = ownerUserId`.
+- Le param `return_to` est déjà lu ligne 402 de `Pricing.tsx`. Aucune modif de `Pricing` ni de `WaveCheckoutModal` nécessaire.
+- Utiliser `window.location.pathname + window.location.search` (comme dans `UpgradePromptModal` ligne 84) ou `useLocation()` selon le composant.
+- Ne pas ajouter `return_to` sur les Links depuis `/pricing` lui-même (éviter boucle).
+
+## Hors scope
+
+- Aucun changement backend, RPC ou schéma DB.
+- Pas de refonte visuelle de `/pricing` ni de `UpgradePromptModal`.
