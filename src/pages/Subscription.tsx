@@ -79,8 +79,8 @@ export default function Subscription() {
 
               {tier === 'free' && !pending && (
                 <Button asChild className="mt-2 gap-2">
-                  <Link to="/pricing">
-                    Passer Premium <ArrowRight className="h-4 w-4" />
+                  <Link to="/pricing?return_to=/subscription">
+                    Passe à un plan supérieur <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               )}
@@ -88,7 +88,7 @@ export default function Subscription() {
               {tier !== 'free' && !pending && (
                 <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                   <Button asChild variant="outline">
-                    <Link to="/pricing">Changer de plan</Link>
+                    <Link to="/pricing?return_to=/subscription">Changer de plan</Link>
                   </Button>
                   <Button asChild variant="ghost" className="gap-2">
                     <Link to="/invoices"><FileText className="h-4 w-4" /> Mes factures</Link>
