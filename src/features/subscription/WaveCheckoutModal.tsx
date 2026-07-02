@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Copy, ExternalLink, Loader2, Smartphone, Check } from 'lucide-react';
+import { Copy, ExternalLink, Loader2, Smartphone, Check, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -10,18 +20,20 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  onCancel?: (reason: 'not_started' | 'incomplete') => void;
   planTier: 'essentiel' | 'premium';
   planName: string;
   billingCycle: 'monthly' | 'yearly';
   amountXof: number;
 }
 
-export function WaveCheckoutModal({ open, onClose, onSuccess, planTier, planName, billingCycle, amountXof }: Props) {
+export function WaveCheckoutModal({ open, onClose, onSuccess, onCancel, planTier, planName, billingCycle, amountXof }: Props) {
   const createReq = useCreateWaveRequest();
   const [step, setStep] = useState<'review' | 'pay'>('review');
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
   const [waveLink, setWaveLink] = useState<string | null>(null);
   const [recipient, setRecipient] = useState<string | null>(null);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -29,6 +41,7 @@ export function WaveCheckoutModal({ open, onClose, onSuccess, planTier, planName
       setCreatedRequestId(null);
       setWaveLink(null);
       setRecipient(null);
+      setConfirmCancelOpen(false);
     }
   }, [open]);
 
@@ -55,8 +68,29 @@ export function WaveCheckoutModal({ open, onClose, onSuccess, planTier, planName
     onClose();
   };
 
+  const requestClose = () => {
+    if (step === 'pay') {
+      // Payment initiated but not confirmed → warn before leaving
+      setConfirmCancelOpen(true);
+      return;
+    }
+    onCancel?.('not_started');
+    onClose();
+  };
+
+  const confirmCancel = () => {
+    setConfirmCancelOpen(false);
+    toast.info(
+      'Paiement non finalisé. Tu peux le reprendre à tout moment depuis la page Abonnement.',
+      { duration: 6000 },
+    );
+    onCancel?.('incomplete');
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) requestClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-poppins">
@@ -92,6 +126,9 @@ export function WaveCheckoutModal({ open, onClose, onSuccess, planTier, planName
                 'Démarrer le paiement Wave'
               )}
             </Button>
+            <Button variant="ghost" className="w-full" onClick={requestClose}>
+              Annuler
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -121,9 +158,29 @@ export function WaveCheckoutModal({ open, onClose, onSuccess, planTier, planName
             <Button variant="secondary" className="w-full" onClick={handleDone}>
               <Check className="mr-2 h-4 w-4" /> J'ai payé
             </Button>
+            <Button variant="ghost" className="w-full" onClick={requestClose}>
+              <X className="mr-2 h-4 w-4" /> Annuler / Terminer plus tard
+            </Button>
           </div>
         )}
       </DialogContent>
     </Dialog>
+    <AlertDialog open={confirmCancelOpen} onOpenChange={setConfirmCancelOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Abandonner le paiement ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Ton paiement Wave n'a pas encore été confirmé. Si tu quittes maintenant,
+            aucun montant ne sera débité par JDV. Tu pourras reprendre depuis la page
+            Abonnement.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Continuer le paiement</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmCancel}>Quitter</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
