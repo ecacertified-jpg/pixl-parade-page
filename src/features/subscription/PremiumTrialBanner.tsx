@@ -53,7 +53,9 @@ export const PremiumTrialBanner = ({ className }: { className?: string }) => {
       </div>
       <Button asChild size="sm" className="gap-1.5">
         <Link
-          to="/pricing"
+          to={`/pricing?from=souvenirs_premium&return_to=${encodeURIComponent(
+            typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/'
+          )}`}
           onClick={() => log('upgrade_clicked', { source: 'trial_banner', phase: trial.phase })}
         >
           <Sparkles className="h-3.5 w-3.5" /> Devenir Premium
