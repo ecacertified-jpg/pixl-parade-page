@@ -15,7 +15,10 @@ export function SouvenirBookCard({ year }: { year: number }) {
 
   const handleGenerate = () => {
     if (!isPremium) {
-      navigate('/pricing');
+      const returnTo = typeof window !== 'undefined'
+        ? window.location.pathname + window.location.search
+        : '/souvenirs';
+      navigate(`/pricing?from=souvenirs_premium&return_to=${encodeURIComponent(returnTo)}`);
       return;
     }
     generate.mutate(year);
