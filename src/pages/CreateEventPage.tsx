@@ -14,8 +14,8 @@ import confetti from "canvas-confetti";
 import { CelebrationArtisansPicker } from "@/components/birthday/CelebrationArtisansPicker";
 import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { useActiveEventsQuota } from "@/hooks/useActiveEventsQuota";
-import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
+import { useUpgradePrompt } from "@/features/subscription/useUpgradePrompt";
 
 const occasions = [
   { key: 'birthday', emoji: '🎂', label: "Anniversaire d'un proche" },
@@ -38,6 +38,7 @@ const CreateEventPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const eventsQuota = useActiveEventsQuota();
+  const upgrade = useUpgradePrompt();
 
   const [occasion, setOccasion] = useState(searchParams.get('occasion') || 'wedding');
   const [title, setTitle] = useState('');
@@ -56,7 +57,10 @@ const CreateEventPage = () => {
   const handleCreate = async () => {
     if (!user || !title.trim()) { toast.error('Le titre est obligatoire'); return; }
     if (!eventsQuota.canCreate) {
-      toast.error("Quota d'événements atteint. Passe à un plan supérieur.");
+      upgrade.open({
+        feature: 'event_pages',
+        reason: "Tu as atteint le nombre d'événements actifs inclus dans ton plan. Passe à un plan supérieur pour créer plus de pages.",
+      });
       return;
     }
     setCreating(true);
@@ -111,8 +115,17 @@ const CreateEventPage = () => {
                   {eventsQuota.limit > 1 ? 's' : ''} actif{eventsQuota.limit > 1 ? 's' : ''}.
                   Tu en as déjà {eventsQuota.used}.
                 </p>
-                <Button asChild size="sm" variant="default">
-                  <Link to="/pricing">Voir les plans</Link>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() =>
+                    upgrade.open({
+                      feature: 'event_pages',
+                      reason: "Tu as atteint le nombre d'événements actifs inclus dans ton plan.",
+                    })
+                  }
+                >
+                  Passe à un plan supérieur
                 </Button>
               </div>
             )}
