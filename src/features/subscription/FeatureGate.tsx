@@ -1,17 +1,20 @@
 import { ReactNode } from 'react';
 import { Lock, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { FeatureFlag, PlanTier, TrialTargetType } from './types';
 import { usePlan } from './usePlan';
+import type { FeatureId } from './featureCatalog';
 
 interface FeatureGateProps {
   /** Plan minimum requis (par défaut "premium"). */
   requires?: PlanTier;
   /** Optionnel : exige aussi qu'une feature qualitative soit truthy. */
   feature?: FeatureFlag;
+  /** Identifiant catalogue (pour bannière contextuelle sur /pricing). */
+  featureId?: FeatureId;
   /**
    * Contexte d'item (ex. page d'anniversaire) : si cet item est l'événement
    * couvert par le Premium offert, l'accès est autorisé même en plan free.
@@ -32,6 +35,7 @@ interface FeatureGateProps {
 export const FeatureGate = ({
   requires = 'premium',
   feature,
+  featureId,
   trialContext,
   fallback = 'lock',
   title = 'Fonctionnalité Premium',
@@ -40,6 +44,7 @@ export const FeatureGate = ({
   children,
 }: FeatureGateProps) => {
   const { isAtLeast, getFeature, isLoading, isTrialCoveredItem } = usePlan();
+  const location = useLocation();
 
   if (isLoading) return null;
 
@@ -69,9 +74,13 @@ export const FeatureGate = ({
         <h3 className="font-poppins text-lg font-semibold text-foreground">{title}</h3>
         <p className="text-sm text-muted-foreground">{reason}</p>
         <Button asChild size="sm" className="gap-2">
-          <Link to="/pricing">
+          <Link
+            to={`/pricing?${featureId ? `from=${featureId}&` : ''}return_to=${encodeURIComponent(
+              location.pathname + location.search
+            )}`}
+          >
             <Sparkles className="h-4 w-4" />
-            Découvrir les plans
+            Passe à un plan supérieur
           </Link>
         </Button>
       </div>

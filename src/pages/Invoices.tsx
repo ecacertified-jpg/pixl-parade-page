@@ -89,7 +89,7 @@ export default function Invoices() {
             <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground/60" />
             <p className="font-medium">Aucune facture pour le moment</p>
             <p className="mt-1 text-sm text-muted-foreground">Tes paiements Wave apparaîtront ici dès qu'ils seront validés.</p>
-            <Button asChild className="mt-4"><Link to="/pricing">Voir les plans</Link></Button>
+            <Button asChild className="mt-4"><Link to="/pricing?return_to=/invoices">Passe à un plan supérieur</Link></Button>
           </Card>
         ) : (
           <div className="space-y-3">

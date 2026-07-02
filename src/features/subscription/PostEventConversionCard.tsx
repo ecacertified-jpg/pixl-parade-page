@@ -74,7 +74,9 @@ export const PostEventConversionCard = ({ targetType, targetId, className }: Pro
         <p className="text-sm text-muted-foreground">{cfg.body}</p>
         <Button asChild className="gap-2">
           <Link
-            to="/pricing"
+            to={`/pricing?from=souvenirs_premium&return_to=${encodeURIComponent(
+              typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/'
+            )}`}
             onClick={() => log('upgrade_clicked', { source: 'post_event_card', phase: trial.phase })}
           >
             <Sparkles className="h-4 w-4" />
