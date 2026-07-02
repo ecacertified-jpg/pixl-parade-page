@@ -103,7 +103,12 @@ export const PremiumTrialUnlockModal = ({
               Vivre la célébration
             </Button>
             <Button asChild variant="ghost" size="sm" className="w-full">
-              <Link to="/pricing" onClick={() => log('upgrade_clicked', { source: 'unlock_modal' })}>
+              <Link
+                to={`/pricing?from=souvenirs_premium&return_to=${encodeURIComponent(
+                  typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/'
+                )}`}
+                onClick={() => log('upgrade_clicked', { source: 'unlock_modal' })}
+              >
                 Découvrir Premium illimité
               </Link>
             </Button>
