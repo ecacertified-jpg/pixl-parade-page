@@ -406,6 +406,12 @@ export default function Pricing() {
                 navigate('/pricing', { replace: true });
               }
             }}
+            onCancel={() => {
+              const returnTo = params.get('return_to');
+              if (returnTo) {
+                navigate(decodeURIComponent(returnTo), { replace: true });
+              }
+            }}
             planTier={waveOpen.tier}
             planName={p.name}
             billingCycle={cycle}
