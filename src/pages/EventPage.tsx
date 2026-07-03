@@ -88,16 +88,13 @@ const EventPage = () => {
   const [creatorProfile, setCreatorProfile] = useState<{ first_name: string; avatar_url: string | null } | null>(null);
 
   useEffect(() => {
-    if (!page?.creator_id) return;
+    if (!page?.id) return;
     (async () => {
-      const { data } = await supabase
-        .from('public_profiles')
-        .select('first_name, avatar_url')
-        .eq('user_id', page.creator_id)
-        .maybeSingle();
-      if (data) setCreatorProfile(data as any);
+      const { data } = await (supabase as any).rpc('get_event_page_creator_avatar', { page_id: page.id });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) setCreatorProfile({ first_name: row.first_name, avatar_url: row.avatar_url });
     })();
-  }, [page?.creator_id]);
+  }, [page?.id]);
 
   useEventPageSEO({
     title: page?.title || '',
