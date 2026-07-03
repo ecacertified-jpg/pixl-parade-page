@@ -58,7 +58,6 @@ async function moderate(text: string, mediaType: string): Promise<{ status: "saf
     const call = data?.choices?.[0]?.message?.tool_calls?.[0];
     if (!call) return { status: "safe" };
     const args = JSON.parse(call.function?.arguments ?? "{}");
-    const status = ALLOWED_MEDIA.includes(args.status) ? args.status : "safe";
     if (["safe","borderline","unsafe"].includes(args.status)) {
       return { status: args.status, reason: args.reason };
     }
@@ -106,6 +105,8 @@ serve(async (req) => {
       .select(`id, ${ownerCol}, is_active`)
       .eq("slug", slug)
       .maybeSingle();
+    if (pageErr) console.error("post-birthday-message page lookup error", { pagesTable, slug, pageErr });
+    if (!page) console.warn("post-birthday-message page not found", { pagesTable, slug });
     if (pageErr || !page || !(page as any).is_active) {
       return json(404, { error: "Page introuvable ou inactive" });
     }
