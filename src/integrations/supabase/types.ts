@@ -11519,6 +11519,7 @@ export type Database = {
         Args: { data: string; key_id?: string }
         Returns: string
       }
+      ensure_profile_exists: { Args: never; Returns: string }
       expire_wave_subscriptions: {
         Args: never
         Returns: {
@@ -11593,6 +11594,14 @@ export type Database = {
       get_business_fund_for_owner: {
         Args: { p_fund_id: string }
         Returns: Json
+      }
+      get_event_page_creator_avatar: {
+        Args: { page_id: string }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          last_name: string
+        }[]
       }
       get_favorites_suggestions: {
         Args: { p_user_id: string }
