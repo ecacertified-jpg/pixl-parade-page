@@ -1,44 +1,39 @@
+## Corrections des 3 bugs signalés
 
-## Objectif
+### Bug 1 — Cagnotte Jumia : "violates foreign key constraint collective_funds_creator_id_fkey"
 
-Chaque message "Passe à un plan supérieur" doit devenir un CTA cliquable qui ouvre la modale d'upgrade (ou `/pricing`) en conservant l'URL d'origine, pour ramener l'utilisateur exactement là où il était après paiement.
+**Cause** : `collective_funds.creator_id` référence `profiles.user_id`. Certains utilisateurs (Google Auth, comptes réclamés, anciens comptes) n'ont pas de ligne `profiles` créée, donc l'insertion échoue.
 
-## Rappel de l'infra existante (à réutiliser, ne pas dupliquer)
+**Correctif**
+1. Ajouter une fonction SQL security-definer `public.ensure_profile_exists()` qui insère une ligne minimale dans `profiles` pour `auth.uid()` si absente (idempotente).
+2. Dans `ExternalProductFundModal.handleSubmit` (avant l'insert de la cagnotte), appeler `supabase.rpc('ensure_profile_exists')`.
+3. Appliquer le même garde-fou dans les autres flux de création de cagnotte (`WishlistFundPickerModal`, `CreateFund`…) via un petit hook `useEnsureProfile` réutilisable.
 
-- `useUpgradePrompt()` → ouvre `UpgradePromptModal`, qui construit déjà un lien vers `/pricing?from={feature}&return_to={pathname+search}`.
-- `Pricing.tsx` gère déjà `return_to` : après succès `WaveCheckoutModal`, il fait `navigate(decodeURIComponent(return_to), { replace: true })`. ✅ Rien à changer côté paiement.
-- Il manque juste : appeler cette infra partout où l'on affiche encore un simple toast/label statique.
+### Bug 2 — Publication visiteur d'un vœu : "Edge Function returned a non-2xx status code"
 
-## Changements
+**Cause** : reproduit via curl → l'edge function `post-birthday-message` renvoie 404 "Page introuvable ou inactive" pour un slug `event_pages` valide (le même slug retourne bien la ligne via REST/service role). La version déployée de la fonction ne comporte pas encore le support `page_kind: "event"` (n'a pas été redéployée depuis l'ajout des pages événement).
 
-### 1. `src/pages/CreateEventPage.tsx` — quota événements
-- Remplacer le `toast.error("Quota d'événements atteint...")` (ligne 59) par `upgrade.open({ feature: 'event_pages', reason: "Ton plan inclut déjà toutes tes pages actives." })`.
-- Dans le bloc "Quota atteint" (ligne 105-118), remplacer le `<Link to="/pricing">Voir les plans</Link>` par un bouton qui appelle `upgrade.open({ feature: 'event_pages' })` — cohérence + `return_to` auto.
-- Ajouter `const upgrade = useUpgradePrompt();`.
+**Correctif**
+1. Forcer le redéploiement de `supabase/functions/post-birthday-message/index.ts` (retouche mineure : nettoyer la ligne morte `const status = ALLOWED_MEDIA.includes(args.status)` qui compare à la mauvaise liste, et logger `pageErr` explicitement pour debug futur).
+2. Vérifier après déploiement via curl que `page_kind:"event"` renvoie 200.
 
-### 2. `src/features/subscription/FeatureGate.tsx` — carte lock générique
-- Le `<Link to="/pricing">` (ligne 72) perd le contexte. Le remplacer par `to={`/pricing?return_to=${encodeURIComponent(location.pathname + location.search)}`}` via `useLocation()`.
-- Si la prop `feature` (FeatureId) est fournie, ajouter aussi `from=<feature>` pour afficher la bannière contextuelle sur `/pricing`. Ajouter une prop optionnelle `featureId?: FeatureId` (non-cassante) pour le passage explicite.
+### Bug 3 — L'un des avatars du couple disparaît après recherche de la page
 
-### 3. `src/pages/Subscription.tsx` (lignes 82, 91) & `src/pages/Invoices.tsx` (ligne 92)
-- Remplacer les `<Link to="/pricing">` par `<Link to={`/pricing?return_to=${encodeURIComponent(location.pathname)}`}>` pour un retour cohérent.
+**Cause** : l'avatar du créateur est chargé depuis la vue `public_profiles`, filtrée sur `privacy_setting = 'public'`. Si le créateur du mariage a un profil `friends`/`private`, la vue ne renvoie rien → seul l'avatar du conjoint (stocké sur `event_pages.spouse_avatar_url`) reste visible. Sur la page directement ouverte par le propriétaire, `useAuth` peut charger l'avatar par un autre chemin, d'où l'incohérence.
 
-### 4. `src/features/subscription/PremiumTrialBanner.tsx` (ligne 56) & `PostEventConversionCard.tsx` (ligne 77) & `PremiumTrialUnlockModal.tsx` (ligne 106)
-- Idem : ajouter `?return_to=` à partir de `useLocation()` pour ramener sur la page d'origine (banner ou page événement).
+**Correctif**
+1. Ajouter une fonction Postgres `public.get_event_page_creator_avatar(page_id uuid)` security-definer qui renvoie `first_name, avatar_url` pour le créateur **uniquement si** la page est active — indépendamment de `privacy_setting`.
+2. Dans `EventPage.tsx`, remplacer la requête `public_profiles` par un appel `supabase.rpc('get_event_page_creator_avatar', { page_id })`.
+3. Faire de même côté `BirthdayPage` (mémo suivant) — hors scope de ce bugfix, on documente juste. (uniquement Event ici.)
 
-### 5. `src/components/souvenirs/SouvenirBookCard.tsx` (ligne 68 "Débloquer avec Premium")
-- Le rendre CTA : `onClick` → `useUpgradePrompt().open({ feature: 'souvenirs_premium' })` (ou lien `/pricing?from=souvenirs_premium&return_to=...`).
+### Fichiers touchés
+- Migration SQL : nouvelles fonctions `ensure_profile_exists`, `get_event_page_creator_avatar`.
+- `src/components/ExternalProductFundModal.tsx` : appel RPC ensure-profile avant insert.
+- `src/hooks/useEnsureProfile.ts` : petit hook réutilisable.
+- `src/pages/EventPage.tsx` : nouvelle source pour l'avatar créateur.
+- `supabase/functions/post-birthday-message/index.ts` : nettoyage + log → force redeploy.
 
-### 6. Audit final
-- Rechercher tout autre `toast.*plan` ou label statique "Passe à un plan" restant et les convertir de la même manière (`useUpgradePrompt` si dans un flux d'action, sinon Link avec `from` + `return_to`).
-
-## Détails techniques
-
-- Le param `return_to` est déjà lu ligne 402 de `Pricing.tsx`. Aucune modif de `Pricing` ni de `WaveCheckoutModal` nécessaire.
-- Utiliser `window.location.pathname + window.location.search` (comme dans `UpgradePromptModal` ligne 84) ou `useLocation()` selon le composant.
-- Ne pas ajouter `return_to` sur les Links depuis `/pricing` lui-même (éviter boucle).
-
-## Hors scope
-
-- Aucun changement backend, RPC ou schéma DB.
-- Pas de refonte visuelle de `/pricing` ni de `UpgradePromptModal`.
+### Vérifications
+- curl `post-birthday-message` avec slug event → 200.
+- Créer une cagnotte Jumia avec un compte sans profil → cagnotte créée, redirection `/f/:id`.
+- Ouvrir la page mariage en navigation privée → les deux avatars s'affichent.
