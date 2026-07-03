@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useEnsureProfile } from "@/hooks/useEnsureProfile";
 
 interface ExternalProductFundModalProps {
   isOpen: boolean;
@@ -63,6 +64,7 @@ export function ExternalProductFundModal({
 }: ExternalProductFundModalProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const ensureProfile = useEnsureProfile();
 
   const [productUrl, setProductUrl] = useState("");
   const [productName, setProductName] = useState("");
@@ -119,6 +121,8 @@ export function ExternalProductFundModal({
 
     setLoading(true);
     try {
+      // Guarantee the profile row exists (FK collective_funds.creator_id -> profiles.user_id)
+      await ensureProfile();
       const beneficiaryLabel =
         beneficiaryName?.trim() ||
         (user.user_metadata?.first_name as string | undefined) ||
