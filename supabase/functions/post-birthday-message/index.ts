@@ -71,7 +71,6 @@ async function moderate(text: string, mediaType: string): Promise<{ status: "saf
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    console.log("post-birthday-message invoked");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -109,10 +108,7 @@ serve(async (req) => {
     if (pageErr) console.error("post-birthday-message page lookup error", { pagesTable, slug, pageErr });
     if (!page) console.warn("post-birthday-message page not found", { pagesTable, slug });
     if (pageErr || !page || !(page as any).is_active) {
-      return json(404, {
-        error: "Page introuvable ou inactive",
-        debug: { pagesTable, slug, pageKind, hasPage: !!page, pageErrMsg: pageErr?.message ?? null, is_active: (page as any)?.is_active ?? null }
-      });
+      return json(404, { error: "Page introuvable ou inactive" });
     }
     const ownerId = (page as any)[ownerCol];
 
