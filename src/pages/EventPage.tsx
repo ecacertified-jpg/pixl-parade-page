@@ -33,6 +33,9 @@ import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
 import { EventWishlistSection } from "@/components/event/EventWishlistSection";
 import { EventAIAssistant } from "@/components/event/EventAIAssistant";
 import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
+import { InspirationModal } from "@/components/inspiration/InspirationModal";
+import { InspirationDetailModal } from "@/components/inspiration/InspirationDetailModal";
+import { fetchInspirationByToken, type InspirationItem } from "@/hooks/useInspirationItems";
 
 const occasionThemes: Record<string, { emoji: string; gradient: string; label: string }> = {
   wedding: { emoji: '💍', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage' },
@@ -78,6 +81,8 @@ const EventPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showOrgSheet, setShowOrgSheet] = useState(false);
+  const [showInspiration, setShowInspiration] = useState(false);
+  const [inspirationDetail, setInspirationDetail] = useState<InspirationItem | null>(null);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const confettiTriggered = useRef(false);
 
