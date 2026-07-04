@@ -6066,6 +6066,69 @@ export type Database = {
         }
         Relationships: []
       }
+      inspiration_items: {
+        Row: {
+          author_id: string
+          body: string | null
+          category: Database["public"]["Enums"]["inspiration_category"]
+          created_at: string
+          id: string
+          is_active: boolean
+          is_admin_post: boolean
+          media_type: Database["public"]["Enums"]["inspiration_media_type"]
+          media_url: string | null
+          page_id: string | null
+          page_kind: Database["public"]["Enums"]["inspiration_page_kind"]
+          share_token: string
+          shares_count: number
+          subcategory: string
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          category: Database["public"]["Enums"]["inspiration_category"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_admin_post?: boolean
+          media_type: Database["public"]["Enums"]["inspiration_media_type"]
+          media_url?: string | null
+          page_id?: string | null
+          page_kind: Database["public"]["Enums"]["inspiration_page_kind"]
+          share_token?: string
+          shares_count?: number
+          subcategory: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          category?: Database["public"]["Enums"]["inspiration_category"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_admin_post?: boolean
+          media_type?: Database["public"]["Enums"]["inspiration_media_type"]
+          media_url?: string | null
+          page_id?: string | null
+          page_kind?: Database["public"]["Enums"]["inspiration_page_kind"]
+          share_token?: string
+          shares_count?: number
+          subcategory?: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: []
+      }
       instagram_connections: {
         Row: {
           access_token_encrypted: string | null
@@ -11559,6 +11622,7 @@ export type Database = {
       }
       generate_admin_share_code: { Args: never; Returns: string }
       generate_event_analytics: { Args: never; Returns: number }
+      generate_inspiration_token: { Args: never; Returns: string }
       generate_unique_referral_code: {
         Args: { code_format?: string; user_uuid: string }
         Returns: string
@@ -11653,6 +11717,35 @@ export type Database = {
         }[]
       }
       get_fund_creator_id: { Args: { p_fund_id: string }; Returns: string }
+      get_inspiration_by_token: {
+        Args: { _token: string }
+        Returns: {
+          author_id: string
+          body: string | null
+          category: Database["public"]["Enums"]["inspiration_category"]
+          created_at: string
+          id: string
+          is_active: boolean
+          is_admin_post: boolean
+          media_type: Database["public"]["Enums"]["inspiration_media_type"]
+          media_url: string | null
+          page_id: string | null
+          page_kind: Database["public"]["Enums"]["inspiration_page_kind"]
+          share_token: string
+          shares_count: number
+          subcategory: string
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          views_count: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "inspiration_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_invitation_stats: { Args: { user_uuid: string }; Returns: Json }
       get_messaging_delivery_stats: {
         Args: { days_back?: number }
@@ -11862,6 +11955,11 @@ export type Database = {
         Args: { p_message_id: string }
         Returns: undefined
       }
+      increment_inspiration_shares: {
+        Args: { _id: string }
+        Returns: undefined
+      }
+      increment_inspiration_views: { Args: { _id: string }; Returns: undefined }
       increment_share_code_stat: {
         Args: { p_code: string; p_field: string }
         Returns: undefined
@@ -12121,6 +12219,13 @@ export type Database = {
         | "wedding_night"
       event_guest_status: "invited" | "confirmed" | "declined" | "pending"
       event_task_status: "todo" | "in_progress" | "done"
+      inspiration_category:
+        | "divertissement"
+        | "astuces"
+        | "conseils"
+        | "formations"
+      inspiration_media_type: "video" | "image" | "text"
+      inspiration_page_kind: "birthday" | "event" | "global"
       organization_page_type: "birthday" | "event"
       organizer_role: "admin" | "tasks" | "budget" | "guests" | "vendors"
       organizer_status: "pending" | "accepted" | "revoked"
@@ -12282,6 +12387,14 @@ export const Constants = {
       ],
       event_guest_status: ["invited", "confirmed", "declined", "pending"],
       event_task_status: ["todo", "in_progress", "done"],
+      inspiration_category: [
+        "divertissement",
+        "astuces",
+        "conseils",
+        "formations",
+      ],
+      inspiration_media_type: ["video", "image", "text"],
+      inspiration_page_kind: ["birthday", "event", "global"],
       organization_page_type: ["birthday", "event"],
       organizer_role: ["admin", "tasks", "budget", "guests", "vendors"],
       organizer_status: ["pending", "accepted", "revoked"],
