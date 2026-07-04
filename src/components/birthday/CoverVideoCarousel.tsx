@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX, Maximize2, X, Radio, Sparkles, Share2 } from "lucide-react";
+import { Volume2, VolumeX, Maximize2, X, Radio, Sparkles, Share2, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,8 @@ interface Props {
   onLiveClick?: () => void;
   /** Optional callback when the "Mes coulisses" icon is tapped. */
   onCoulissesClick?: () => void;
+  /** Optional callback when the "Inspiration" icon is tapped. */
+  onInspirationClick?: () => void;
   /** Optional callback when the cover "Partage" icon is tapped. */
   onShareClick?: () => void;
 }
@@ -46,6 +48,7 @@ export function CoverVideoCarousel({
   context = "birthday",
   onLiveClick,
   onCoulissesClick,
+  onInspirationClick,
   onShareClick,
 }: Props) {
   const { user } = useAuth();
