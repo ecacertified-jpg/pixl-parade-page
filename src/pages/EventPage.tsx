@@ -33,6 +33,9 @@ import { EventHeroOverlay } from "@/components/event/EventHeroOverlay";
 import { EventWishlistSection } from "@/components/event/EventWishlistSection";
 import { EventAIAssistant } from "@/components/event/EventAIAssistant";
 import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
+import { InspirationModal } from "@/components/inspiration/InspirationModal";
+import { InspirationDetailModal } from "@/components/inspiration/InspirationDetailModal";
+import { fetchInspirationByToken, type InspirationItem } from "@/hooks/useInspirationItems";
 
 const occasionThemes: Record<string, { emoji: string; gradient: string; label: string }> = {
   wedding: { emoji: '💍', gradient: 'from-rose-200/40 via-amber-100/30 to-rose-100/40', label: 'Mariage' },
@@ -78,11 +81,21 @@ const EventPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showOrgSheet, setShowOrgSheet] = useState(false);
+  const [showInspiration, setShowInspiration] = useState(false);
+  const [inspirationDetail, setInspirationDetail] = useState<InspirationItem | null>(null);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const confettiTriggered = useRef(false);
 
   const theme = useMemo(() => occasionThemes[page?.occasion || 'other'] || occasionThemes.other, [page?.occasion]);
   const isOwner = !!user?.id && !!page?.creator_id && user.id === page.creator_id;
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get("inspiration");
+    if (!token) return;
+    fetchInspirationByToken(token).then((it) => { if (it) setInspirationDetail(it); });
+  }, [location.search]);
+
   const isWedding = !!page?.occasion && (page.occasion.includes('mariage') || page.occasion === 'wedding');
 
   const [creatorProfile, setCreatorProfile] = useState<{ first_name: string; avatar_url: string | null } | null>(null);
@@ -242,6 +255,7 @@ const EventPage = () => {
           context="wedding"
           onLiveClick={() => navigate('/rooms')}
           onCoulissesClick={() => setShowOrgSheet(true)}
+          onInspirationClick={() => setShowInspiration(true)}
           onShareClick={() => setShowShareMenu(true)}
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
@@ -456,6 +470,20 @@ const EventPage = () => {
           </SheetContent>
         </Sheet>
       )}
+
+      {page && (
+        <InspirationModal
+          open={showInspiration}
+          onOpenChange={setShowInspiration}
+          pageKind="event"
+          pageId={page.id}
+        />
+      )}
+      <InspirationDetailModal
+        item={inspirationDetail}
+        open={!!inspirationDetail}
+        onOpenChange={(o) => !o && setInspirationDetail(null)}
+      />
 
       {/* Visitor conversion CTA — only for non-authenticated visitors */}
       {!user && page && (

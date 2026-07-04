@@ -38,6 +38,9 @@ import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
 import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
 import { PlanExpiredBadge } from "@/features/subscription/PlanExpiredBadge";
+import { InspirationModal } from "@/components/inspiration/InspirationModal";
+import { InspirationDetailModal } from "@/components/inspiration/InspirationDetailModal";
+import { fetchInspirationByToken, type InspirationItem } from "@/hooks/useInspirationItems";
 
 interface BirthdayPageData {
   id: string;
@@ -103,6 +106,8 @@ const BirthdayPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showOrgSheet, setShowOrgSheet] = useState(false);
+  const [showInspiration, setShowInspiration] = useState(false);
+  const [inspirationDetail, setInspirationDetail] = useState<InspirationItem | null>(null);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const [showVideosManager, setShowVideosManager] = useState(false);
 
@@ -113,6 +118,15 @@ const BirthdayPage = () => {
   const [shareNudgeVariant, setShareNudgeVariant] = useState<"fund_created" | "page_action" | "never_shared">("never_shared");
   const [publishing, setPublishing] = useState(false);
   const isOwner = !!user?.id && !!page?.user_id && user.id === page.user_id;
+
+  // Deep-link inspiration item via ?inspiration=<token>
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get("inspiration");
+    if (!token) return;
+    fetchInspirationByToken(token).then((it) => { if (it) setInspirationDetail(it); });
+  }, [location.search]);
+
   const prevFundRef = useRef<string | null>(null);
   const actionCountRef = useRef(0);
 
@@ -592,6 +606,7 @@ const BirthdayPage = () => {
           isOwner={!!user?.id && user.id === page?.user_id}
           onLiveClick={() => navigate('/rooms')}
           onCoulissesClick={() => setShowOrgSheet(true)}
+          onInspirationClick={() => setShowInspiration(true)}
           onShareClick={() => setShowShareMenu(true)}
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
@@ -887,6 +902,20 @@ const BirthdayPage = () => {
           </SheetContent>
         </Sheet>
       )}
+
+      {page && (
+        <InspirationModal
+          open={showInspiration}
+          onOpenChange={setShowInspiration}
+          pageKind="birthday"
+          pageId={page.id}
+        />
+      )}
+      <InspirationDetailModal
+        item={inspirationDetail}
+        open={!!inspirationDetail}
+        onOpenChange={(o) => !o && setInspirationDetail(null)}
+      />
 
       {/* Premium offert : déblocage émotionnel + conversion post-événement */}
       {isOwner && page && (

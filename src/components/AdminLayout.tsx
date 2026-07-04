@@ -33,6 +33,7 @@ import {
   MessageSquare,
   Cake,
   Film,
+  Lightbulb,
   Bot,
   ListChecks,
   Eye
@@ -91,6 +92,7 @@ const navItems: NavItem[] = [
   { title: 'WA Cagnottes', href: '/admin/business-fund-wa', icon: Gift },
   { title: 'Anniversaires', href: '/admin/birthdays', icon: Cake },
   { title: 'Vidéos de couverture', href: '/admin/cover-videos', icon: Film },
+  { title: 'Inspiration', href: '/admin/inspiration', icon: Lightbulb },
   { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },
