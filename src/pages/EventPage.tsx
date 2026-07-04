@@ -88,6 +88,14 @@ const EventPage = () => {
 
   const theme = useMemo(() => occasionThemes[page?.occasion || 'other'] || occasionThemes.other, [page?.occasion]);
   const isOwner = !!user?.id && !!page?.creator_id && user.id === page.creator_id;
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get("inspiration");
+    if (!token) return;
+    fetchInspirationByToken(token).then((it) => { if (it) setInspirationDetail(it); });
+  }, [location.search]);
+
   const isWedding = !!page?.occasion && (page.occasion.includes('mariage') || page.occasion === 'wedding');
 
   const [creatorProfile, setCreatorProfile] = useState<{ first_name: string; avatar_url: string | null } | null>(null);
