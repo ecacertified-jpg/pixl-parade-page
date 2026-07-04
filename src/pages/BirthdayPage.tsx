@@ -106,6 +106,8 @@ const BirthdayPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showOrgSheet, setShowOrgSheet] = useState(false);
+  const [showInspiration, setShowInspiration] = useState(false);
+  const [inspirationDetail, setInspirationDetail] = useState<InspirationItem | null>(null);
   const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const [showVideosManager, setShowVideosManager] = useState(false);
 
