@@ -471,6 +471,20 @@ const EventPage = () => {
         </Sheet>
       )}
 
+      {page && (
+        <InspirationModal
+          open={showInspiration}
+          onOpenChange={setShowInspiration}
+          pageKind="event"
+          pageId={page.id}
+        />
+      )}
+      <InspirationDetailModal
+        item={inspirationDetail}
+        open={!!inspirationDetail}
+        onOpenChange={(o) => !o && setInspirationDetail(null)}
+      />
+
       {/* Visitor conversion CTA — only for non-authenticated visitors */}
       {!user && page && (
         <VisitorConversionCTA refSlug={page.slug} pageKind="event" occasion={page.occasion} />
