@@ -1,39 +1,80 @@
-## Corrections des 3 bugs signalés
+# Module "Inspiration" — Anniversaire / Événement
 
-### Bug 1 — Cagnotte Jumia : "violates foreign key constraint collective_funds_creator_id_fkey"
+## Objectif
+Ajouter un bouton icône **Inspiration** sur la vidéo de couverture (entre "Mes coulisses" et "Partage") des pages anniversaire ET événement. Il ouvre une modale multi-onglets où utilisateurs (et admins) peuvent publier vidéos / images / textes, chaque publication générant un lien de partage social qui ré-ouvre l'élément dans une modale sur la page cible.
 
-**Cause** : `collective_funds.creator_id` référence `profiles.user_id`. Certains utilisateurs (Google Auth, comptes réclamés, anciens comptes) n'ont pas de ligne `profiles` créée, donc l'insertion échoue.
+## Arborescence des catégories
+4 onglets → sous-rubriques (fixes) :
+1. **Divertissement** — films, musique, spectacles, people
+2. **Astuces** — beauté, cuisine, autres
+3. **Conseils** — bien-être, santé, business, motivation
+4. **Formations** — diplôme, certification, autres
 
-**Correctif**
-1. Ajouter une fonction SQL security-definer `public.ensure_profile_exists()` qui insère une ligne minimale dans `profiles` pour `auth.uid()` si absente (idempotente).
-2. Dans `ExternalProductFundModal.handleSubmit` (avant l'insert de la cagnotte), appeler `supabase.rpc('ensure_profile_exists')`.
-3. Appliquer le même garde-fou dans les autres flux de création de cagnotte (`WishlistFundPickerModal`, `CreateFund`…) via un petit hook `useEnsureProfile` réutilisable.
+## Base de données (migration)
 
-### Bug 2 — Publication visiteur d'un vœu : "Edge Function returned a non-2xx status code"
+### Table `inspiration_items`
+Champs métier : `page_kind` ('birthday' | 'event' | 'global'), `page_id` (nullable pour global/admin), `author_id`, `is_admin_post` (bool), `category` (enum 4 valeurs), `subcategory` (text), `media_type` ('video' | 'image' | 'text'), `media_url`, `thumbnail_url`, `title`, `body`, `share_token` (unique, court), `is_active`, `views_count`, `shares_count`.
 
-**Cause** : reproduit via curl → l'edge function `post-birthday-message` renvoie 404 "Page introuvable ou inactive" pour un slug `event_pages` valide (le même slug retourne bien la ligne via REST/service role). La version déployée de la fonction ne comporte pas encore le support `page_kind: "event"` (n'a pas été redéployée depuis l'ajout des pages événement).
+- **GRANT** SELECT anon+authenticated ; INSERT/UPDATE/DELETE authenticated ; ALL service_role.
+- **RLS** :
+  - SELECT : `is_active = true` visible à tous (nécessaire pour deep-link partagé).
+  - INSERT : `auth.uid() = author_id` ; posts admin (`is_admin_post = true` + `page_kind='global'`) réservés via `has_role(auth.uid(),'super_admin' | 'regional_admin')`.
+  - UPDATE/DELETE : auteur OU admin.
+- Trigger `updated_at`, génération auto de `share_token` (10 chars base62).
 
-**Correctif**
-1. Forcer le redéploiement de `supabase/functions/post-birthday-message/index.ts` (retouche mineure : nettoyer la ligne morte `const status = ALLOWED_MEDIA.includes(args.status)` qui compare à la mauvaise liste, et logger `pageErr` explicitement pour debug futur).
-2. Vérifier après déploiement via curl que `page_kind:"event"` renvoie 200.
+### Bucket storage `inspiration-media` (public)
+Policies : upload authenticated, lecture publique.
 
-### Bug 3 — L'un des avatars du couple disparaît après recherche de la page
+## Frontend utilisateur
 
-**Cause** : l'avatar du créateur est chargé depuis la vue `public_profiles`, filtrée sur `privacy_setting = 'public'`. Si le créateur du mariage a un profil `friends`/`private`, la vue ne renvoie rien → seul l'avatar du conjoint (stocké sur `event_pages.spouse_avatar_url`) reste visible. Sur la page directement ouverte par le propriétaire, `useAuth` peut charger l'avatar par un autre chemin, d'où l'incohérence.
+### Composants
+- `src/components/inspiration/InspirationButton.tsx` — icône `Lightbulb` dans `CoverVideoCarousel` via nouveau prop `onInspirationClick` (placé entre Coulisses et Share).
+- `src/components/inspiration/InspirationModal.tsx` — Dialog avec `Tabs` (4 catégories) + sous-onglets `Tabs` internes. Grille type TikTok (thumbnails vidéo, images, cartes texte). Bouton "+ Publier".
+- `src/components/inspiration/InspirationComposer.tsx` — form (catégorie, sous-catégorie, type média, upload, titre/texte).
+- `src/components/inspiration/InspirationItemCard.tsx` — vignette + bouton partage (copie `https://joiedevivre-africa.com/{page_kind}/{slug}?inspiration={share_token}` + Web Share API).
+- `src/components/inspiration/InspirationDetailModal.tsx` — lecture plein écran (vidéo autoplay/mute, image, texte), compteur vues.
 
-**Correctif**
-1. Ajouter une fonction Postgres `public.get_event_page_creator_avatar(page_id uuid)` security-definer qui renvoie `first_name, avatar_url` pour le créateur **uniquement si** la page est active — indépendamment de `privacy_setting`.
-2. Dans `EventPage.tsx`, remplacer la requête `public_profiles` par un appel `supabase.rpc('get_event_page_creator_avatar', { page_id })`.
-3. Faire de même côté `BirthdayPage` (mémo suivant) — hors scope de ce bugfix, on documente juste. (uniquement Event ici.)
+### Hook
+- `src/hooks/useInspirationItems.ts` — fetch par `page_kind`+`page_id` **UNION** posts admin globaux (`page_kind='global'`), filtres catégorie/sous-catégorie, création, suppression, incrément vues/partages via RPC.
 
-### Fichiers touchés
-- Migration SQL : nouvelles fonctions `ensure_profile_exists`, `get_event_page_creator_avatar`.
-- `src/components/ExternalProductFundModal.tsx` : appel RPC ensure-profile avant insert.
-- `src/hooks/useEnsureProfile.ts` : petit hook réutilisable.
-- `src/pages/EventPage.tsx` : nouvelle source pour l'avatar créateur.
-- `supabase/functions/post-birthday-message/index.ts` : nettoyage + log → force redeploy.
+### Intégration pages
+- `src/pages/BirthdayPage.tsx` et `src/pages/EventPage.tsx` :
+  - Passer `onInspirationClick` au `CoverVideoCarousel`.
+  - Monter `<InspirationModal pageKind="birthday|event" pageId={page.id} />`.
+  - Lire `?inspiration=<token>` dans l'URL → ouvrir `InspirationDetailModal` automatiquement au chargement (fetch par token).
 
-### Vérifications
-- curl `post-birthday-message` avec slug event → 200.
-- Créer une cagnotte Jumia avec un compte sans profil → cagnotte créée, redirection `/f/:id`.
-- Ouvrir la page mariage en navigation privée → les deux avatars s'affichent.
+## Admin
+
+### Page `src/pages/Admin/AdminInspiration.tsx`
+- Onglet dans la nav admin (route `/admin/inspiration`, permission `manage_content`).
+- Liste + filtres (catégorie, type, statut).
+- CRUD publications admin (`is_admin_post=true`, `page_kind='global'`) — s'affichent sur TOUTES les pages anniversaire/événement.
+- Bouton partage identique (le lien renvoie vers la homepage de l'utilisateur ? → clarification : on ouvrira sur la page anniversaire courante du destinataire ; à défaut de destination, le lien pointe vers `/inspiration/{share_token}` qui redirige vers une page publique dédiée).
+- Modération : désactiver posts utilisateurs.
+
+## Partage type TikTok
+- Chaque item a `share_token`. URL générée :
+  - Post utilisateur → `https://<domain>/{birthday|event}/{slug}?inspiration={token}`
+  - Post admin global → même URL depuis la page où l'utilisateur clique partager.
+- Bouton "Partager" : copie le lien + ouvre `navigator.share` si dispo, sinon toast + boutons WhatsApp / Facebook / X.
+
+## Détails techniques
+- Compression image existante (`compressImage.ts`), génération thumbnail vidéo (`videoThumbnails.ts`).
+- Quota : intégrer avec `useQuota` existant (nouveau `feature: 'inspiration_post'`, plans gratuits limités, sinon CTA upgrade déjà en place).
+- i18n : libellés français.
+- Analytics : `views_count`, `shares_count` incrémentés via RPC `SECURITY DEFINER`.
+
+## Fichiers créés / édités
+**Créés**
+- migration SQL (`inspiration_items` + bucket + RLS + RPC)
+- `src/hooks/useInspirationItems.ts`
+- `src/components/inspiration/{InspirationButton,InspirationModal,InspirationComposer,InspirationItemCard,InspirationDetailModal}.tsx`
+- `src/pages/Admin/AdminInspiration.tsx`
+- (option) `src/pages/InspirationRedirect.tsx` pour tokens orphelins
+
+**Édités**
+- `src/components/birthday/CoverVideoCarousel.tsx` (nouveau prop + bouton)
+- `src/pages/BirthdayPage.tsx`, `src/pages/EventPage.tsx`
+- `src/App.tsx` (routes admin + redirect)
+- Nav admin (ajout entrée "Inspiration")
+- `src/features/subscription/featureCatalog.ts` (nouveau feature quota)
