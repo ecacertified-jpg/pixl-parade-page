@@ -118,6 +118,15 @@ const BirthdayPage = () => {
   const [shareNudgeVariant, setShareNudgeVariant] = useState<"fund_created" | "page_action" | "never_shared">("never_shared");
   const [publishing, setPublishing] = useState(false);
   const isOwner = !!user?.id && !!page?.user_id && user.id === page.user_id;
+
+  // Deep-link inspiration item via ?inspiration=<token>
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get("inspiration");
+    if (!token) return;
+    fetchInspirationByToken(token).then((it) => { if (it) setInspirationDetail(it); });
+  }, [location.search]);
+
   const prevFundRef = useRef<string | null>(null);
   const actionCountRef = useRef(0);
 
