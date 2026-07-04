@@ -38,6 +38,9 @@ import type { CelebrationArtisan } from "@/types/celebrationArtisan";
 import { PremiumTrialUnlockModal } from "@/features/subscription/PremiumTrialUnlockModal";
 import { PostEventConversionCard } from "@/features/subscription/PostEventConversionCard";
 import { PlanExpiredBadge } from "@/features/subscription/PlanExpiredBadge";
+import { InspirationModal } from "@/components/inspiration/InspirationModal";
+import { InspirationDetailModal } from "@/components/inspiration/InspirationDetailModal";
+import { fetchInspirationByToken, type InspirationItem } from "@/hooks/useInspirationItems";
 
 interface BirthdayPageData {
   id: string;
