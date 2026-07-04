@@ -903,6 +903,20 @@ const BirthdayPage = () => {
         </Sheet>
       )}
 
+      {page && (
+        <InspirationModal
+          open={showInspiration}
+          onOpenChange={setShowInspiration}
+          pageKind="birthday"
+          pageId={page.id}
+        />
+      )}
+      <InspirationDetailModal
+        item={inspirationDetail}
+        open={!!inspirationDetail}
+        onOpenChange={(o) => !o && setInspirationDetail(null)}
+      />
+
       {/* Premium offert : déblocage émotionnel + conversion post-événement */}
       {isOwner && page && (
         <>
