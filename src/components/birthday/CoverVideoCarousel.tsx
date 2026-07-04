@@ -252,6 +252,17 @@ export function CoverVideoCarousel({
               <Sparkles className="h-4 w-4" />
             </button>
           )}
+          {onInspirationClick && (
+            <button
+              type="button"
+              onClick={onInspirationClick}
+              className="h-9 w-9 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center hover:bg-black/65 transition-colors"
+              aria-label="Inspiration"
+              title="Inspiration"
+            >
+              <Lightbulb className="h-4 w-4" />
+            </button>
+          )}
           {onShareClick && (
             <button
               type="button"
