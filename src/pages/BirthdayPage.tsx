@@ -597,6 +597,7 @@ const BirthdayPage = () => {
           isOwner={!!user?.id && user.id === page?.user_id}
           onLiveClick={() => navigate('/rooms')}
           onCoulissesClick={() => setShowOrgSheet(true)}
+          onInspirationClick={() => setShowInspiration(true)}
           onShareClick={() => setShowShareMenu(true)}
           className="h-[58vh] min-h-[360px] md:h-[64vh] md:min-h-[460px]"
           overlay={
