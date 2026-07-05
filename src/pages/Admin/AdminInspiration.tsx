@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { InspirationComposer } from "@/components/inspiration/InspirationComposer";
 import { findCategoryLabel, findSubcategoryLabel } from "@/features/inspiration/categories";
 import type { InspirationItem } from "@/hooks/useInspirationItems";
-import { getAppBaseUrl } from "@/utils/appUrl";
+import { buildInspirationShareUrl } from "@/utils/inspirationShareUrl";
 
 export default function AdminInspiration() {
   const [items, setItems] = useState<InspirationItem[]>([]);
@@ -42,7 +42,7 @@ export default function AdminInspiration() {
   };
 
   const copyShare = async (it: InspirationItem) => {
-    const url = `${getAppBaseUrl()}/inspiration/${it.share_token}`;
+    const url = buildInspirationShareUrl(it.share_token);
     await navigator.clipboard.writeText(url);
     toast.success("Lien copié");
   };

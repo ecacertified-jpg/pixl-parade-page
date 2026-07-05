@@ -325,3 +325,6 @@ verify_jwt = true
 
 [functions.link-fund-to-birthday-page]
 verify_jwt = true
+
+[functions.inspiration-preview]
+verify_jwt = false
