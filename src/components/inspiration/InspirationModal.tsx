@@ -9,6 +9,7 @@ import { InspirationComposer } from "./InspirationComposer";
 import { InspirationDetailModal } from "./InspirationDetailModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { buildInspirationShareUrl } from "@/utils/inspirationShareUrl";
 
 interface Props {
   open: boolean;
@@ -35,7 +36,7 @@ export function InspirationModal({ open, onOpenChange, pageKind, pageId, canPubl
   }, [items, activeCat, activeSub]);
 
   const share = async (it: InspirationItem) => {
-    const url = `${window.location.origin}${window.location.pathname}?inspiration=${it.share_token}`;
+    const url = buildInspirationShareUrl(it.share_token);
     try {
       if (navigator.share) await navigator.share({ title: it.title || "Inspiration", url });
       else { await navigator.clipboard.writeText(url); toast.success("Lien copié !"); }
