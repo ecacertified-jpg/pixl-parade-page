@@ -22,6 +22,42 @@ interface Props {
 
 const BUCKET = "birthday-message-media";
 
+/**
+ * Extract a JPEG poster (first frame) from a video File so that shared
+ * inspiration links can display a meaningful preview thumbnail on social.
+ */
+async function extractVideoThumbnail(file: File): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.muted = true;
+      video.playsInline = true;
+      video.src = url;
+      const cleanup = () => URL.revokeObjectURL(url);
+      const timeout = setTimeout(() => { cleanup(); resolve(null); }, 8000);
+      video.onloadeddata = () => {
+        try { video.currentTime = Math.min(0.5, (video.duration || 1) * 0.1); } catch { /* noop */ }
+      };
+      video.onseeked = () => {
+        try {
+          const w = video.videoWidth || 720;
+          const h = video.videoHeight || 1280;
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { clearTimeout(timeout); cleanup(); resolve(null); return; }
+          ctx.drawImage(video, 0, 0, w, h);
+          canvas.toBlob((b) => { clearTimeout(timeout); cleanup(); resolve(b); }, "image/jpeg", 0.82);
+        } catch { clearTimeout(timeout); cleanup(); resolve(null); }
+      };
+      video.onerror = () => { clearTimeout(timeout); cleanup(); resolve(null); };
+    } catch { resolve(null); }
+  });
+}
+
 export function InspirationComposer({ pageKind, pageId, isAdminPost = false, onCreated, onCancel }: Props) {
   const { user } = useAuth();
   const [category, setCategory] = useState<InspirationCategory>("divertissement");
@@ -46,6 +82,7 @@ export function InspirationComposer({ pageKind, pageId, isAdminPost = false, onC
     setSaving(true);
     try {
       let mediaUrl: string | null = null;
+      let thumbnailUrl: string | null = null;
       if (file) {
         const ext = file.name.split(".").pop() || "bin";
         const path = `inspiration/${user.id}/${Date.now()}.${ext}`;
@@ -53,6 +90,22 @@ export function InspirationComposer({ pageKind, pageId, isAdminPost = false, onC
         if (upErr) throw upErr;
         const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
         mediaUrl = pub.publicUrl;
+
+        if (mediaType === "video") {
+          const thumb = await extractVideoThumbnail(file);
+          if (thumb) {
+            const thumbPath = `inspiration/${user.id}/${Date.now()}-thumb.jpg`;
+            const { error: tErr } = await supabase.storage
+              .from(BUCKET)
+              .upload(thumbPath, thumb, { upsert: false, contentType: "image/jpeg" });
+            if (!tErr) {
+              const { data: tPub } = supabase.storage.from(BUCKET).getPublicUrl(thumbPath);
+              thumbnailUrl = tPub.publicUrl;
+            }
+          }
+        } else if (mediaType === "image") {
+          thumbnailUrl = mediaUrl;
+        }
       }
       const payload: any = {
         page_kind: pageKind,
@@ -63,6 +116,7 @@ export function InspirationComposer({ pageKind, pageId, isAdminPost = false, onC
         subcategory,
         media_type: mediaType,
         media_url: mediaUrl,
+        thumbnail_url: thumbnailUrl,
         title: title.trim() || null,
         body: body.trim() || null,
       };
