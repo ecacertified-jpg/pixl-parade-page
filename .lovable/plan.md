@@ -1,80 +1,67 @@
-# Module "Inspiration" — Anniversaire / Événement
+# Plan — Inspiration : previews sociaux, boutons, tracking Webful
 
-## Objectif
-Ajouter un bouton icône **Inspiration** sur la vidéo de couverture (entre "Mes coulisses" et "Partage") des pages anniversaire ET événement. Il ouvre une modale multi-onglets où utilisateurs (et admins) peuvent publier vidéos / images / textes, chaque publication générant un lien de partage social qui ré-ouvre l'élément dans une modale sur la page cible.
+## 1. Aperçu social du lien partagé (image + titre + description)
 
-## Arborescence des catégories
-4 onglets → sous-rubriques (fixes) :
-1. **Divertissement** — films, musique, spectacles, people
-2. **Astuces** — beauté, cuisine, autres
-3. **Conseils** — bien-être, santé, business, motivation
-4. **Formations** — diplôme, certification, autres
+Aujourd'hui le lien partagé est `…/birthday/<slug>?inspiration=<token>`. Les crawlers (WhatsApp, Facebook, TikTok, LinkedIn) ne lisent que le `<head>` statique de la SPA et voient donc l'OG de la page anniversaire, pas celui de l'élément.
 
-## Base de données (migration)
+Solution : passer l'URL de partage sur la route courte déjà existante `/inspiration/:token` et la servir via une **edge function** qui :
 
-### Table `inspiration_items`
-Champs métier : `page_kind` ('birthday' | 'event' | 'global'), `page_id` (nullable pour global/admin), `author_id`, `is_admin_post` (bool), `category` (enum 4 valeurs), `subcategory` (text), `media_type` ('video' | 'image' | 'text'), `media_url`, `thumbnail_url`, `title`, `body`, `share_token` (unique, court), `is_active`, `views_count`, `shares_count`.
+- Détecte les user‑agents crawlers (WhatsApp, Facebookexternalhit, Twitterbot, TelegramBot, LinkedInBot, Slack, Discord, TikTok…).
+- Pour un crawler → renvoie un HTML minimal avec les balises OG/Twitter dérivées de l'item (`title`, `body`, `media_url`, `thumbnail_url`, catégorie/sous‑catégorie) + JSON‑LD.
+- Pour un humain → renvoie une petite page HTML qui fait un `window.location.replace('/inspiration/:token')` côté SPA (comportement actuel de `InspirationRedirect.tsx` conservé).
 
-- **GRANT** SELECT anon+authenticated ; INSERT/UPDATE/DELETE authenticated ; ALL service_role.
-- **RLS** :
-  - SELECT : `is_active = true` visible à tous (nécessaire pour deep-link partagé).
-  - INSERT : `auth.uid() = author_id` ; posts admin (`is_admin_post = true` + `page_kind='global'`) réservés via `has_role(auth.uid(),'super_admin' | 'regional_admin')`.
-  - UPDATE/DELETE : auteur OU admin.
-- Trigger `updated_at`, génération auto de `share_token` (10 chars base62).
+Miniatures :
 
-### Bucket storage `inspiration-media` (public)
-Policies : upload authenticated, lecture publique.
+- **Image** → `media_url` sert directement d'`og:image`.
+- **Vidéo** → `thumbnail_url` si présent, sinon on génère un poster à l'upload dans `InspirationComposer` (canvas `video.currentTime = 0.1` → `toBlob` → upload dans le même bucket, colonne `thumbnail_url`).
+- **Texte** → OG image = image générique JDV Inspiration (asset statique déjà versionné via `withOgVersion`).
 
-## Frontend utilisateur
+Changements :
 
-### Composants
-- `src/components/inspiration/InspirationButton.tsx` — icône `Lightbulb` dans `CoverVideoCarousel` via nouveau prop `onInspirationClick` (placé entre Coulisses et Share).
-- `src/components/inspiration/InspirationModal.tsx` — Dialog avec `Tabs` (4 catégories) + sous-onglets `Tabs` internes. Grille type TikTok (thumbnails vidéo, images, cartes texte). Bouton "+ Publier".
-- `src/components/inspiration/InspirationComposer.tsx` — form (catégorie, sous-catégorie, type média, upload, titre/texte).
-- `src/components/inspiration/InspirationItemCard.tsx` — vignette + bouton partage (copie `https://joiedevivre-africa.com/{page_kind}/{slug}?inspiration={share_token}` + Web Share API).
-- `src/components/inspiration/InspirationDetailModal.tsx` — lecture plein écran (vidéo autoplay/mute, image, texte), compteur vues.
+- Nouvelle edge function `supabase/functions/inspiration-preview/index.ts` (déclarée `verify_jwt = false` dans `supabase/config.toml`).
+- `public/_redirects` : `/inspiration/:token   https://<project>.functions.supabase.co/inspiration-preview?token=:token   200` pour que les crawlers atteignent l'edge function sans que la SPA ne prenne la main.
+- `InspirationDetailModal.tsx` et `useInspirationItems`/`AdminInspiration` : `buildShareUrl` renvoie `${getAppBaseUrl()}/inspiration/${item.share_token}` (au lieu du `?inspiration=` sur la page courante).
+- `InspirationComposer.tsx` : génération + upload de la thumbnail vidéo, écriture de `thumbnail_url` dans `inspiration_items` (colonne déjà présente).
+- `BirthdayPage.tsx` / `EventPage.tsx` : conserver la lecture de `?inspiration=` pour compatibilité, mais aussi accepter `#inspiration=<token>` posé par `InspirationRedirect` lors du fallback.
 
-### Hook
-- `src/hooks/useInspirationItems.ts` — fetch par `page_kind`+`page_id` **UNION** posts admin globaux (`page_kind='global'`), filtres catégorie/sous-catégorie, création, suppression, incrément vues/partages via RPC.
+## 2. Boutons de la modale détail Inspiration
 
-### Intégration pages
-- `src/pages/BirthdayPage.tsx` et `src/pages/EventPage.tsx` :
-  - Passer `onInspirationClick` au `CoverVideoCarousel`.
-  - Monter `<InspirationModal pageKind="birthday|event" pageId={page.id} />`.
-  - Lire `?inspiration=<token>` dans l'URL → ouvrir `InspirationDetailModal` automatiquement au chargement (fetch par token).
+Dans `src/components/inspiration/InspirationDetailModal.tsx` :
 
-## Admin
+- Supprimer les libellés « Partager » et « Copier le lien » — garder uniquement les icônes (`Share2`, `Copy`) avec `aria-label` + `tooltip` pour l'accessibilité.
+- Ajouter un 3ᵉ bouton icône **« Voir d'autres vidéos »** (icône `LayoutGrid` ou `Sparkles`) aligné avec les deux autres.
 
-### Page `src/pages/Admin/AdminInspiration.tsx`
-- Onglet dans la nav admin (route `/admin/inspiration`, permission `manage_content`).
-- Liste + filtres (catégorie, type, statut).
-- CRUD publications admin (`is_admin_post=true`, `page_kind='global'`) — s'affichent sur TOUTES les pages anniversaire/événement.
-- Bouton partage identique (le lien renvoie vers la homepage de l'utilisateur ? → clarification : on ouvrira sur la page anniversaire courante du destinataire ; à défaut de destination, le lien pointe vers `/inspiration/{share_token}` qui redirige vers une page publique dédiée).
-- Modération : désactiver posts utilisateurs.
+Comportement du nouveau bouton (nouvelle prop `onBrowseMore?: () => void` fournie par le parent) :
 
-## Partage type TikTok
-- Chaque item a `share_token`. URL générée :
-  - Post utilisateur → `https://<domain>/{birthday|event}/{slug}?inspiration={token}`
-  - Post admin global → même URL depuis la page où l'utilisateur clique partager.
-- Bouton "Partager" : copie le lien + ouvre `navigator.share` si dispo, sinon toast + boutons WhatsApp / Facebook / X.
+- **Utilisateur connecté** → ferme la modale détail et ouvre `InspirationModal` (le parent gère l'état). Sur la page anniversaire/événement le parent ouvre déjà les deux modales : on relie simplement `onBrowseMore` à `setInspirationOpen(true)` après fermeture du détail.
+- **Visiteur non connecté** → afficher un petit dialog de gate : « Inscris‑toi pour découvrir plus d'inspirations » → bouton `S'inscrire` qui envoie vers `/auth?tab=signup&redirect=inspiration&token=<share_token>&page=<current_url>&utm_source=inspiration_more`.
+- Dans `AuthContext`/redirection post‑signup (existant : `authRedirect.ts`), ajouter la gestion `redirect=inspiration` → après login/signup, rediriger vers `page` (URL encodée) avec `?openInspiration=1` (et si `token`, `?inspiration=<token>` en plus).
+- `BirthdayPage.tsx` / `EventPage.tsx` : lire `?openInspiration=1` au montage → ouvrir automatiquement `InspirationModal`.
 
-## Détails techniques
-- Compression image existante (`compressImage.ts`), génération thumbnail vidéo (`videoThumbnails.ts`).
-- Quota : intégrer avec `useQuota` existant (nouveau `feature: 'inspiration_post'`, plans gratuits limités, sinon CTA upgrade déjà en place).
-- i18n : libellés français.
-- Analytics : `views_count`, `shares_count` incrémentés via RPC `SECURITY DEFINER`.
+## 3. Tracker Webful
 
-## Fichiers créés / édités
-**Créés**
-- migration SQL (`inspiration_items` + bucket + RLS + RPC)
-- `src/hooks/useInspirationItems.ts`
-- `src/components/inspiration/{InspirationButton,InspirationModal,InspirationComposer,InspirationItemCard,InspirationDetailModal}.tsx`
-- `src/pages/Admin/AdminInspiration.tsx`
-- (option) `src/pages/InspirationRedirect.tsx` pour tokens orphelins
+- Injecter le script dans `index.html` (une seule fois, sitewide) juste avant `</head>` :
 
-**Édités**
-- `src/components/birthday/CoverVideoCarousel.tsx` (nouveau prop + bouton)
-- `src/pages/BirthdayPage.tsx`, `src/pages/EventPage.tsx`
-- `src/App.tsx` (routes admin + redirect)
-- Nav admin (ajout entrée "Inspiration")
-- `src/features/subscription/featureCatalog.ts` (nouveau feature quota)
+```html
+<script src="https://webful.fr/tracking/webful-track.js"
+  data-site-id="WBF-80680"
+  data-api-key="6bb3e12803a2d9c7313e66e298fe90575b2f922fb18b8fab81d0e1bca60ecee4"
+  data-base-url="https://webful.fr"
+  async></script>
+```
+
+Remarque sécurité : la clé fournie est destinée à être exposée côté navigateur par Webful (même modèle que Google Analytics / Plausible). Elle reste donc en clair dans `index.html`, comme demandé.
+
+## Résumé des fichiers touchés
+
+- `supabase/functions/inspiration-preview/index.ts` (nouveau)
+- `supabase/config.toml` (déclaration edge function, `verify_jwt = false`)
+- `public/_redirects` (route `/inspiration/:token` → edge function)
+- `src/components/inspiration/InspirationDetailModal.tsx` (boutons icônes + « Voir d'autres vidéos » + URL de partage)
+- `src/components/inspiration/InspirationComposer.tsx` (génération thumbnail vidéo + `thumbnail_url`)
+- `src/pages/BirthdayPage.tsx`, `src/pages/EventPage.tsx` (branchement `onBrowseMore`, lecture `?openInspiration=1`)
+- `src/pages/Admin/AdminInspiration.tsx` (URL de partage `getAppBaseUrl()/inspiration/:token` — déjà OK, à vérifier)
+- `src/utils/authRedirect.ts` (nouveau cas `redirect=inspiration`)
+- `index.html` (script Webful)
+
+Aucune migration DB nécessaire (`thumbnail_url` existe déjà sur `inspiration_items`).
