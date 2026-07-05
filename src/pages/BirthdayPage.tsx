@@ -123,8 +123,12 @@ const BirthdayPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("inspiration");
-    if (!token) return;
-    fetchInspirationByToken(token).then((it) => { if (it) setInspirationDetail(it); });
+    if (token) {
+      fetchInspirationByToken(token).then((it) => { if (it) setInspirationDetail(it); });
+    }
+    if (params.get("openInspiration") === "1") {
+      setShowInspiration(true);
+    }
   }, [location.search]);
 
   const prevFundRef = useRef<string | null>(null);
@@ -915,6 +919,7 @@ const BirthdayPage = () => {
         item={inspirationDetail}
         open={!!inspirationDetail}
         onOpenChange={(o) => !o && setInspirationDetail(null)}
+        onBrowseMore={() => setShowInspiration(true)}
       />
 
       {/* Premium offert : déblocage émotionnel + conversion post-événement */}
