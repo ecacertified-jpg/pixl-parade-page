@@ -92,8 +92,12 @@ const EventPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("inspiration");
-    if (!token) return;
-    fetchInspirationByToken(token).then((it) => { if (it) setInspirationDetail(it); });
+    if (token) {
+      fetchInspirationByToken(token).then((it) => { if (it) setInspirationDetail(it); });
+    }
+    if (params.get("openInspiration") === "1") {
+      setShowInspiration(true);
+    }
   }, [location.search]);
 
   const isWedding = !!page?.occasion && (page.occasion.includes('mariage') || page.occasion === 'wedding');
@@ -483,6 +487,7 @@ const EventPage = () => {
         item={inspirationDetail}
         open={!!inspirationDetail}
         onOpenChange={(o) => !o && setInspirationDetail(null)}
+        onBrowseMore={() => setShowInspiration(true)}
       />
 
       {/* Visitor conversion CTA — only for non-authenticated visitors */}
