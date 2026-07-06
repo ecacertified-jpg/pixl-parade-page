@@ -25,7 +25,9 @@ function pageUrlFor(item: any, pageSlug: string | null): string {
   if (item.page_kind === "event" && pageSlug) {
     return `${APP_BASE_URL}/event/${pageSlug}?inspiration=${item.share_token}`;
   }
-  return `${APP_BASE_URL}/?inspiration=${item.share_token}`;
+  // Global admin posts (or unresolved slug) → standalone SPA route that opens
+  // the detail modal directly.
+  return `${APP_BASE_URL}/inspiration/${item.share_token}`;
 }
 
 function crawlerHtml(item: any, canonicalUrl: string): string {
@@ -61,16 +63,6 @@ ${isVideo ? `<meta property="og:video" content="${esc(item.media_url)}"/>
 </head><body><h1>${esc(title)}</h1><p>${esc(desc)}</p><p><a href="${esc(canonicalUrl)}">Voir sur Joie de Vivre</a></p></body></html>`;
 }
 
-function humanRedirectHtml(canonicalUrl: string): string {
-  return `<!doctype html><html lang="fr"><head>
-<meta charset="utf-8"/>
-<meta name="robots" content="noindex"/>
-<meta http-equiv="refresh" content="0; url=${esc(canonicalUrl)}"/>
-<title>Redirection…</title>
-<script>window.location.replace(${JSON.stringify(canonicalUrl)});</script>
-</head><body><p>Redirection vers <a href="${esc(canonicalUrl)}">${esc(canonicalUrl)}</a>…</p></body></html>`;
-}
-
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const token = url.searchParams.get("token") || url.pathname.split("/").filter(Boolean).pop();
@@ -92,10 +84,7 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (error || !item) {
-    return new Response(humanRedirectHtml(APP_BASE_URL), {
-      status: 302,
-      headers: { "content-type": "text/html; charset=utf-8", Location: APP_BASE_URL },
-    });
+    return Response.redirect(APP_BASE_URL, 302);
   }
 
   // Resolve host page slug (birthday_pages / event_pages) for canonical URL.
@@ -109,14 +98,23 @@ Deno.serve(async (req) => {
   const canonicalUrl = pageUrlFor(item, pageSlug);
 
   const isCrawler = CRAWLER_RE.test(ua);
-  const html = isCrawler ? crawlerHtml(item, canonicalUrl) : humanRedirectHtml(canonicalUrl);
 
-  // Best-effort share tracking (only for humans to avoid inflating from bots).
   if (!isCrawler) {
+    // Real users: honest 302 redirect to the SPA page. No HTML body avoids
+    // any risk of mobile browsers rendering the source instead of following
+    // the redirect.
     supabase.rpc("increment_inspiration_shares", { _id: item.id }).then(() => {}).catch(() => {});
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: canonicalUrl,
+        "cache-control": "no-store",
+      },
+    });
   }
 
-  return new Response(html, {
+  // Social crawlers: serve rich OG/Twitter HTML.
+  return new Response(crawlerHtml(item, canonicalUrl), {
     status: 200,
     headers: {
       "content-type": "text/html; charset=utf-8",
