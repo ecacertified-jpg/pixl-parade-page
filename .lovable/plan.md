@@ -1,67 +1,66 @@
-# Plan — Inspiration : previews sociaux, boutons, tracking Webful
+## Diagnostic
 
-## 1. Aperçu social du lien partagé (image + titre + description)
+Trois problèmes distincts sur le lien partagé `…supabase.co/functions/v1/inspiration-preview?token=…` :
 
-Aujourd'hui le lien partagé est `…/birthday/<slug>?inspiration=<token>`. Les crawlers (WhatsApp, Facebook, TikTok, LinkedIn) ne lisent que le `<head>` statique de la SPA et voient donc l'OG de la page anniversaire, pas celui de l'élément.
+1. **Aperçu WhatsApp générique (pas la miniature vidéo)** — l'item partagé est une vidéo sans `thumbnail_url` (la génération de miniature ajoutée récemment ne s'applique qu'aux nouveaux uploads). L'edge function retombe donc sur l'image OG par défaut de JDV. WhatsApp voit bien nos balises `og:*` mais avec l'image générique.
+2. **Page « sombre » avec HTML brut au clic** — la réponse HTML est correcte côté code, mais le navigateur affiche la source. Deux causes probables (à corriger toutes les deux) :
+   - Le `Response` humain renvoie `status: 200` **et** un header `Location` : sur 200 les navigateurs ignorent `Location` et affichent le body — et sur mobile le meta-refresh + `window.location.replace` semble parfois être interprété comme texte quand la réponse est servie par le gateway Supabase Functions (préfixe `/functions/v1/…`).
+   - Pour un item de type `global` (post admin) sans `page_id`, `canonicalUrl` retombe sur `${APP_BASE_URL}/?inspiration=<token>` — la page d'accueil ne lit pas `?inspiration=`, donc même après redirection l'utilisateur atterrit sur la home sans modale.
+3. **Modale ne s'ouvre pas après clic** — seuls `BirthdayPage` et `EventPage` lisent `?inspiration=<token>`. Pour les posts admin globaux et pour la home il n'y a aucun handler.
 
-Solution : passer l'URL de partage sur la route courte déjà existante `/inspiration/:token` et la servir via une **edge function** qui :
+## Correctifs
 
-- Détecte les user‑agents crawlers (WhatsApp, Facebookexternalhit, Twitterbot, TelegramBot, LinkedInBot, Slack, Discord, TikTok…).
-- Pour un crawler → renvoie un HTML minimal avec les balises OG/Twitter dérivées de l'item (`title`, `body`, `media_url`, `thumbnail_url`, catégorie/sous‑catégorie) + JSON‑LD.
-- Pour un humain → renvoie une petite page HTML qui fait un `window.location.replace('/inspiration/:token')` côté SPA (comportement actuel de `InspirationRedirect.tsx` conservé).
+### 1. Générer les miniatures manquantes pour les vidéos existantes
 
-Miniatures :
+- **Backfill côté client (léger, sans job serveur)** : dans `useInspirationItems.ts`, à la lecture d'un item vidéo qui n'a pas de `thumbnail_url`, générer la miniature via canvas (même helper qu'`InspirationComposer`), l'uploader dans `birthday-message-media/inspiration/thumbnails/` et mettre à jour la ligne. Fire-and-forget, une seule fois par item.
+- Alternative si tu préfères zéro traitement navigateur : nouvelle edge function `backfill-inspiration-thumbnails` lancée manuellement depuis l'admin (bouton « Régénérer les miniatures » dans `AdminInspiration.tsx`). Utilise `ffmpeg` via `https://deno.land/x/…` ou l'API Mux/Cloudflare Stream — plus lourd. Je recommande l'option 1.
 
-- **Image** → `media_url` sert directement d'`og:image`.
-- **Vidéo** → `thumbnail_url` si présent, sinon on génère un poster à l'upload dans `InspirationComposer` (canvas `video.currentTime = 0.1` → `toBlob` → upload dans le même bucket, colonne `thumbnail_url`).
-- **Texte** → OG image = image générique JDV Inspiration (asset statique déjà versionné via `withOgVersion`).
+### 2. Réparer la redirection humaine
 
-Changements :
+Dans `supabase/functions/inspiration-preview/index.ts` :
 
-- Nouvelle edge function `supabase/functions/inspiration-preview/index.ts` (déclarée `verify_jwt = false` dans `supabase/config.toml`).
-- `public/_redirects` : `/inspiration/:token   https://<project>.functions.supabase.co/inspiration-preview?token=:token   200` pour que les crawlers atteignent l'edge function sans que la SPA ne prenne la main.
-- `InspirationDetailModal.tsx` et `useInspirationItems`/`AdminInspiration` : `buildShareUrl` renvoie `${getAppBaseUrl()}/inspiration/${item.share_token}` (au lieu du `?inspiration=` sur la page courante).
-- `InspirationComposer.tsx` : génération + upload de la thumbnail vidéo, écriture de `thumbnail_url` dans `inspiration_items` (colonne déjà présente).
-- `BirthdayPage.tsx` / `EventPage.tsx` : conserver la lecture de `?inspiration=` pour compatibilité, mais aussi accepter `#inspiration=<token>` posé par `InspirationRedirect` lors du fallback.
+- Retirer le header `Location` sur les 200 (contradiction HTTP), et surtout **utiliser une vraie redirection 302** pour les humains :
 
-## 2. Boutons de la modale détail Inspiration
+  ```ts
+  return new Response(null, { status: 302, headers: { Location: canonicalUrl } });
+  ```
 
-Dans `src/components/inspiration/InspirationDetailModal.tsx` :
+  → plus aucun HTML à rendre côté humain, plus de risque d'affichage source, redirection instantanée sur toutes les plateformes (Android, iOS, desktop).
+- Ne conserver le HTML riche (`crawlerHtml`) que pour les crawlers.
+- S'assurer que le header `content-type: text/html; charset=utf-8` est bien envoyé pour les crawlers (déjà OK, à revérifier).
 
-- Supprimer les libellés « Partager » et « Copier le lien » — garder uniquement les icônes (`Share2`, `Copy`) avec `aria-label` + `tooltip` pour l'accessibilité.
-- Ajouter un 3ᵉ bouton icône **« Voir d'autres vidéos »** (icône `LayoutGrid` ou `Sparkles`) aligné avec les deux autres.
+### 3. Canoniser correctement les URL et ouvrir la modale à l'arrivée
 
-Comportement du nouveau bouton (nouvelle prop `onBrowseMore?: () => void` fournie par le parent) :
+- Pour un item `page_kind = 'global'` (post admin JDV Officiel), rediriger vers une page qui sait ouvrir la modale d'inspiration. Deux options :
+  - **Option A (recommandée)** : rediriger vers `/inspiration/:token` (la route SPA existante `InspirationRedirect.tsx`) qui elle-même redirige vers la meilleure page. Adapter `InspirationRedirect.tsx` pour, si l'item est global, rester sur une page dédiée `/inspiration/:token` qui ouvre directement la modale détail plein écran (nouveau petit composant `InspirationStandalonePage.tsx`).
+  - **Option B** : rediriger vers `/?inspiration=<token>&openInspirationDetail=1` et ajouter la lecture de ces params dans `Home.tsx` pour ouvrir `InspirationDetailModal` au montage.
+- Je propose **A** : plus propre, URL lisible (`/inspiration/abc123`), pas de pollution de la home.
 
-- **Utilisateur connecté** → ferme la modale détail et ouvre `InspirationModal` (le parent gère l'état). Sur la page anniversaire/événement le parent ouvre déjà les deux modales : on relie simplement `onBrowseMore` à `setInspirationOpen(true)` après fermeture du détail.
-- **Visiteur non connecté** → afficher un petit dialog de gate : « Inscris‑toi pour découvrir plus d'inspirations » → bouton `S'inscrire` qui envoie vers `/auth?tab=signup&redirect=inspiration&token=<share_token>&page=<current_url>&utm_source=inspiration_more`.
-- Dans `AuthContext`/redirection post‑signup (existant : `authRedirect.ts`), ajouter la gestion `redirect=inspiration` → après login/signup, rediriger vers `page` (URL encodée) avec `?openInspiration=1` (et si `token`, `?inspiration=<token>` en plus).
-- `BirthdayPage.tsx` / `EventPage.tsx` : lire `?openInspiration=1` au montage → ouvrir automatiquement `InspirationModal`.
+Nouvelle page `src/pages/InspirationStandalonePage.tsx` :
+- Récupère l'item via RPC `get_inspiration_by_token`.
+- Ouvre `InspirationDetailModal` directement, avec fond de page minimal (logo JDV + fallback si item introuvable).
+- Bouton « Voir d'autres inspirations » → `/` ou vers `InspirationModal` global.
 
-## 3. Tracker Webful
+Mise à jour de `App.tsx` : `/inspiration/:token` pointe déjà vers `InspirationRedirect.tsx` — le modifier pour :
+- Si l'item est lié à une birthday/event page → redirection vers `/birthday/<slug>?inspiration=<token>` (comportement actuel).
+- Sinon → rendre `InspirationStandalonePage` (nouvelle route ou même composant qui branche).
 
-- Injecter le script dans `index.html` (une seule fois, sitewide) juste avant `</head>` :
+Et dans `pageUrlFor()` de l'edge function :
+- `page_kind = 'global'` (ou pas de slug résolu) → `${APP_BASE_URL}/inspiration/${token}` (au lieu de `/?inspiration=…`).
 
-```html
-<script src="https://webful.fr/tracking/webful-track.js"
-  data-site-id="WBF-80680"
-  data-api-key="6bb3e12803a2d9c7313e66e298fe90575b2f922fb18b8fab81d0e1bca60ecee4"
-  data-base-url="https://webful.fr"
-  async></script>
-```
+### 4. Vérification finale
 
-Remarque sécurité : la clé fournie est destinée à être exposée côté navigateur par Webful (même modèle que Google Analytics / Plausible). Elle reste donc en clair dans `index.html`, comme demandé.
+- Tester le lien avec un UA WhatsApp via `curl` (`curl -A "WhatsApp/2.23" …`) pour confirmer que `og:image` = `thumbnail_url` de la vidéo après backfill.
+- Tester avec un UA navigateur normal → doit voir une 302 vers `/inspiration/<token>` → modale ouverte.
+- Prévenir l'utilisateur que WhatsApp met en cache les previews : un lien déjà partagé conservera l'ancien aperçu (regénérer un nouveau lien en repartageant, ou vider le cache via le debugger Facebook — WhatsApp partage le cache Facebook).
 
-## Résumé des fichiers touchés
+## Fichiers touchés
 
-- `supabase/functions/inspiration-preview/index.ts` (nouveau)
-- `supabase/config.toml` (déclaration edge function, `verify_jwt = false`)
-- `public/_redirects` (route `/inspiration/:token` → edge function)
-- `src/components/inspiration/InspirationDetailModal.tsx` (boutons icônes + « Voir d'autres vidéos » + URL de partage)
-- `src/components/inspiration/InspirationComposer.tsx` (génération thumbnail vidéo + `thumbnail_url`)
-- `src/pages/BirthdayPage.tsx`, `src/pages/EventPage.tsx` (branchement `onBrowseMore`, lecture `?openInspiration=1`)
-- `src/pages/Admin/AdminInspiration.tsx` (URL de partage `getAppBaseUrl()/inspiration/:token` — déjà OK, à vérifier)
-- `src/utils/authRedirect.ts` (nouveau cas `redirect=inspiration`)
-- `index.html` (script Webful)
+- `supabase/functions/inspiration-preview/index.ts` — 302 pour humains, canonicalUrl `/inspiration/:token` pour items globaux.
+- `src/pages/InspirationRedirect.tsx` — branchement global vs page hôte.
+- `src/pages/InspirationStandalonePage.tsx` (nouveau) — page autonome avec modale ouverte.
+- `src/App.tsx` — ajout/adaptation de la route.
+- `src/hooks/useInspirationItems.ts` — backfill client de `thumbnail_url` pour vidéos.
+- (Optionnel) `src/pages/Admin/AdminInspiration.tsx` — bouton « Régénérer miniatures ».
 
-Aucune migration DB nécessaire (`thumbnail_url` existe déjà sur `inspiration_items`).
+Aucune migration DB (`thumbnail_url` existe déjà).
