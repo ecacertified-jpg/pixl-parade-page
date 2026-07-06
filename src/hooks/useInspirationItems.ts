@@ -39,7 +39,11 @@ export function useInspirationItems(pageKind: "birthday" | "event", pageId: stri
     if (error) {
       console.error("[inspiration] fetch", error);
     } else {
-      setItems((data ?? []) as InspirationItem[]);
+      const list = (data ?? []) as InspirationItem[];
+      setItems(list);
+      // Fire-and-forget thumbnail backfill for legacy videos so shared
+      // links get a proper social preview image.
+      backfillMissingVideoThumbnails(list);
     }
     setLoading(false);
   }, [pageKind, pageId]);
@@ -68,4 +72,79 @@ export async function incrementInspirationViews(id: string) {
 
 export async function incrementInspirationShares(id: string) {
   await (supabase as any).rpc("increment_inspiration_shares", { _id: id });
+}
+
+// -----------------------------------------------------------------
+// Thumbnail backfill for legacy inspiration videos
+// -----------------------------------------------------------------
+
+const BUCKET = "birthday-message-media";
+const backfillAttempted = new Set<string>();
+
+async function extractRemoteVideoThumbnail(videoUrl: string): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    try {
+      const video = document.createElement("video");
+      video.crossOrigin = "anonymous";
+      video.preload = "metadata";
+      video.muted = true;
+      video.playsInline = true;
+      const timeout = setTimeout(() => resolve(null), 10_000);
+      video.onloadeddata = () => {
+        try { video.currentTime = Math.min(0.5, (video.duration || 1) * 0.1); } catch { /* noop */ }
+      };
+      video.onseeked = () => {
+        try {
+          const w = video.videoWidth || 720;
+          const h = video.videoHeight || 1280;
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { clearTimeout(timeout); resolve(null); return; }
+          ctx.drawImage(video, 0, 0, w, h);
+          canvas.toBlob((b) => { clearTimeout(timeout); resolve(b); }, "image/jpeg", 0.82);
+        } catch { clearTimeout(timeout); resolve(null); }
+      };
+      video.onerror = () => { clearTimeout(timeout); resolve(null); };
+      video.src = videoUrl;
+    } catch { resolve(null); }
+  });
+}
+
+async function backfillThumbnailForItem(item: InspirationItem): Promise<void> {
+  if (backfillAttempted.has(item.id)) return;
+  backfillAttempted.add(item.id);
+  if (item.media_type !== "video" || !item.media_url || item.thumbnail_url) return;
+  try {
+    const blob = await extractRemoteVideoThumbnail(item.media_url);
+    if (!blob) return;
+    const path = `inspiration/backfill/${item.id}-${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, blob, { upsert: false, contentType: "image/jpeg" });
+    if (upErr) return;
+    const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    if (!pub?.publicUrl) return;
+    await (supabase as any)
+      .from("inspiration_items")
+      .update({ thumbnail_url: pub.publicUrl })
+      .eq("id", item.id);
+  } catch (e) {
+    // Silent — backfill is best-effort.
+    console.debug("[inspiration] thumbnail backfill skipped", item.id, e);
+  }
+}
+
+function backfillMissingVideoThumbnails(items: InspirationItem[]) {
+  const candidates = items.filter(
+    (it) => it.media_type === "video" && it.media_url && !it.thumbnail_url,
+  );
+  // Throttle: process sequentially to avoid saturating mobile CPU.
+  (async () => {
+    for (const it of candidates) {
+      // eslint-disable-next-line no-await-in-loop
+      await backfillThumbnailForItem(it);
+    }
+  })();
 }
