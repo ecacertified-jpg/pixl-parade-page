@@ -38,11 +38,63 @@ Deno.serve(async (req) => {
     // 2. Get fund details
     const { data: fund, error: fundErr } = await supabaseAdmin
       .from('collective_funds')
-      .select('id, title, current_amount, target_amount, creator_id, beneficiary_contact_id, is_external_product, external_product_url, external_product_name, external_product_image_url, external_platform')
+      .select('id, title, current_amount, target_amount, creator_id, beneficiary_contact_id, beneficiary_user_id, is_cash_gift, is_external_product, external_product_url, external_product_name, external_product_image_url, external_platform')
       .eq('id', fund_id)
       .single()
 
     if (fundErr || !fund) throw new Error('Fund not found: ' + fundErr?.message)
+
+    // 2a. Cash gift fund: the collected amount IS the gift — create a payout record.
+    if (fund.is_cash_gift) {
+      const { data: existingPayout } = await supabaseAdmin
+        .from('cash_gift_payouts')
+        .select('id')
+        .eq('fund_id', fund_id)
+        .maybeSingle()
+
+      if (existingPayout) {
+        console.log(`⏭️ Cash gift payout already exists: ${existingPayout.id}`)
+        return new Response(JSON.stringify({ skipped: true, reason: 'cash_payout_exists', payout_id: existingPayout.id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const { data: payout, error: payoutErr } = await supabaseAdmin
+        .from('cash_gift_payouts')
+        .insert({
+          fund_id,
+          beneficiary_user_id: fund.beneficiary_user_id ?? fund.creator_id,
+          beneficiary_contact_id: fund.beneficiary_contact_id ?? null,
+          amount: fund.current_amount ?? fund.target_amount,
+          currency: 'XOF',
+          status: 'pending',
+        })
+        .select()
+        .single()
+
+      if (payoutErr) throw new Error('Failed to create cash gift payout: ' + payoutErr.message)
+
+      console.log(`✅ Cash gift payout created: ${payout.id}`)
+
+      try {
+        const recipients = [...new Set([fund.creator_id, fund.beneficiary_user_id].filter(Boolean))]
+        await supabaseAdmin.from('notifications').insert(
+          recipients.map((uid: string) => ({
+            user_id: uid,
+            type: 'fund_completed',
+            title: 'Cagnotte complète 🎉',
+            message: `La cagnotte « ${fund.title} » a atteint son objectif. Le montant collecté sera versé au bénéficiaire.`,
+            action_url: `/f/${fund_id}`,
+          }))
+        )
+      } catch (e) {
+        console.warn('notification insert failed', e)
+      }
+
+      return new Response(JSON.stringify({ success: true, kind: 'cash_gift', payout_id: payout.id }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     // 2bis. External-product fund: create an external_purchase_request instead of a business order
     if (fund.is_external_product) {
