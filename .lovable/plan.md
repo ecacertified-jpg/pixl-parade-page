@@ -1,66 +1,32 @@
-## Diagnostic
+## Objectif
 
-Trois problèmes distincts sur le lien partagé `…supabase.co/functions/v1/inspiration-preview?token=…` :
+Ajouter, **en tête de la modale** « Ma liste de souhaits » / « Liste de souhaits de X », un bouton prioritaire permettant de créer une **cagnotte en argent** : pas d'article, le montant collecté *est* le cadeau et il est versé au bénéficiaire quand l'objectif est atteint.
 
-1. **Aperçu WhatsApp générique (pas la miniature vidéo)** — l'item partagé est une vidéo sans `thumbnail_url` (la génération de miniature ajoutée récemment ne s'applique qu'aux nouveaux uploads). L'edge function retombe donc sur l'image OG par défaut de JDV. WhatsApp voit bien nos balises `og:*` mais avec l'image générique.
-2. **Page « sombre » avec HTML brut au clic** — la réponse HTML est correcte côté code, mais le navigateur affiche la source. Deux causes probables (à corriger toutes les deux) :
-   - Le `Response` humain renvoie `status: 200` **et** un header `Location` : sur 200 les navigateurs ignorent `Location` et affichent le body — et sur mobile le meta-refresh + `window.location.replace` semble parfois être interprété comme texte quand la réponse est servie par le gateway Supabase Functions (préfixe `/functions/v1/…`).
-   - Pour un item de type `global` (post admin) sans `page_id`, `canonicalUrl` retombe sur `${APP_BASE_URL}/?inspiration=<token>` — la page d'accueil ne lit pas `?inspiration=`, donc même après redirection l'utilisateur atterrit sur la home sans modale.
-3. **Modale ne s'ouvre pas après clic** — seuls `BirthdayPage` et `EventPage` lisent `?inspiration=<token>`. Pour les posts admin globaux et pour la home il n'y a aucun handler.
+## Parcours utilisateur
 
-## Correctifs
+1. Dans `WishlistFundPickerModal`, au-dessus de la liste d'articles : une carte CTA mise en avant (icône billets, dégradé primaire) — « Offrir de l'argent » / « Offrir de l'argent à {Prénom} », sous-titre « Le montant collecté est directement le cadeau ».
+2. Clic → nouvelle modale `CashGiftFundModal` :
+   - Montants suggérés en chips (5 000 / 10 000 / 25 000 / 50 000 XOF) + champ « Autre montant ».
+   - Titre auto-rempli et modifiable (« Cadeau en argent pour Awa »), message/description optionnel, date limite optionnelle, occasion.
+   - Si visiteur non connecté → redirection `/auth` avec `returnTo` (même logique que le flux existant).
+3. Création de la cagnotte puis navigation vers `/f/:id` — exactement la même route de partage/contribution que les cagnottes article.
+4. Sur `/f/:id`, à la place du bloc produit : un bloc « Cadeau en argent » (montant cible, bénéficiaire, mention « versé directement au bénéficiaire »).
+5. À 100 % : le bénéficiaire voit un panneau vert « Recevoir mon cadeau (Wave) » (même pattern que le panneau Jumia existant) ; un enregistrement de versement passe en attente côté admin.
 
-### 1. Générer les miniatures manquantes pour les vidéos existantes
+## Détails techniques
 
-- **Backfill côté client (léger, sans job serveur)** : dans `useInspirationItems.ts`, à la lecture d'un item vidéo qui n'a pas de `thumbnail_url`, générer la miniature via canvas (même helper qu'`InspirationComposer`), l'uploader dans `birthday-message-media/inspiration/thumbnails/` et mettre à jour la ligne. Fire-and-forget, une seule fois par item.
-- Alternative si tu préfères zéro traitement navigateur : nouvelle edge function `backfill-inspiration-thumbnails` lancée manuellement depuis l'admin (bouton « Régénérer les miniatures » dans `AdminInspiration.tsx`). Utilise `ffmpeg` via `https://deno.land/x/…` ou l'API Mux/Cloudflare Stream — plus lourd. Je recommande l'option 1.
+**Migration**
+- `collective_funds` : `is_cash_gift boolean not null default false`, `beneficiary_user_id uuid` (utile pour cibler le bénéficiaire quand ce n'est pas un contact).
+- Nouvelle table `cash_gift_payouts` (fund_id, beneficiary_user_id, amount, currency, status `pending|paid|failed`, payout_reference, paid_at, created_at/updated_at + trigger updated_at).
+- GRANTs : `SELECT` authenticated, `ALL` service_role ; RLS : lecture par créateur + bénéficiaire + admin (`is_admin(auth.uid())`), écriture admin uniquement.
 
-### 2. Réparer la redirection humaine
+**Front**
+- `src/components/CashGiftFundModal.tsx` (nouveau) : formulaire montant + création via `useEnsureProfile()` puis insert `collective_funds` avec `is_cash_gift: true`, `is_public: true`, `beneficiary_user_id`, `beneficiary_contact_id` si dispo ; appel best-effort `link-fund-to-birthday-page` comme le flux article.
+- `src/components/WishlistFundPickerModal.tsx` : bouton prioritaire en haut + rendu de la nouvelle modale ; le libellé s'adapte au cas « pour moi » vs « pour X ».
+- `src/pages/FundPreview.tsx` : branche `is_cash_gift` pour le bloc de présentation et le panneau de versement Wave à 100 %.
 
-Dans `supabase/functions/inspiration-preview/index.ts` :
+**Backend**
+- `supabase/functions/process-fund-completion/index.ts` : avant les branches produit externe / business_order, si `is_cash_gift` → insérer un `cash_gift_payouts` en `pending` et notifier (réutilisation des notifications existantes de complétion), sans créer de commande.
 
-- Retirer le header `Location` sur les 200 (contradiction HTTP), et surtout **utiliser une vraie redirection 302** pour les humains :
-
-  ```ts
-  return new Response(null, { status: 302, headers: { Location: canonicalUrl } });
-  ```
-
-  → plus aucun HTML à rendre côté humain, plus de risque d'affichage source, redirection instantanée sur toutes les plateformes (Android, iOS, desktop).
-- Ne conserver le HTML riche (`crawlerHtml`) que pour les crawlers.
-- S'assurer que le header `content-type: text/html; charset=utf-8` est bien envoyé pour les crawlers (déjà OK, à revérifier).
-
-### 3. Canoniser correctement les URL et ouvrir la modale à l'arrivée
-
-- Pour un item `page_kind = 'global'` (post admin JDV Officiel), rediriger vers une page qui sait ouvrir la modale d'inspiration. Deux options :
-  - **Option A (recommandée)** : rediriger vers `/inspiration/:token` (la route SPA existante `InspirationRedirect.tsx`) qui elle-même redirige vers la meilleure page. Adapter `InspirationRedirect.tsx` pour, si l'item est global, rester sur une page dédiée `/inspiration/:token` qui ouvre directement la modale détail plein écran (nouveau petit composant `InspirationStandalonePage.tsx`).
-  - **Option B** : rediriger vers `/?inspiration=<token>&openInspirationDetail=1` et ajouter la lecture de ces params dans `Home.tsx` pour ouvrir `InspirationDetailModal` au montage.
-- Je propose **A** : plus propre, URL lisible (`/inspiration/abc123`), pas de pollution de la home.
-
-Nouvelle page `src/pages/InspirationStandalonePage.tsx` :
-- Récupère l'item via RPC `get_inspiration_by_token`.
-- Ouvre `InspirationDetailModal` directement, avec fond de page minimal (logo JDV + fallback si item introuvable).
-- Bouton « Voir d'autres inspirations » → `/` ou vers `InspirationModal` global.
-
-Mise à jour de `App.tsx` : `/inspiration/:token` pointe déjà vers `InspirationRedirect.tsx` — le modifier pour :
-- Si l'item est lié à une birthday/event page → redirection vers `/birthday/<slug>?inspiration=<token>` (comportement actuel).
-- Sinon → rendre `InspirationStandalonePage` (nouvelle route ou même composant qui branche).
-
-Et dans `pageUrlFor()` de l'edge function :
-- `page_kind = 'global'` (ou pas de slug résolu) → `${APP_BASE_URL}/inspiration/${token}` (au lieu de `/?inspiration=…`).
-
-### 4. Vérification finale
-
-- Tester le lien avec un UA WhatsApp via `curl` (`curl -A "WhatsApp/2.23" …`) pour confirmer que `og:image` = `thumbnail_url` de la vidéo après backfill.
-- Tester avec un UA navigateur normal → doit voir une 302 vers `/inspiration/<token>` → modale ouverte.
-- Prévenir l'utilisateur que WhatsApp met en cache les previews : un lien déjà partagé conservera l'ancien aperçu (regénérer un nouveau lien en repartageant, ou vider le cache via le debugger Facebook — WhatsApp partage le cache Facebook).
-
-## Fichiers touchés
-
-- `supabase/functions/inspiration-preview/index.ts` — 302 pour humains, canonicalUrl `/inspiration/:token` pour items globaux.
-- `src/pages/InspirationRedirect.tsx` — branchement global vs page hôte.
-- `src/pages/InspirationStandalonePage.tsx` (nouveau) — page autonome avec modale ouverte.
-- `src/App.tsx` — ajout/adaptation de la route.
-- `src/hooks/useInspirationItems.ts` — backfill client de `thumbnail_url` pour vidéos.
-- (Optionnel) `src/pages/Admin/AdminInspiration.tsx` — bouton « Régénérer miniatures ».
-
-Aucune migration DB (`thumbnail_url` existe déjà).
+## Hors périmètre
+Pas de nouvel écran admin dédié dans cette itération : les versements en attente seront visibles via requête/administration existante ; on pourra ajouter `/admin/cash-payouts` ensuite si tu le souhaites.
