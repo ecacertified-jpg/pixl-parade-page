@@ -31,6 +31,8 @@ interface FundData {
     price: number;
   } | null;
   is_external_product?: boolean | null;
+  is_cash_gift?: boolean | null;
+  beneficiary_user_id?: string | null;
   external_product_url?: string | null;
   external_product_name?: string | null;
   external_product_image_url?: string | null;
@@ -92,6 +94,8 @@ export default function FundPreview() {
             deadline_date,
             created_at,
             is_external_product,
+            is_cash_gift,
+            beneficiary_user_id,
             external_product_url,
             external_product_name,
             external_product_image_url,
@@ -315,7 +319,20 @@ export default function FundPreview() {
       {/* Main content */}
       <main className="max-w-lg mx-auto p-4 py-8 space-y-6">
         {/* Product image */}
-        {fund.is_external_product ? (
+        {fund.is_cash_gift ? (
+          <div className="relative w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-primary/20 via-accent/10 to-primary/5 p-8 text-center">
+            <div className="mx-auto h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center">
+              <Wallet className="h-8 w-8 text-primary" />
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">Cadeau en argent</p>
+            <p className="text-2xl font-bold text-primary">
+              {formatAmount(targetAmount)} {currency}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Le montant collecté est directement versé au bénéficiaire.
+            </p>
+          </div>
+        ) : fund.is_external_product ? (
           <div className="relative aspect-square w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-lg bg-muted">
             {fund.external_product_image_url ? (
               <img
@@ -432,6 +449,27 @@ export default function FundPreview() {
         </Card>
 
         {/* Beneficiary self-purchase panel — Jumia & similar self-purchase platforms */}
+        {fund.is_cash_gift && progressPercent >= 100 && (
+          <Card className="p-5 space-y-3 border-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/5">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-emerald-600" />
+              <h2 className="font-semibold">Cagnotte complète — cadeau prêt</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              L'objectif est atteint. Le bénéficiaire peut recevoir le montant collecté via Wave.
+            </p>
+            <Button asChild className="w-full gap-1.5 bg-[#1DC8FF] hover:bg-[#19b3e6] text-white">
+              <a href="https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/" target="_blank" rel="noopener noreferrer">
+                <Wallet className="h-4 w-4" />
+                Recevoir mon cadeau (Wave)
+              </a>
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Le versement est confirmé par l'équipe Joie de Vivre après vérification.
+            </p>
+          </Card>
+        )}
+
         {fund.is_external_product &&
           fund.external_platform === "Jumia" &&
           progressPercent >= 100 && (

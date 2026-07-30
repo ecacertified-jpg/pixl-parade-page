@@ -2663,6 +2663,63 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_gift_payouts: {
+        Row: {
+          amount: number
+          beneficiary_contact_id: string | null
+          beneficiary_user_id: string | null
+          created_at: string
+          currency: string
+          fund_id: string
+          id: string
+          paid_at: string | null
+          payout_reference: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          beneficiary_contact_id?: string | null
+          beneficiary_user_id?: string | null
+          created_at?: string
+          currency?: string
+          fund_id: string
+          id?: string
+          paid_at?: string | null
+          payout_reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          beneficiary_contact_id?: string | null
+          beneficiary_user_id?: string | null
+          created_at?: string
+          currency?: string
+          fund_id?: string
+          id?: string
+          paid_at?: string | null
+          payout_reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_gift_payouts_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_gift_payouts_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           color: string | null
@@ -3174,6 +3231,7 @@ export type Database = {
         Row: {
           allow_anonymous_contributions: boolean | null
           beneficiary_contact_id: string | null
+          beneficiary_user_id: string | null
           business_product_id: string | null
           country_code: string | null
           created_at: string
@@ -3188,6 +3246,7 @@ export type Database = {
           external_product_name: string | null
           external_product_url: string | null
           id: string
+          is_cash_gift: boolean
           is_external_product: boolean
           is_public: boolean | null
           is_surprise: boolean | null
@@ -3204,6 +3263,7 @@ export type Database = {
         Insert: {
           allow_anonymous_contributions?: boolean | null
           beneficiary_contact_id?: string | null
+          beneficiary_user_id?: string | null
           business_product_id?: string | null
           country_code?: string | null
           created_at?: string
@@ -3218,6 +3278,7 @@ export type Database = {
           external_product_name?: string | null
           external_product_url?: string | null
           id?: string
+          is_cash_gift?: boolean
           is_external_product?: boolean
           is_public?: boolean | null
           is_surprise?: boolean | null
@@ -3234,6 +3295,7 @@ export type Database = {
         Update: {
           allow_anonymous_contributions?: boolean | null
           beneficiary_contact_id?: string | null
+          beneficiary_user_id?: string | null
           business_product_id?: string | null
           country_code?: string | null
           created_at?: string
@@ -3248,6 +3310,7 @@ export type Database = {
           external_product_name?: string | null
           external_product_url?: string | null
           id?: string
+          is_cash_gift?: boolean
           is_external_product?: boolean
           is_public?: boolean | null
           is_surprise?: boolean | null
