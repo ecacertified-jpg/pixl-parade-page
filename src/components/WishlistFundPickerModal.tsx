@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Gift, Heart, Loader2, ShoppingBag } from 'lucide-react';
+import { Banknote, ChevronDown, Gift, Heart, Loader2, ShoppingBag } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useExternalFavorites, type ExternalFavorite } from '@/hooks/useExternalFavorites';
 import { ExternalProductFundModal } from '@/components/ExternalProductFundModal';
+import { CashGiftFundModal } from '@/components/CashGiftFundModal';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +64,7 @@ export function WishlistFundPickerModal({
   const [externalLoading, setExternalLoading] = useState(false);
   const [creatingFundFor, setCreatingFundFor] = useState<string | null>(null);
   const [externalFundPreset, setExternalFundPreset] = useState<ExternalFavorite | null>(null);
+  const [isCashGiftOpen, setIsCashGiftOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
@@ -249,6 +251,14 @@ export function WishlistFundPickerModal({
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('fr-FR').format(price);
 
+  const handleCashGift = () => {
+    if (!user) {
+      navigate(`/auth?tab=signup&returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}&intent=create_fund`);
+      return;
+    }
+    setIsCashGiftOpen(true);
+  };
+
   const title = isExternalBeneficiary
     ? `Liste de souhaits${beneficiaryFirstName ? ` de ${beneficiaryFirstName}` : ''}`
     : 'Ma liste de souhaits';
@@ -275,6 +285,29 @@ export function WishlistFundPickerModal({
 
         <div className="relative flex-1 min-h-0">
           <div ref={scrollRef} className="absolute inset-0 overflow-y-auto px-6">
+          {/* Priority CTA: cash gift fund (no product) */}
+          <button
+            type="button"
+            onClick={handleCashGift}
+            className="w-full text-left mt-2 mb-3 rounded-2xl p-3 bg-gradient-to-r from-primary/15 via-accent/10 to-primary/5 border border-primary/30 hover:border-primary/60 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                <Banknote className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">
+                  {isExternalBeneficiary
+                    ? `Offrir de l'argent${beneficiaryFirstName ? ` à ${beneficiaryFirstName}` : ''}`
+                    : 'Créer une cagnotte en argent'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Sans article — le montant collecté est directement le cadeau
+                </p>
+              </div>
+            </div>
+          </button>
+
           {loading && (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
