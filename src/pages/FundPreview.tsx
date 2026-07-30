@@ -319,7 +319,20 @@ export default function FundPreview() {
       {/* Main content */}
       <main className="max-w-lg mx-auto p-4 py-8 space-y-6">
         {/* Product image */}
-        {fund.is_external_product ? (
+        {fund.is_cash_gift ? (
+          <div className="relative w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-primary/20 via-accent/10 to-primary/5 p-8 text-center">
+            <div className="mx-auto h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center">
+              <Wallet className="h-8 w-8 text-primary" />
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">Cadeau en argent</p>
+            <p className="text-2xl font-bold text-primary">
+              {formatAmount(targetAmount)} {currency}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Le montant collecté est directement versé au bénéficiaire.
+            </p>
+          </div>
+        ) : fund.is_external_product ? (
           <div className="relative aspect-square w-full max-w-sm mx-auto rounded-2xl overflow-hidden shadow-lg bg-muted">
             {fund.external_product_image_url ? (
               <img
