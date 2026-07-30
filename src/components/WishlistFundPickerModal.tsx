@@ -472,6 +472,17 @@ export function WishlistFundPickerModal({
           onFundCreated?.();
         }}
       />
+      <CashGiftFundModal
+        isOpen={isCashGiftOpen}
+        onClose={() => setIsCashGiftOpen(false)}
+        beneficiaryUserId={isExternalBeneficiary ? beneficiaryUserId : undefined}
+        beneficiaryName={beneficiaryDisplayName || beneficiaryFirstName}
+        onSuccess={() => {
+          setIsCashGiftOpen(false);
+          onClose();
+          onFundCreated?.();
+        }}
+      />
     </Dialog>
   );
 }
