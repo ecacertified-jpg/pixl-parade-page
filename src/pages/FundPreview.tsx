@@ -31,6 +31,8 @@ interface FundData {
     price: number;
   } | null;
   is_external_product?: boolean | null;
+  is_cash_gift?: boolean | null;
+  beneficiary_user_id?: string | null;
   external_product_url?: string | null;
   external_product_name?: string | null;
   external_product_image_url?: string | null;
@@ -92,6 +94,8 @@ export default function FundPreview() {
             deadline_date,
             created_at,
             is_external_product,
+            is_cash_gift,
+            beneficiary_user_id,
             external_product_url,
             external_product_name,
             external_product_image_url,
