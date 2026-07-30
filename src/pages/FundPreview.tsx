@@ -449,6 +449,27 @@ export default function FundPreview() {
         </Card>
 
         {/* Beneficiary self-purchase panel — Jumia & similar self-purchase platforms */}
+        {fund.is_cash_gift && progressPercent >= 100 && (
+          <Card className="p-5 space-y-3 border-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/5">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-emerald-600" />
+              <h2 className="font-semibold">Cagnotte complète — cadeau prêt</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              L'objectif est atteint. Le bénéficiaire peut recevoir le montant collecté via Wave.
+            </p>
+            <Button asChild className="w-full gap-1.5 bg-[#1DC8FF] hover:bg-[#19b3e6] text-white">
+              <a href="https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/" target="_blank" rel="noopener noreferrer">
+                <Wallet className="h-4 w-4" />
+                Recevoir mon cadeau (Wave)
+              </a>
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Le versement est confirmé par l'équipe Joie de Vivre après vérification.
+            </p>
+          </Card>
+        )}
+
         {fund.is_external_product &&
           fund.external_platform === "Jumia" &&
           progressPercent >= 100 && (
