@@ -115,8 +115,54 @@ export function readExpressIntent(): { intent: boolean; claim: string | null } {
       intent === 'express_birthday' ||
       intent === 'create_birthday_page' ||
       !!claim;
-    return { intent: isExpress, claim };
+    if (isExpress || claim) return { intent: isExpress, claim };
+
+    // Fallback: intent persisted before an OAuth round-trip (Google strips
+    // query params from the redirect URL).
+    const stored = readStoredExpressIntent();
+    if (stored) return stored;
+    return { intent: false, claim: null };
   } catch {
     return { intent: false, claim: null };
   }
+}
+
+const EXPRESS_INTENT_KEY = 'jdv_express_intent';
+
+/**
+ * Persists the current URL express intent (if any) so it survives the
+ * Google OAuth redirect, which drops query params.
+ */
+export function persistExpressIntent(): void {
+  try {
+    const url = new URL(window.location.href);
+    const intent = url.searchParams.get('intent');
+    const claim = url.searchParams.get('claim');
+    const isExpress =
+      intent === 'express_birthday' ||
+      intent === 'create_birthday_page' ||
+      !!claim;
+    if (!isExpress) return;
+    sessionStorage.setItem(
+      EXPRESS_INTENT_KEY,
+      JSON.stringify({ intent: true, claim: claim ?? null })
+    );
+  } catch {}
+}
+
+function readStoredExpressIntent(): { intent: boolean; claim: string | null } | null {
+  try {
+    const raw = sessionStorage.getItem(EXPRESS_INTENT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { intent?: boolean; claim?: string | null };
+    return { intent: !!parsed?.intent, claim: parsed?.claim ?? null };
+  } catch {
+    return null;
+  }
+}
+
+export function clearExpressIntent(): void {
+  try {
+    sessionStorage.removeItem(EXPRESS_INTENT_KEY);
+  } catch {}
 }
