@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
 import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
 import { resolvePostAuthPath } from '@/utils/authRedirect';
+import { persistExpressIntent } from '@/utils/expressSignup';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
 import { type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
@@ -307,7 +308,11 @@ const Auth = () => {
       if (adminRef) {
         processAdminAutoAssign(user.id).catch(console.error);
       }
-      resolvePostAuthPath(user).then((path) => navigate(path));
+      // Treat accounts created less than 2 minutes ago as fresh signups
+      // (covers the Google OAuth round-trip, which loses local state).
+      const createdAt = (user as any)?.created_at ? new Date((user as any).created_at).getTime() : 0;
+      const isNewUser = !!createdAt && Date.now() - createdAt < 120_000;
+      resolvePostAuthPath(user, { isNewUser }).then((path) => navigate(path));
     }
   }, [user, navigate, searchParams]);
 
@@ -1024,7 +1029,10 @@ const Auth = () => {
     }
     
     setIsGoogleLoading(true);
-    
+
+    // Keep any express/claim intent alive across the OAuth redirect
+    persistExpressIntent();
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

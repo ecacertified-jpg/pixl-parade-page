@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { runExpressPostSignup, readExpressIntent } from '@/utils/expressSignup';
+import { runExpressPostSignup, readExpressIntent, clearExpressIntent } from '@/utils/expressSignup';
 
 const REDIRECT_TIMEOUT_MS = 3000;
 
@@ -80,6 +80,7 @@ export const resolvePostAuthPath = async (
     const express = readExpressIntent();
     if (express.intent || express.claim) {
       const result = await runExpressPostSignup(user, { claim: express.claim });
+      clearExpressIntent();
       if (result.slug) return `/birthday/${result.slug}?welcome=1`;
       return '/dashboard?bp_express_failed=1';
     }
@@ -143,6 +144,14 @@ export const resolvePostAuthPath = async (
   // 6) Smart fallback (business vs dashboard)
   const path = await getRedirectPath(user);
   if (opts?.isNewUser && path === '/dashboard') {
+    // New signup with no explicit destination: auto-create + publish their
+    // birthday page and land them straight on it.
+    try {
+      const result = await runExpressPostSignup(user);
+      if (result.slug) return `/birthday/${result.slug}?welcome=1`;
+    } catch (e) {
+      console.warn('[resolvePostAuthPath] auto birthday page failed', e);
+    }
     return '/dashboard?onboarding=true';
   }
   return path;
