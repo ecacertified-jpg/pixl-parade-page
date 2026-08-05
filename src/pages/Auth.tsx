@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
 import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
 import { resolvePostAuthPath } from '@/utils/authRedirect';
+import { persistExpressIntent } from '@/utils/expressSignup';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
 import { type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
@@ -1028,7 +1029,10 @@ const Auth = () => {
     }
     
     setIsGoogleLoading(true);
-    
+
+    // Keep any express/claim intent alive across the OAuth redirect
+    persistExpressIntent();
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
