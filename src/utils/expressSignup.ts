@@ -48,17 +48,34 @@ export async function runExpressPostSignup(
     }
 
     const year = new Date().getFullYear();
-    const existing = await supabase
-      .from('birthday_pages')
-      .select('slug')
-      .eq('user_id', user.id)
-      .eq('celebration_year', year)
-      .eq('is_active', true)
-      .maybeSingle();
 
-    if (existing.data?.slug) {
+    // 1) Réutiliser une page existante (année en cours en priorité, sinon la
+    //    plus récente) au lieu d'en recréer une.
+    const { data: pages } = await supabase
+      .from('birthday_pages')
+      .select('id, slug, celebration_year, published_at, is_active')
+      .eq('user_id', user.id)
+      .order('celebration_year', { ascending: false });
+
+    const existing =
+      pages?.find((p: any) => p.celebration_year === year) ??
+      pages?.find((p: any) => p.is_active) ??
+      pages?.[0];
+
+    if (existing?.slug) {
+      // Publier / réactiver si nécessaire, sans créer de nouvelle page.
+      if (!existing.published_at || !existing.is_active) {
+        const { error: pubErr } = await supabase
+          .from('birthday_pages')
+          .update({
+            is_active: true,
+            published_at: existing.published_at ?? new Date().toISOString(),
+          } as any)
+          .eq('id', existing.id);
+        if (pubErr) console.warn('[expressSignup] publish existing page failed', pubErr);
+      }
       try { localStorage.setItem(`bp_type_${user.id}`, 'self'); } catch {}
-      return { slug: existing.data.slug, claimed: false };
+      return { slug: existing.slug as string, claimed: false };
     }
 
     const firstName =
