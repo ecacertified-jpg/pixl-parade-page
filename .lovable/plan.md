@@ -1,32 +1,42 @@
-## Objectif
+# Entrée directe dans sa page d'anniversaire après inscription
 
-Ajouter, **en tête de la modale** « Ma liste de souhaits » / « Liste de souhaits de X », un bouton prioritaire permettant de créer une **cagnotte en argent** : pas d'article, le montant collecté *est* le cadeau et il est versé au bénéficiaire quand l'objectif est atteint.
+## Constat actuel
 
-## Parcours utilisateur
+La publication automatique existe déjà, mais **seulement** dans un cas particulier : lorsque l'URL contient `intent=express_birthday` ou un `claim=<token>` (liens envoyés par un organisateur, ou CTA visiteur). Dans ce cas `runExpressPostSignup` crée la page d'anniversaire de l'année en cours, la marque publiée (`published_at`, `is_active`) et redirige vers `/birthday/:slug?welcome=1`.
 
-1. Dans `WishlistFundPickerModal`, au-dessus de la liste d'articles : une carte CTA mise en avant (icône billets, dégradé primaire) — « Offrir de l'argent » / « Offrir de l'argent à {Prénom} », sous-titre « Le montant collecté est directement le cadeau ».
-2. Clic → nouvelle modale `CashGiftFundModal` :
-   - Montants suggérés en chips (5 000 / 10 000 / 25 000 / 50 000 XOF) + champ « Autre montant ».
-   - Titre auto-rempli et modifiable (« Cadeau en argent pour Awa »), message/description optionnel, date limite optionnelle, occasion.
-   - Si visiteur non connecté → redirection `/auth` avec `returnTo` (même logique que le flux existant).
-3. Création de la cagnotte puis navigation vers `/f/:id` — exactement la même route de partage/contribution que les cagnottes article.
-4. Sur `/f/:id`, à la place du bloc produit : un bloc « Cadeau en argent » (montant cible, bénéficiaire, mention « versé directement au bénéficiaire »).
-5. À 100 % : le bénéficiaire voit un panneau vert « Recevoir mon cadeau (Wave) » (même pattern que le panneau Jumia existant) ; un enregistrement de versement passe en attente côté admin.
+Pour une inscription normale depuis `/auth` (Google ou code de vérification WhatsApp/SMS), rien de tout cela ne se déclenche : l'utilisateur atterrit sur `/dashboard?onboarding=true` et doit publier sa page manuellement via l'onboarding.
+
+Deuxième problème : même quand l'intention express est présente, la connexion Google la perd. Le `redirectTo` de l'OAuth est `${origin}/auth` sans paramètres, donc au retour de Google les paramètres `intent`/`claim` ont disparu de l'URL.
+
+## Ce qui va être fait
+
+1. **Publication automatique pour toute nouvelle inscription**
+   Chaque nouvel inscrit (Google, code WhatsApp/SMS, e-mail) obtient automatiquement sa page d'anniversaire créée et publiée, puis est envoyé directement dessus (`/birthday/:slug?welcome=1`) au lieu du tableau de bord.
+   Les connexions d'utilisateurs existants ne changent pas : elles conservent la redirection actuelle.
+
+2. **Conservation de l'intention à travers Google**
+   L'intention (`intent`, `claim`) est mémorisée avant la redirection vers Google et relue au retour, pour que le parcours express fonctionne aussi en OAuth.
+
+3. **Détection du nouvel inscrit après Google**
+   Au retour de Google, on distingue un premier passage d'une simple reconnexion (comparaison de la date de création du compte) afin de ne déclencher la publication que pour les nouveaux comptes.
+
+4. **Pas de double onboarding**
+   Le drapeau existant `express_birthday_<userId>` continue d'empêcher l'ouverture de la modale d'onboarding bloquante ; l'utilisateur voit sa page publiée, les étapes complémentaires restant accessibles à tout moment.
+
+5. **Filet de sécurité**
+   Si la création de page échoue (collision de slug, réseau), l'utilisateur est redirigé vers le tableau de bord comme aujourd'hui, sans blocage ni erreur visible.
 
 ## Détails techniques
 
-**Migration**
-- `collective_funds` : `is_cash_gift boolean not null default false`, `beneficiary_user_id uuid` (utile pour cibler le bénéficiaire quand ce n'est pas un contact).
-- Nouvelle table `cash_gift_payouts` (fund_id, beneficiary_user_id, amount, currency, status `pending|paid|failed`, payout_reference, paid_at, created_at/updated_at + trigger updated_at).
-- GRANTs : `SELECT` authenticated, `ALL` service_role ; RLS : lecture par créateur + bénéficiaire + admin (`is_admin(auth.uid())`), écriture admin uniquement.
-
-**Front**
-- `src/components/CashGiftFundModal.tsx` (nouveau) : formulaire montant + création via `useEnsureProfile()` puis insert `collective_funds` avec `is_cash_gift: true`, `is_public: true`, `beneficiary_user_id`, `beneficiary_contact_id` si dispo ; appel best-effort `link-fund-to-birthday-page` comme le flux article.
-- `src/components/WishlistFundPickerModal.tsx` : bouton prioritaire en haut + rendu de la nouvelle modale ; le libellé s'adapte au cas « pour moi » vs « pour X ».
-- `src/pages/FundPreview.tsx` : branche `is_cash_gift` pour le bloc de présentation et le panneau de versement Wave à 100 %.
-
-**Backend**
-- `supabase/functions/process-fund-completion/index.ts` : avant les branches produit externe / business_order, si `is_cash_gift` → insérer un `cash_gift_payouts` en `pending` et notifier (réutilisation des notifications existantes de complétion), sans créer de commande.
+- `src/utils/expressSignup.ts` : ajout d'une persistance de l'intention (`sessionStorage`/`localStorage`) et d'un mode « auto » déclenché sans paramètre d'URL. La logique de création reste inchangée (page `birthday_pages` de l'année en cours, `is_active: true`, `published_at`, drapeaux locaux `bp_type_*` et `express_birthday_*`).
+- `src/utils/authRedirect.ts` : dans `resolvePostAuthPath`, si `opts.isNewUser` est vrai et qu'aucune destination explicite (`returnTo`, `returnUrl`, `redirect`) n'est présente, exécution du flux express et retour de `/birthday/:slug?welcome=1`, avec repli `/dashboard`. Les redirections explicites gardent la priorité.
+- `src/pages/Auth.tsx` :
+  - `signInWithGoogle` mémorise l'intention avant `signInWithOAuth`.
+  - Le `useEffect` de redirection post-auth détecte un nouveau compte (via `user.created_at`) et passe `{ isNewUser: true }` à `resolvePostAuthPath`.
+  - Les chemins OTP WhatsApp/SMS et e-mail passent déjà `isNewUser: true` : aucun changement nécessaire.
+- Aucune modification de base de données ni de fonction edge.
 
 ## Hors périmètre
-Pas de nouvel écran admin dédié dans cette itération : les versements en attente seront visibles via requête/administration existante ; on pourra ajouter `/admin/cash-payouts` ensuite si tu le souhaites.
+
+- Modifier le contenu ou le design de la page d'anniversaire.
+- Changer les étapes de l'onboarding complémentaire (souhaits, amis, cagnotte, partages).
