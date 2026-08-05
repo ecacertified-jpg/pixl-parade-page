@@ -307,7 +307,11 @@ const Auth = () => {
       if (adminRef) {
         processAdminAutoAssign(user.id).catch(console.error);
       }
-      resolvePostAuthPath(user).then((path) => navigate(path));
+      // Treat accounts created less than 2 minutes ago as fresh signups
+      // (covers the Google OAuth round-trip, which loses local state).
+      const createdAt = (user as any)?.created_at ? new Date((user as any).created_at).getTime() : 0;
+      const isNewUser = !!createdAt && Date.now() - createdAt < 120_000;
+      resolvePostAuthPath(user, { isNewUser }).then((path) => navigate(path));
     }
   }, [user, navigate, searchParams]);
 
