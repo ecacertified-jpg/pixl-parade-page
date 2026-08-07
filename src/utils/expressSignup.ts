@@ -19,7 +19,34 @@ const makeSlug = (firstName: string) => {
 export interface ExpressResult {
   slug: string | null;
   claimed: boolean;
+  /** Message d'erreur lisible par l'utilisateur si la publication a échoué. */
+  error?: string;
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Réessaie une opération jusqu'à `attempts` fois avec backoff exponentiel. */
+async function withRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  attempts = 3,
+  baseDelay = 400
+): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      console.warn(`[expressSignup] ${label} échec (tentative ${i + 1}/${attempts})`, e);
+      if (i < attempts - 1) await sleep(baseDelay * 2 ** i);
+    }
+  }
+  throw lastErr;
+}
+
+export const EXPRESS_ERROR_MESSAGE =
+  "Impossible de publier ta page d'anniversaire pour le moment. Réessaie depuis ton tableau de bord.";
 
 /**
  * Runs after a successful signup/login when the URL has
@@ -50,12 +77,16 @@ export async function runExpressPostSignup(
     const year = new Date().getFullYear();
 
     // 1) Réutiliser une page existante (année en cours en priorité, sinon la
-    //    plus récente) au lieu d'en recréer une.
-    const { data: pages } = await supabase
-      .from('birthday_pages')
-      .select('id, slug, celebration_year, published_at, is_active')
-      .eq('user_id', user.id)
-      .order('celebration_year', { ascending: false });
+    //    plus récente) au lieu d'en recréer une. Avec retry réseau.
+    const pages = await withRetry('lecture des pages', async () => {
+      const { data, error } = await supabase
+        .from('birthday_pages')
+        .select('id, slug, celebration_year, published_at, is_active')
+        .eq('user_id', user.id)
+        .order('celebration_year', { ascending: false });
+      if (error) throw error;
+      return data;
+    });
 
     const existing =
       pages?.find((p: any) => p.celebration_year === year) ??
@@ -65,14 +96,20 @@ export async function runExpressPostSignup(
     if (existing?.slug) {
       // Publier / réactiver si nécessaire, sans créer de nouvelle page.
       if (!existing.published_at || !existing.is_active) {
-        const { error: pubErr } = await supabase
-          .from('birthday_pages')
-          .update({
-            is_active: true,
-            published_at: existing.published_at ?? new Date().toISOString(),
-          } as any)
-          .eq('id', existing.id);
-        if (pubErr) console.warn('[expressSignup] publish existing page failed', pubErr);
+        try {
+          await withRetry('publication de la page existante', async () => {
+            const { error: pubErr } = await supabase
+              .from('birthday_pages')
+              .update({
+                is_active: true,
+                published_at: existing.published_at ?? new Date().toISOString(),
+              } as any)
+              .eq('id', existing.id);
+            if (pubErr) throw pubErr;
+          });
+        } catch (e) {
+          return { slug: null, claimed: false, error: EXPRESS_ERROR_MESSAGE };
+        }
       }
       try { localStorage.setItem(`bp_type_${user.id}`, 'self'); } catch {}
       return { slug: existing.slug as string, claimed: false };
@@ -113,10 +150,10 @@ export async function runExpressPostSignup(
         break;
       }
     }
-    return { slug: null, claimed: false };
+    return { slug: null, claimed: false, error: EXPRESS_ERROR_MESSAGE };
   } catch (e) {
     console.error('[expressSignup] failed', e);
-    return { slug: null, claimed: false };
+    return { slug: null, claimed: false, error: EXPRESS_ERROR_MESSAGE };
   }
 }
 
