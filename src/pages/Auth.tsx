@@ -312,7 +312,7 @@ const Auth = () => {
       // (covers the Google OAuth round-trip, which loses local state).
       const createdAt = (user as any)?.created_at ? new Date((user as any).created_at).getTime() : 0;
       const isNewUser = !!createdAt && Date.now() - createdAt < 120_000;
-      resolvePostAuthPath(user, { isNewUser }).then((path) => navigate(path));
+      resolvePostAuthPath(user, { isNewUser }).then((path) => navigate(path, { replace: true }));
     }
   }, [user, navigate, searchParams]);
 
@@ -808,7 +808,7 @@ const Auth = () => {
         {
           const fakeUser = { id: result.user_id } as any;
           const path = await resolvePostAuthPath(fakeUser, { isNewUser: !!result.is_new_user });
-          navigate(path);
+          navigate(path, { replace: true });
         }
         return;
       }
@@ -891,7 +891,7 @@ const Auth = () => {
           processAdminAutoAssign(authData.user.id).catch(console.error);
           acceptInvitationIfNeeded().catch(console.error);
           const path = await resolvePostAuthPath(authData.user, { isNewUser: true });
-          navigate(path);
+          navigate(path, { replace: true });
         } else {
           processAdminAutoAssign(authData.user.id).catch(console.error);
           // Let useEffect handle redirect via onAuthStateChange
@@ -1192,7 +1192,7 @@ const Auth = () => {
           processAdminAutoAssign(authData.user.id).catch(console.error);
           acceptInvitationIfNeeded().catch(console.error);
           const path = await resolvePostAuthPath(authData.user, { isNewUser: true });
-          navigate(path);
+          navigate(path, { replace: true });
         }
       }
     } catch (error: any) {

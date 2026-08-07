@@ -132,20 +132,9 @@ export const resolvePostAuthPath = async (
     }
   } catch {}
 
-  // 5) last_visited_route
-  try {
-    const last = localStorage.getItem('last_visited_route');
-    if (isSafePath(last) && last !== '/') {
-      localStorage.removeItem('last_visited_route');
-      return last;
-    }
-  } catch {}
-
-  // 6) Smart fallback (business vs dashboard)
-  const path = await getRedirectPath(user);
-  if (opts?.isNewUser && path === '/dashboard') {
-    // New signup with no explicit destination: auto-create + publish their
-    // birthday page and land them straight on it.
+  // 5) Nouvel inscrit : aller directement sur sa page d'anniversaire
+  //    (réutilisée si elle existe, sinon créée) sans passer par le dashboard.
+  if (opts?.isNewUser) {
     try {
       const result = await runExpressPostSignup(user);
       if (result.slug) return `/birthday/${result.slug}?welcome=1`;
@@ -154,5 +143,16 @@ export const resolvePostAuthPath = async (
     }
     return '/dashboard?onboarding=true';
   }
-  return path;
+
+  // 6) last_visited_route
+  try {
+    const last = localStorage.getItem('last_visited_route');
+    if (isSafePath(last) && last !== '/') {
+      localStorage.removeItem('last_visited_route');
+      return last;
+    }
+  } catch {}
+
+  // 7) Smart fallback (business vs dashboard)
+  return await getRedirectPath(user);
 };
