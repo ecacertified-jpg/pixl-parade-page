@@ -138,8 +138,10 @@ export const resolvePostAuthPath = async (
     try {
       const result = await runExpressPostSignup(user);
       if (result.slug) return `/birthday/${result.slug}?welcome=1`;
+      if (result.error) return '/dashboard?bp_express_failed=1';
     } catch (e) {
       console.warn('[resolvePostAuthPath] auto birthday page failed', e);
+      return '/dashboard?bp_express_failed=1';
     }
     return '/dashboard?onboarding=true';
   }
