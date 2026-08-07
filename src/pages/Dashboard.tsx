@@ -137,6 +137,21 @@ export default function Dashboard() {
   
   // Onboarding
   const { shouldShowOnboarding, completeOnboarding, currentStep, setCurrentStep, firstIncompleteStep } = useOnboarding();
+
+  // Échec de publication automatique de la page d'anniversaire après inscription
+  useEffect(() => {
+    if (searchParams.get('bp_express_failed') !== '1') return;
+    toast({
+      title: "Publication impossible",
+      description:
+        "Ta page d'anniversaire n'a pas pu être publiée. Réessaie depuis « Ma page d'anniversaire » (bouton +).",
+      variant: 'destructive',
+    });
+    const next = new URLSearchParams(searchParams);
+    next.delete('bp_express_failed');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, toast]);
+
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'amis');
   
   // Profile completion check (for Google sign-up users)
