@@ -3,10 +3,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
+  ACTIVITY_LEVELS,
+  KPI_DEFINITIONS,
   SEGMENTS,
   computeCrmRecord,
   detectDuplicateGroups,
   matchesFilters,
+  runCoherenceTests,
+  type ActivityLevel,
+  type CoherenceTest,
   type CrmComputed,
   type CrmFilters as CoreFilters,
   type CrmOverviewRow,
@@ -14,7 +19,17 @@ import {
   type ScoringRule,
 } from '@/lib/crmCore';
 
-export { REACTIVATION_STATUSES, DUPLICATE_STATUSES } from '@/lib/crmCore';
+export {
+  REACTIVATION_STATUSES,
+  DUPLICATE_STATUSES,
+  ACTIVITY_LEVELS,
+  JOURNEY_STEPS,
+  BLOCKERS,
+  KPI_DEFINITIONS,
+  PRIORITIES,
+} from '@/lib/crmCore';
+export type { ActivityLevel, JourneyStep, Blocker, CoherenceTest, KpiDefinition } from '@/lib/crmCore';
+
 
 export type CrmPriority = Priority;
 export type CrmRecord = CrmComputed;
