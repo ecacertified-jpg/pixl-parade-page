@@ -223,29 +223,56 @@ export default function JdvCrmDashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              Contrôle de cohérence
+          <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
+            <div>
+              <CardTitle className="text-base">
+                Contrôle de cohérence (T1 → T12)
+                {stats && (
+                  <Badge
+                    className="ml-2"
+                    variant={stats.coherence_report.failed_count === 0 ? 'secondary' : 'destructive'}
+                  >
+                    {stats.coherence_report.status}
+                  </Badge>
+                )}
+              </CardTitle>
               {stats && (
-                <Badge className="ml-2" variant={stats.coherence.every((t) => t.passed) ? 'secondary' : 'destructive'}>
-                  {stats.coherence.filter((t) => t.passed).length}/{stats.coherence.length} conformes
-                </Badge>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Exécuté automatiquement après chargement — {stats.coherence_report.passed_count}/
+                  {stats.coherence_report.tests.length} contrôles conformes ·{' '}
+                  {stats.coherence_report.records_analyzed.toLocaleString('fr-FR')} fiches analysées ·{' '}
+                  {new Date(stats.coherence_report.generated_at).toLocaleString('fr-FR')}
+                </p>
               )}
-            </CardTitle>
+            </div>
+            {stats && <ExportButton onExportCSV={handleExportCoherence} />}
           </CardHeader>
           <CardContent className="space-y-1">
             {!stats && <Skeleton className="h-24 w-full" />}
+            {stats && (
+              <div
+                className={`mb-3 rounded-lg border p-3 text-sm ${
+                  stats.coherence_report.failed_count === 0
+                    ? 'border-primary/40 bg-primary/5'
+                    : 'border-destructive/40 bg-destructive/5'
+                }`}
+              >
+                {stats.coherence_report.summary}
+              </div>
+            )}
             {stats?.coherence.map((t) => (
               <div key={t.id} className="flex items-start gap-2 text-sm">
                 {t.passed
                   ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />}
+                <span className="shrink-0 text-xs font-medium text-muted-foreground">{t.id}</span>
                 <span className="flex-1">{t.label}</span>
                 <span className="text-xs text-muted-foreground">{t.detail}</span>
               </div>
             ))}
           </CardContent>
         </Card>
+
 
 
         <Card>
