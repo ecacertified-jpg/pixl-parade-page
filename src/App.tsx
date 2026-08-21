@@ -167,6 +167,7 @@ const CommissionsDashboard = lazy(() => import("./pages/Admin/CommissionsDashboa
 const WhatsAppAIChat = lazy(() => import("./pages/Admin/WhatsAppAIChat"));
 const AdminFundDetail = lazy(() => import("./pages/Admin/AdminFundDetail"));
 const OnboardingProgressDashboard = lazy(() => import("./pages/Admin/OnboardingProgressDashboard"));
+const JdvCrmDashboard = lazy(() => import("./pages/Admin/JdvCrmDashboard"));
 const WaveSubscriptionsAdmin = lazy(() => import("./pages/Admin/WaveSubscriptionsAdmin"));
 const CelebrationPremiumOrders = lazy(() => import("./pages/Admin/CelebrationPremiumOrders"));
 const LiveRoom = lazy(() => import("./pages/LiveRoom"));
