@@ -377,7 +377,7 @@ export default function JdvCrmDashboard() {
               <Button
                 variant="ghost"
                 className="w-full"
-                onClick={() => { setFilters({}); setSearchInput(''); setPage(1); }}
+                onClick={() => { setFilters({}); setSearchInput(''); setPage(1); setActiveKpi(null); }}
               >
                 Réinitialiser les filtres
               </Button>
