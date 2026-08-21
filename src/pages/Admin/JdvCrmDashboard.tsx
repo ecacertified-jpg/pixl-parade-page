@@ -13,12 +13,14 @@ import { CrmUserSheet } from '@/components/admin/crm/CrmUserSheet';
 import { CRM_EXPORT_COLUMNS } from '@/components/admin/crm/crmExportColumns';
 import { exportToCSV } from '@/utils/exportUtils';
 import {
-  DUPLICATE_STATUSES, REACTIVATION_STATUSES, fetchCrmExport,
-  useCrmList, useCrmStats, type CrmFilters,
+  ACTIVITY_LEVELS, BLOCKERS, DUPLICATE_STATUSES, JOURNEY_STEPS, KPI_DEFINITIONS,
+  REACTIVATION_STATUSES, fetchCrmExport,
+  useCrmList, useCrmStats,
+  type ActivityLevel, type Blocker, type CrmFilters, type JourneyStep,
 } from '@/hooks/useJdvCrm';
 import { toast } from 'sonner';
 import {
-  AlertTriangle, Cake, Copy, Gift, Search, Share2, UserX, Users,
+  AlertTriangle, Cake, CheckCircle2, Copy, Gift, Search, Share2, UserX, Users, XCircle,
 } from 'lucide-react';
 
 const ALL = '__all__';
@@ -37,6 +39,7 @@ export default function JdvCrmDashboard() {
   const [searchInput, setSearchInput] = useState('');
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [activeKpi, setActiveKpi] = useState<string | null>(null);
 
   const { data: stats, isLoading: statsLoading, error: statsError } = useCrmStats();
   const { data: list, isLoading: listLoading } = useCrmList(filters, page, PAGE_SIZE);
@@ -45,7 +48,9 @@ export default function JdvCrmDashboard() {
   const update = (patch: Partial<CrmFilters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
     setPage(1);
+    setActiveKpi(null);
   };
+
 
   const countries = useMemo(() => Object.keys(stats?.by_country ?? {}).sort(), [stats]);
   const segmentDefs = stats?.segment_defs ?? {};
