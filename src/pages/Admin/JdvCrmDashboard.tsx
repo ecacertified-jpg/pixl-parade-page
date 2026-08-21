@@ -66,15 +66,23 @@ export default function JdvCrmDashboard() {
 
   const totalPages = Math.max(1, Math.ceil((list?.total ?? 0) / PAGE_SIZE));
 
-  const kpis = [
-    { label: 'Utilisateurs', value: stats?.total ?? 0, icon: Users },
-    { label: 'Anniversaire < 30j', value: stats?.birthday_soon ?? 0, icon: Cake },
-    { label: 'Sans page', value: stats?.no_page ?? 0, icon: UserX },
-    { label: 'Page sans cagnotte', value: stats?.page_no_fund ?? 0, icon: Gift },
-    { label: 'Cagnotte non partagée', value: stats?.fund_not_shared ?? 0, icon: Share2 },
-    { label: 'Inactifs > 30j', value: stats?.inactive ?? 0, icon: AlertTriangle },
-    { label: 'Doublons potentiels', value: stats?.duplicates ?? 0, icon: Copy },
-  ];
+  const KPI_ICONS: Record<string, typeof Users> = {
+    total: Users,
+    birthday_soon: Cake,
+    no_page: UserX,
+    page_no_fund: Gift,
+    fund_not_shared: Share2,
+    inactive: AlertTriangle,
+    duplicates: Copy,
+  };
+
+  /** Une carte = un filtre : cliquer applique exactement le filtre qui a produit le chiffre. */
+  const applyKpi = (kpi: (typeof KPI_DEFINITIONS)[number]) => {
+    setFilters(kpi.key === 'total' ? {} : { ...kpi.filters });
+    setSearchInput('');
+    setPage(1);
+    setActiveKpi(kpi.key);
+  };
 
   return (
     <AdminLayout>
@@ -97,25 +105,89 @@ export default function JdvCrmDashboard() {
         )}
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
-          {kpis.map(({ label, value, icon: Icon }) => (
-            <Card key={label}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Icon className="h-4 w-4" />
-                  <span className="text-xs">{label}</span>
-                </div>
-                {statsLoading ? (
-                  <Skeleton className="mt-2 h-7 w-16" />
-                ) : statsError ? (
-                  <p className="mt-1 text-2xl font-semibold text-muted-foreground">—</p>
-                ) : (
-                  <p className="mt-1 text-2xl font-semibold">{value.toLocaleString('fr-FR')}</p>
-                )}
-
-              </CardContent>
-            </Card>
-          ))}
+          {KPI_DEFINITIONS.map((kpi) => {
+            const Icon = KPI_ICONS[kpi.key] ?? Users;
+            const value = stats?.kpis?.[kpi.key] ?? 0;
+            const isActive = activeKpi === kpi.key;
+            return (
+              <Card
+                key={kpi.key}
+                role="button"
+                tabIndex={0}
+                onClick={() => applyKpi(kpi)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && applyKpi(kpi)}
+                className={`cursor-pointer transition-colors ${isActive ? 'border-primary bg-primary/5' : 'hover:bg-accent/40'}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-xs">{kpi.label}</span>
+                  </div>
+                  {statsLoading ? (
+                    <Skeleton className="mt-2 h-7 w-16" />
+                  ) : statsError ? (
+                    <p className="mt-1 text-2xl font-semibold text-muted-foreground">—</p>
+                  ) : (
+                    <p className="mt-1 text-2xl font-semibold">{value.toLocaleString('fr-FR')}</p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Niveau d’activité (définition unique)</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 sm:grid-cols-2">
+              {ACTIVITY_LEVELS.map((level) => {
+                const count = stats?.activity_levels?.[level] ?? 0;
+                const isActive = filters.activity_level === level;
+                return (
+                  <button
+                    key={level}
+                    onClick={() => { update({ activity_level: isActive ? undefined : level, activity: undefined }); setActiveKpi(null); }}
+                    className={`rounded-lg border p-3 text-left transition-colors ${isActive ? 'border-primary bg-primary/10' : 'hover:bg-accent/40'}`}
+                  >
+                    <p className="text-xs text-muted-foreground">{level}</p>
+                    <p className="text-lg font-semibold">{count.toLocaleString('fr-FR')}</p>
+                  </button>
+                );
+              })}
+              <p className="col-span-full text-xs text-muted-foreground">
+                Activité mesurée uniquement sur des signaux réels : dernière connexion et sessions.
+                La date d’inscription n’est jamais utilisée comme activité.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Parcours de conversion</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {(stats?.funnel ?? []).map((step) => {
+                const total = stats?.total ?? 0;
+                const pct = total > 0 ? Math.round((step.count / total) * 100) : 0;
+                return (
+                  <div key={step.label}>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">{step.label}</span>
+                      <span className="font-medium">{step.count.toLocaleString('fr-FR')} · {pct}%</span>
+                    </div>
+                    <div className="mt-1 h-2 w-full rounded-full bg-muted">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+              {!stats && <Skeleton className="h-24 w-full" />}
+            </CardContent>
+          </Card>
+        </div>
+
 
         <Card>
           <CardHeader className="pb-3">
