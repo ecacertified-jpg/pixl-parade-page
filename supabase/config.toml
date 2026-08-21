@@ -329,5 +329,5 @@ verify_jwt = true
 [functions.inspiration-preview]
 verify_jwt = false
 
-[functions.admin-crm]
+[functions.jdv-crm]
 verify_jwt = false
