@@ -190,7 +190,13 @@ export function CrmUserSheet({ userId, onClose }: Props) {
                     </div>
                   ))}
                   <Separator className="my-2" />
+                  <Row label="Priorité" value={record.priority} />
+                  <div className="pt-1 text-xs text-muted-foreground">
+                    {record.priority_reasons.map((reason, i) => <p key={i}>• {reason}</p>)}
+                  </div>
+                  <Separator className="my-2" />
                   <Row label="Prochaine action recommandée" value={record.next_action} />
+
                 </CardContent>
               </Card>
 
