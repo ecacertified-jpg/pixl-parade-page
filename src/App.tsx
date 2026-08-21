@@ -375,6 +375,8 @@ const App = () => (
             <Route path="/inspiration/:token" element={<L><InspirationRedirect /></L>} />
             <Route path="/admin/whatsapp-ai" element={<AdminRoute><L><WhatsAppAIChat /></L></AdminRoute>} />
             <Route path="/admin/onboarding" element={<AdminRoute><L><OnboardingProgressDashboard /></L></AdminRoute>} />
+            <Route path="/admin/crm" element={<AdminRoute><L><JdvCrmDashboard /></L></AdminRoute>} />
+
             <Route path="/admin/funds/:fundId" element={<AdminRoute><L><AdminFundDetail /></L></AdminRoute>} />
             <Route path="/admin/abonnements-wave" element={<AdminRoute><L><WaveSubscriptionsAdmin /></L></AdminRoute>} />
             <Route path="/admin/celebrer-premium" element={<AdminRoute><L><CelebrationPremiumOrders /></L></AdminRoute>} />
