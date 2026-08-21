@@ -38,8 +38,9 @@ export default function JdvCrmDashboard() {
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
-  const { data: stats, isLoading: statsLoading } = useCrmStats();
+  const { data: stats, isLoading: statsLoading, error: statsError } = useCrmStats();
   const { data: list, isLoading: listLoading } = useCrmList(filters, page, PAGE_SIZE);
+
 
   const update = (patch: Partial<CrmFilters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
