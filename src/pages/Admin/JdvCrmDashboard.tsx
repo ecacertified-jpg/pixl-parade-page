@@ -223,6 +223,32 @@ export default function JdvCrmDashboard() {
         </Card>
 
         <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">
+              Contrôle de cohérence
+              {stats && (
+                <Badge className="ml-2" variant={stats.coherence.every((t) => t.passed) ? 'secondary' : 'destructive'}>
+                  {stats.coherence.filter((t) => t.passed).length}/{stats.coherence.length} conformes
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {!stats && <Skeleton className="h-24 w-full" />}
+            {stats?.coherence.map((t) => (
+              <div key={t.id} className="flex items-start gap-2 text-sm">
+                {t.passed
+                  ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />}
+                <span className="flex-1">{t.label}</span>
+                <span className="text-xs text-muted-foreground">{t.detail}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
             <CardTitle className="text-base">Filtres</CardTitle>
             <ExportButton onExportCSV={handleExport} />
