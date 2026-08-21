@@ -69,6 +69,28 @@ export default function JdvCrmDashboard() {
     }
   };
 
+  const handleExportCoherence = () => {
+    if (!stats) return;
+    const rows = stats.coherence_report.tests.map((t) => ({
+      test: t.id,
+      controle: t.label,
+      resultat: t.passed ? 'Conforme' : 'Anomalie',
+      detail: t.detail,
+      fiches_analysees: stats.coherence_report.records_analyzed,
+      genere_le: new Date(stats.coherence_report.generated_at).toLocaleString('fr-FR'),
+    }));
+    exportToCSV(rows, [
+      { key: 'test', label: 'Test' },
+      { key: 'controle', label: 'Contrôle' },
+      { key: 'resultat', label: 'Résultat' },
+      { key: 'detail', label: 'Détail' },
+      { key: 'fiches_analysees', label: 'Fiches analysées' },
+      { key: 'genere_le', label: 'Généré le' },
+    ], 'jdv_crm_coherence');
+    toast.success('Rapport de cohérence exporté');
+  };
+
+
   const totalPages = Math.max(1, Math.ceil((list?.total ?? 0) / PAGE_SIZE));
 
   const KPI_ICONS: Record<string, typeof Users> = {
