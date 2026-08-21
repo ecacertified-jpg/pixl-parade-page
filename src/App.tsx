@@ -167,6 +167,7 @@ const CommissionsDashboard = lazy(() => import("./pages/Admin/CommissionsDashboa
 const WhatsAppAIChat = lazy(() => import("./pages/Admin/WhatsAppAIChat"));
 const AdminFundDetail = lazy(() => import("./pages/Admin/AdminFundDetail"));
 const OnboardingProgressDashboard = lazy(() => import("./pages/Admin/OnboardingProgressDashboard"));
+const JdvCrmDashboard = lazy(() => import("./pages/Admin/JdvCrmDashboard"));
 const WaveSubscriptionsAdmin = lazy(() => import("./pages/Admin/WaveSubscriptionsAdmin"));
 const CelebrationPremiumOrders = lazy(() => import("./pages/Admin/CelebrationPremiumOrders"));
 const LiveRoom = lazy(() => import("./pages/LiveRoom"));
@@ -374,6 +375,8 @@ const App = () => (
             <Route path="/inspiration/:token" element={<L><InspirationRedirect /></L>} />
             <Route path="/admin/whatsapp-ai" element={<AdminRoute><L><WhatsAppAIChat /></L></AdminRoute>} />
             <Route path="/admin/onboarding" element={<AdminRoute><L><OnboardingProgressDashboard /></L></AdminRoute>} />
+            <Route path="/admin/crm" element={<AdminRoute><L><JdvCrmDashboard /></L></AdminRoute>} />
+
             <Route path="/admin/funds/:fundId" element={<AdminRoute><L><AdminFundDetail /></L></AdminRoute>} />
             <Route path="/admin/abonnements-wave" element={<AdminRoute><L><WaveSubscriptionsAdmin /></L></AdminRoute>} />
             <Route path="/admin/celebrer-premium" element={<AdminRoute><L><CelebrationPremiumOrders /></L></AdminRoute>} />
