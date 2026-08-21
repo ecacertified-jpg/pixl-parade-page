@@ -718,3 +718,35 @@ export function runCoherenceTests(records: CrmComputed[]): CoherenceTest[] {
 
   return tests;
 }
+
+/** Rapport récapitulatif du contrôle de cohérence, généré automatiquement après chargement. */
+export interface CoherenceReport {
+  generated_at: string;
+  records_analyzed: number;
+  tests: CoherenceTest[];
+  passed_count: number;
+  failed_count: number;
+  status: 'CONFORME' | 'ANOMALIES DÉTECTÉES';
+  summary: string;
+  failed_tests: CoherenceTest[];
+}
+
+export function buildCoherenceReport(records: CrmComputed[]): CoherenceReport {
+  const tests = runCoherenceTests(records);
+  const failed_tests = tests.filter((t) => !t.passed);
+  const passed_count = tests.length - failed_tests.length;
+  return {
+    generated_at: new Date().toISOString(),
+    records_analyzed: records.length,
+    tests,
+    passed_count,
+    failed_count: failed_tests.length,
+    status: failed_tests.length === 0 ? 'CONFORME' : 'ANOMALIES DÉTECTÉES',
+    summary:
+      failed_tests.length === 0
+        ? `Les ${tests.length} contrôles (T1 à T12) sont conformes sur ${records.length} fiches analysées.`
+        : `${failed_tests.length} contrôle(s) en anomalie sur ${tests.length} : ${failed_tests.map((t) => t.id).join(', ')}.`,
+    failed_tests,
+  };
+}
+
