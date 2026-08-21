@@ -410,7 +410,10 @@ export default function JdvCrmDashboard() {
                     <TableHead>Page</TableHead>
                     <TableHead>Cagnotte</TableHead>
                     <TableHead>Partage</TableHead>
+                    <TableHead>Activité</TableHead>
+                    <TableHead>Blocage</TableHead>
                     <TableHead>Statut</TableHead>
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
