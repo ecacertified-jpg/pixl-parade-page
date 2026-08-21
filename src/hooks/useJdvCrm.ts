@@ -10,9 +10,11 @@ import {
   detectDuplicateGroups,
   matchesFilters,
   buildCoherenceReport,
+  auditSegmentation,
   type ActivityLevel,
   type CoherenceTest,
   type CoherenceReport,
+  type SegmentAuditReport,
   type CrmComputed,
 
   type CrmFilters as CoreFilters,
@@ -30,7 +32,7 @@ export {
   KPI_DEFINITIONS,
   PRIORITIES,
 } from '@/lib/crmCore';
-export type { ActivityLevel, JourneyStep, Blocker, CoherenceTest, CoherenceReport, KpiDefinition } from '@/lib/crmCore';
+export type { ActivityLevel, JourneyStep, Blocker, CoherenceTest, CoherenceReport, KpiDefinition, SegmentAuditRow, SegmentAuditReport } from '@/lib/crmCore';
 
 
 export type CrmPriority = Priority;
@@ -77,6 +79,8 @@ export interface CrmStats {
   coherence: CoherenceTest[];
   /** Rapport récapitulatif du contrôle de cohérence (exécuté automatiquement). */
   coherence_report: CoherenceReport;
+  /** Audit de cohérence des segments S1→S8 (lecture seule, exécuté automatiquement). */
+  segment_audit: SegmentAuditReport;
 
 }
 
@@ -196,6 +200,9 @@ export function useCrmStats() {
     // Contrôle de cohérence T1→T12 exécuté automatiquement après chargement des données.
     const report = buildCoherenceReport(records);
 
+    // Audit de segmentation S1→S8 : aucune donnée modifiée, aucune correction automatique.
+    const segmentAudit = auditSegmentation(records);
+
 
 
     return {
@@ -223,6 +230,7 @@ export function useCrmStats() {
       ],
       coherence: report.tests,
       coherence_report: report,
+      segment_audit: segmentAudit,
 
     };
   }, [query.data]);
