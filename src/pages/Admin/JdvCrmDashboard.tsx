@@ -87,6 +87,15 @@ export default function JdvCrmDashboard() {
           </p>
         </header>
 
+        {statsError && (
+          <Card className="border-destructive/40">
+            <CardContent className="flex items-center gap-2 p-4 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              Impossible de charger les données CRM : {statsError instanceof Error ? statsError.message : 'erreur inconnue'}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
           {kpis.map(({ label, value, icon: Icon }) => (
             <Card key={label}>
@@ -97,9 +106,12 @@ export default function JdvCrmDashboard() {
                 </div>
                 {statsLoading ? (
                   <Skeleton className="mt-2 h-7 w-16" />
+                ) : statsError ? (
+                  <p className="mt-1 text-2xl font-semibold text-muted-foreground">—</p>
                 ) : (
                   <p className="mt-1 text-2xl font-semibold">{value.toLocaleString('fr-FR')}</p>
                 )}
+
               </CardContent>
             </Card>
           ))}
