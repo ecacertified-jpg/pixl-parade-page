@@ -11853,6 +11853,114 @@ export type Database = {
         }
         Returns: string
       }
+      crm_add_history: {
+        Args: {
+          _action_suivante?: string
+          _campagne?: string
+          _canal?: string
+          _message?: string
+          _reponse?: string
+          _resultat?: string
+          _statut?: string
+          _user_id: string
+        }
+        Returns: {
+          action_suivante: string | null
+          campagne: string | null
+          canal: string | null
+          created_at: string
+          created_by: string | null
+          crm_profile_id: string | null
+          id: string
+          message: string | null
+          occurred_at: string
+          reponse: string | null
+          resultat: string | null
+          statut: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "crm_reactivation_history"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      crm_admin_countries: { Args: { _user_id: string }; Returns: string[] }
+      crm_get_history: {
+        Args: { _user_id: string }
+        Returns: {
+          action_suivante: string | null
+          campagne: string | null
+          canal: string | null
+          created_at: string
+          created_by: string | null
+          crm_profile_id: string | null
+          id: string
+          message: string | null
+          occurred_at: string
+          reponse: string | null
+          resultat: string | null
+          statut: string | null
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "crm_reactivation_history"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      crm_get_overview: { Args: never; Returns: Json }
+      crm_get_rules: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          points: number
+          rule_key: string
+          sort_order: number
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "crm_scoring_rules"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      crm_is_admin: { Args: { _user_id: string }; Returns: boolean }
+      crm_provision_profiles: { Args: never; Returns: number }
+      crm_set_status: {
+        Args: {
+          _admin_notes?: string
+          _statut_doublon?: string
+          _statut_reactivation?: string
+          _user_id: string
+        }
+        Returns: {
+          admin_notes: string | null
+          assigned_admin_id: string | null
+          created_at: string
+          crm_id: string
+          id: string
+          last_contacted_at: string | null
+          statut_doublon: string
+          statut_reactivation: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "crm_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_user_role: { Args: never; Returns: string }
       decrypt_instagram_token: {
         Args: { p_encrypted_token: string }
