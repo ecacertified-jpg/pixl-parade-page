@@ -13,6 +13,7 @@ import {
   DUPLICATE_STATUSES, REACTIVATION_STATUSES, useCrmDetail, useCrmMutations, type CrmRecord,
 } from '@/hooks/useJdvCrm';
 import { CRM_EXPORT_COLUMNS } from './crmExportColumns';
+import { CrmWhyPanel } from './CrmWhyPanel';
 import { exportToCSV } from '@/utils/exportUtils';
 
 const NA = 'Non disponible';
@@ -199,6 +200,8 @@ export function CrmUserSheet({ userId, onClose }: Props) {
 
                 </CardContent>
               </Card>
+
+              <CrmWhyPanel record={record} />
 
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-base">Suivi</CardTitle></CardHeader>
