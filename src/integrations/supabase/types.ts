@@ -1823,6 +1823,13 @@ export type Database = {
             foreignKeyName: "business_collective_funds_beneficiary_user_id_fkey"
             columns: ["beneficiary_user_id"]
             isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "business_collective_funds_beneficiary_user_id_fkey"
+            columns: ["beneficiary_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -3371,6 +3378,13 @@ export type Database = {
             foreignKeyName: "collective_funds_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "collective_funds_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -3684,6 +3698,13 @@ export type Database = {
             foreignKeyName: "contacts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -3847,6 +3868,137 @@ export type Database = {
           title?: string
           updated_at?: string
           video_url?: string
+        }
+        Relationships: []
+      }
+      crm_profiles: {
+        Row: {
+          admin_notes: string | null
+          assigned_admin_id: string | null
+          created_at: string
+          crm_id: string
+          id: string
+          last_contacted_at: string | null
+          statut_doublon: string
+          statut_reactivation: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          assigned_admin_id?: string | null
+          created_at?: string
+          crm_id?: string
+          id?: string
+          last_contacted_at?: string | null
+          statut_doublon?: string
+          statut_reactivation?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          assigned_admin_id?: string | null
+          created_at?: string
+          crm_id?: string
+          id?: string
+          last_contacted_at?: string | null
+          statut_doublon?: string
+          statut_reactivation?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_reactivation_history: {
+        Row: {
+          action_suivante: string | null
+          campagne: string | null
+          canal: string | null
+          created_at: string
+          created_by: string | null
+          crm_profile_id: string | null
+          id: string
+          message: string | null
+          occurred_at: string
+          reponse: string | null
+          resultat: string | null
+          statut: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_suivante?: string | null
+          campagne?: string | null
+          canal?: string | null
+          created_at?: string
+          created_by?: string | null
+          crm_profile_id?: string | null
+          id?: string
+          message?: string | null
+          occurred_at?: string
+          reponse?: string | null
+          resultat?: string | null
+          statut?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_suivante?: string | null
+          campagne?: string | null
+          canal?: string | null
+          created_at?: string
+          created_by?: string | null
+          crm_profile_id?: string | null
+          id?: string
+          message?: string | null
+          occurred_at?: string
+          reponse?: string | null
+          resultat?: string | null
+          statut?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_reactivation_history_crm_profile_id_fkey"
+            columns: ["crm_profile_id"]
+            isOneToOne: false
+            referencedRelation: "crm_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_scoring_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          points: number
+          rule_key: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          points: number
+          rule_key: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          points?: number
+          rule_key?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4075,6 +4227,13 @@ export type Database = {
           zone_name?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "delivery_zones_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "delivery_zones_user_id_fkey"
             columns: ["user_id"]
@@ -5345,6 +5504,13 @@ export type Database = {
             foreignKeyName: "friend_circles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "friend_circles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -5588,6 +5754,13 @@ export type Database = {
           message?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fund_contributions_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "fund_contributions_contributor_id_fkey"
             columns: ["contributor_id"]
@@ -5894,6 +6067,13 @@ export type Database = {
             foreignKeyName: "gifts_giver_id_fkey"
             columns: ["giver_id"]
             isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "gifts_giver_id_fkey"
+            columns: ["giver_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -5917,6 +6097,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gifts_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "gifts_receiver_id_fkey"
@@ -7787,6 +7974,13 @@ export type Database = {
             foreignKeyName: "fk_posts_user"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_posts_user"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -9144,6 +9338,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_reported_posts_reporter"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "fk_reported_posts_reporter"
@@ -11053,6 +11254,13 @@ export type Database = {
             foreignKeyName: "contacts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "crm_user_overview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -11071,6 +11279,48 @@ export type Database = {
             referencedColumns: ["auth_user_id"]
           },
         ]
+      }
+      crm_user_overview: {
+        Row: {
+          active_funds_count: number | null
+          birthday: string | null
+          birthday_page_active: boolean | null
+          birthday_page_created_at: string | null
+          birthday_page_published_at: string | null
+          birthday_page_slug: string | null
+          city: string | null
+          contributions_count: number | null
+          country_code: string | null
+          email: string | null
+          event_page_active: boolean | null
+          event_page_created_at: string | null
+          event_page_date: string | null
+          event_page_occasion: string | null
+          event_page_slug: string | null
+          first_fund_created_at: string | null
+          first_name: string | null
+          funds_count: number | null
+          is_deleted: boolean | null
+          is_suspended: boolean | null
+          last_activity_at: string | null
+          last_name: string | null
+          last_session_at: string | null
+          last_share_at: string | null
+          last_sign_in_at: string | null
+          messages_received: number | null
+          onboarding_completed: boolean | null
+          onboarding_furthest_step: number | null
+          onboarding_shares_count: number | null
+          page_photo_views: number | null
+          phone: string | null
+          sessions_count: number | null
+          share_channels: string[] | null
+          shares_count: number | null
+          signup_date: string | null
+          total_collected: number | null
+          user_id: string | null
+        }
+        Relationships: []
       }
       deleted_businesses_with_admin: {
         Row: {
