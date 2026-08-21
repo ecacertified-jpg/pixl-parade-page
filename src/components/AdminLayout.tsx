@@ -73,6 +73,7 @@ const navItems: NavItem[] = [
   { title: 'Doublons', href: '/admin/duplicates', icon: Copy, requiresSuperAdmin: true },
   { title: 'Complétion Profils', href: '/admin/profile-completion', icon: UserCircle },
   { title: 'Onboarding', href: '/admin/onboarding', icon: ListChecks },
+  { title: 'CRM Utilisateurs', href: '/admin/crm', icon: Users },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
   { title: 'Corbeille Business', href: '/admin/deleted-businesses', icon: Trash2, requiresSuperAdmin: true },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },
