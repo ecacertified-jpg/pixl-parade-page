@@ -80,12 +80,12 @@ export default function JdvCrmDashboard() {
       genere_le: new Date(stats.coherence_report.generated_at).toLocaleString('fr-FR'),
     }));
     exportToCSV(rows, [
-      { key: 'test', label: 'Test' },
-      { key: 'controle', label: 'Contrôle' },
-      { key: 'resultat', label: 'Résultat' },
-      { key: 'detail', label: 'Détail' },
-      { key: 'fiches_analysees', label: 'Fiches analysées' },
-      { key: 'genere_le', label: 'Généré le' },
+      { key: 'test', header: 'Test' },
+      { key: 'controle', header: 'Contrôle' },
+      { key: 'resultat', header: 'Résultat' },
+      { key: 'detail', header: 'Détail' },
+      { key: 'fiches_analysees', header: 'Fiches analysées' },
+      { key: 'genere_le', header: 'Généré le' },
     ], 'jdv_crm_coherence');
     toast.success('Rapport de cohérence exporté');
   };
