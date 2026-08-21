@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/admin/ExportButton';
 import { CrmUserSheet } from '@/components/admin/crm/CrmUserSheet';
 import { CRM_EXPORT_COLUMNS } from '@/components/admin/crm/crmExportColumns';
+import { CrmSegmentAuditPanel } from '@/components/admin/crm/CrmSegmentAuditPanel';
 import { exportToCSV } from '@/utils/exportUtils';
 import {
   ACTIVITY_LEVELS, BLOCKERS, DUPLICATE_STATUSES, JOURNEY_STEPS, KPI_DEFINITIONS,
@@ -295,7 +296,7 @@ export default function JdvCrmDashboard() {
           </CardContent>
         </Card>
 
-
+        <CrmSegmentAuditPanel report={stats?.segment_audit} />
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -156,9 +156,8 @@ export function CrmSegmentAuditPanel({ report }: Props) {
                     </TableRow>
                   )}
                   {pageRows.map((r) => (
-                    <>
+                    <Fragment key={r.user_id}>
                       <TableRow
-                        key={r.user_id}
                         className="cursor-pointer"
                         onClick={() => setExpanded(expanded === r.user_id ? null : r.user_id)}
                       >
@@ -178,7 +177,7 @@ export function CrmSegmentAuditPanel({ report }: Props) {
                         <TableCell className="max-w-[260px] text-xs text-muted-foreground">{r.action_recommandee}</TableCell>
                       </TableRow>
                       {expanded === r.user_id && (
-                        <TableRow key={`${r.user_id}-detail`}>
+                        <TableRow>
                           <TableCell colSpan={8} className="bg-muted/40">
                             <p className="mb-1 text-xs font-medium">Règles déclenchées</p>
                             <ul className="list-disc space-y-1 pl-5 text-xs text-muted-foreground">
@@ -191,7 +190,7 @@ export function CrmSegmentAuditPanel({ report }: Props) {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
