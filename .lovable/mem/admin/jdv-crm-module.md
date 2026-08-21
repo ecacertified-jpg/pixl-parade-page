@@ -11,3 +11,11 @@ Route `/admin/crm` (`JdvCrmDashboard`). Couche d'analyse en LECTURE SEULE : ne m
 - Logique métier côté client dans `src/lib/crmCore.ts` : segmentation S1-S8, score 0-100 basé sur les règles, priorité et prochaine action recommandée, détection de doublons (téléphone/email/nom normalisés) — jamais de fusion ni suppression automatique, validation humaine obligatoire.
 
 - UI : KPIs, segments cliquables, filtres avancés, tableau paginé, fiche latérale détaillée, export CSV (global ou fiche unique) via `crmExportColumns.ts`. Valeurs manquantes affichées « Non disponible » / « Date inconnue ».
+
+## Phase 2 — activité, segments exclusifs, cohérence
+- **Activité (définition unique)** : basée uniquement sur `auth.users.last_sign_in_at` et `user_session_logs`. La date d'inscription n'est JAMAIS un repli. Niveaux : Actif (≤7j), Inactif > 7 / 30 / 90 jours, Jamais actif, Inconnu. Colonne `last_real_activity_at` ajoutée à `crm_user_overview` (sans `GREATEST(..., created_at)`).
+- **Segments S1→S8** mutuellement exclusifs, ordre fixe : S1 anniv ≤30j sans cagnotte → S2 page sans cagnotte → S3 cagnotte non partagée → S4 sans page → S5 inactif → S6 actif sans cagnotte → S7 actif → S8 données insuffisantes.
+- **Une carte = un filtre** : `KPI_DEFINITIONS` dans `crmCore.ts` est la source unique ; les compteurs et la liste filtrée partagent le même prédicat `matchesFilters`.
+- **Priorité** = tranche de score, relevée par le segment, forcée TRÈS HAUTE si anniv ≤30j sans cagnotte ; justification affichée (`priority_reasons`).
+- **Parcours** : Inscrit → Page → Cagnotte → Partage → Contribution, avec `blocage_principal`.
+- `runCoherenceTests()` alimente le panneau « Contrôle de cohérence » du dashboard (T1→T12).

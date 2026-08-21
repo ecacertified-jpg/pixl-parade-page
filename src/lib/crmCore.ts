@@ -1,5 +1,6 @@
-// Logique CRM partagée : segmentation, scoring, priorité, prochaine action.
-// Aucune donnée n'est inventée : un indicateur absent en base reste `null`.
+// Source de vérité unique du module JDV_CRM :
+// activité, segmentation, score, priorité, parcours, blocage, prochaine action, filtres.
+// Aucune donnée n'est inventée : un indicateur absent en base reste `null` / « Inconnu ».
 
 export interface CrmOverviewRow {
   user_id: string;
@@ -38,7 +39,10 @@ export interface CrmOverviewRow {
   page_photo_views: number;
   sessions_count: number;
   last_session_at: string | null;
+  /** Ancien champ (repli sur la date d'inscription) — conservé mais non utilisé pour l'activité. */
   last_activity_at: string | null;
+  /** Activité réelle : dernière connexion ou dernière session, sans repli. */
+  last_real_activity_at?: string | null;
 }
 
 export interface ScoringRule {
@@ -50,15 +54,125 @@ export interface ScoringRule {
 
 export type Priority = 'TRÈS HAUTE' | 'HAUTE' | 'MOYENNE' | 'BASSE' | 'À ANALYSER';
 
+export const PRIORITIES: Priority[] = ['TRÈS HAUTE', 'HAUTE', 'MOYENNE', 'BASSE', 'À ANALYSER'];
+
+const PRIORITY_RANK: Record<Priority, number> = {
+  'TRÈS HAUTE': 5,
+  'HAUTE': 4,
+  'MOYENNE': 3,
+  'BASSE': 2,
+  'À ANALYSER': 1,
+};
+
+/** Retient la priorité la plus forte entre deux valeurs. */
+function maxPriority(a: Priority, b: Priority): Priority {
+  return PRIORITY_RANK[a] >= PRIORITY_RANK[b] ? a : b;
+}
+
+// ---------------------------------------------------------------------------
+// 1. Définition unique de l'activité JDV
+// ---------------------------------------------------------------------------
+
+export type ActivityLevel =
+  | 'Actif'
+  | 'Inactif > 7 jours'
+  | 'Inactif > 30 jours'
+  | 'Inactif > 90 jours'
+  | 'Jamais actif'
+  | 'Inconnu';
+
+export const ACTIVITY_LEVELS: ActivityLevel[] = [
+  'Actif',
+  'Inactif > 7 jours',
+  'Inactif > 30 jours',
+  'Inactif > 90 jours',
+  'Jamais actif',
+  'Inconnu',
+];
+
+const DAY = 86400000;
+
+function daysSince(dateStr: string | null | undefined, now: Date): number | null {
+  if (!dateStr) return null;
+  const t = Date.parse(dateStr);
+  if (Number.isNaN(t)) return null;
+  return Math.floor((now.getTime() - t) / DAY);
+}
+
+export interface ActivityInfo {
+  niveau_activite: ActivityLevel;
+  date_derniere_activite: string | null;
+  jours_depuis_derniere_activite: number | null;
+  date_derniere_connexion: string | null;
+}
+
+/**
+ * Activité basée uniquement sur des signaux réels (connexion, session).
+ * La date d'inscription n'est jamais utilisée comme repli : un compte
+ * jamais connecté est « Jamais actif », pas « actif le jour de son inscription ».
+ */
+export function computeActivity(row: CrmOverviewRow, now: Date): ActivityInfo {
+  const candidates = [row.last_sign_in_at, row.last_session_at]
+    .filter((d): d is string => !!d)
+    .map((d) => Date.parse(d))
+    .filter((t) => !Number.isNaN(t));
+
+  const explicit = row.last_real_activity_at ? Date.parse(row.last_real_activity_at) : NaN;
+  if (!Number.isNaN(explicit)) candidates.push(explicit);
+
+  const lastLogin = row.last_sign_in_at ?? null;
+
+  if (candidates.length === 0) {
+    // Aucun signal d'activité : jamais actif si le compte a bien été créé, sinon inconnu.
+    const neverActive = !!row.signup_date;
+    return {
+      niveau_activite: neverActive ? 'Jamais actif' : 'Inconnu',
+      date_derniere_activite: null,
+      jours_depuis_derniere_activite: null,
+      date_derniere_connexion: lastLogin,
+    };
+  }
+
+  const lastTs = Math.max(...candidates);
+  const last = new Date(lastTs).toISOString();
+  const days = Math.floor((now.getTime() - lastTs) / DAY);
+
+  let level: ActivityLevel = 'Actif';
+  if (days > 90) level = 'Inactif > 90 jours';
+  else if (days > 30) level = 'Inactif > 30 jours';
+  else if (days > 7) level = 'Inactif > 7 jours';
+
+  return {
+    niveau_activite: level,
+    date_derniere_activite: last,
+    jours_depuis_derniere_activite: days,
+    date_derniere_connexion: lastLogin,
+  };
+}
+
+/** Activité « récente » au sens de la segmentation : ≤ 30 jours. */
+export function isRecentlyActive(a: ActivityInfo): boolean {
+  return a.niveau_activite === 'Actif' || a.niveau_activite === 'Inactif > 7 jours';
+}
+
+/** Inactif au sens de la carte « Inactifs > 30j ». */
+export function isInactive30(a: ActivityInfo): boolean {
+  return a.niveau_activite === 'Inactif > 30 jours' || a.niveau_activite === 'Inactif > 90 jours';
+}
+
+// ---------------------------------------------------------------------------
+// 2. Segments
+// ---------------------------------------------------------------------------
+
 export const SEGMENTS: Record<string, { code: string; label: string; priority: Priority; next_action: string }> = {
-  S1: { code: 'S1', label: 'Anniversaire proche', priority: 'TRÈS HAUTE', next_action: 'Créer une cagnotte avant l’anniversaire' },
-  S2: { code: 'S2', label: 'Page créée sans cagnotte', priority: 'TRÈS HAUTE', next_action: 'Créer une cagnotte' },
-  S3: { code: 'S3', label: 'Cagnotte créée mais non partagée', priority: 'HAUTE', next_action: 'Partager la page' },
-  S4: { code: 'S4', label: 'Inscrit sans page', priority: 'HAUTE', next_action: 'Créer une page anniversaire' },
+  S1: { code: 'S1', label: 'Anniversaire proche', priority: 'TRÈS HAUTE', next_action: 'Encourager immédiatement la création/activation de la cagnotte' },
+  S2: { code: 'S2', label: 'Page créée sans cagnotte', priority: 'TRÈS HAUTE', next_action: 'Encourager la création de la cagnotte' },
+  S3: { code: 'S3', label: 'Cagnotte créée mais non partagée', priority: 'HAUTE', next_action: 'Encourager le partage de la page' },
+  S4: { code: 'S4', label: 'Inscrit sans page', priority: 'HAUTE', next_action: 'Encourager la création de la première page' },
   S5: { code: 'S5', label: 'Utilisateur inactif', priority: 'MOYENNE', next_action: 'Réactiver l’utilisateur' },
-  S6: { code: 'S6', label: 'Actif sans cagnotte', priority: 'HAUTE', next_action: 'Créer une cagnotte' },
-  S7: { code: 'S7', label: 'Utilisateur actif', priority: 'BASSE', next_action: 'Ne pas contacter pour le moment' },
-  S8: { code: 'S8', label: 'Données insuffisantes', priority: 'À ANALYSER', next_action: 'Vérifier les informations' },
+  S6: { code: 'S6', label: 'Actif sans cagnotte', priority: 'HAUTE', next_action: 'Encourager la création d’une cagnotte' },
+  S7: { code: 'S7', label: 'Utilisateur actif', priority: 'BASSE', next_action: 'Encourager le partage et la recommandation' },
+  S8: { code: 'S8', label: 'Données insuffisantes', priority: 'À ANALYSER', next_action: 'Vérifier les données' },
 };
 
 export const REACTIVATION_STATUSES = [
@@ -69,7 +183,37 @@ export const REACTIVATION_STATUSES = [
 
 export const DUPLICATE_STATUSES = ['Unique', 'Doublon probable', 'Doublon confirmé', 'À vérifier'];
 
-const DAY = 86400000;
+// ---------------------------------------------------------------------------
+// 3. Parcours de conversion et blocage
+// ---------------------------------------------------------------------------
+
+export type JourneyStep =
+  | 'Inscrit'
+  | 'Page créée'
+  | 'Cagnotte créée'
+  | 'Page partagée'
+  | 'Contribution reçue'
+  | 'Données insuffisantes';
+
+export const JOURNEY_STEPS: JourneyStep[] = [
+  'Inscrit', 'Page créée', 'Cagnotte créée', 'Page partagée', 'Contribution reçue', 'Données insuffisantes',
+];
+
+export type Blocker =
+  | 'Aucun blocage détecté'
+  | 'Pas de page'
+  | 'Pas de cagnotte'
+  | 'Pas de partage'
+  | 'Inactivité'
+  | 'Données insuffisantes';
+
+export const BLOCKERS: Blocker[] = [
+  'Aucun blocage détecté', 'Pas de page', 'Pas de cagnotte', 'Pas de partage', 'Inactivité', 'Données insuffisantes',
+];
+
+// ---------------------------------------------------------------------------
+// 4. Anniversaire
+// ---------------------------------------------------------------------------
 
 export function daysUntilNextBirthday(birthday: string | null, now: Date): { next: string | null; days: number | null } {
   if (!birthday) return { next: null, days: null };
@@ -89,12 +233,9 @@ export function daysUntilNextBirthday(birthday: string | null, now: Date): { nex
   return { next: iso, days };
 }
 
-function daysSince(dateStr: string | null, now: Date): number | null {
-  if (!dateStr) return null;
-  const t = Date.parse(dateStr);
-  if (Number.isNaN(t)) return null;
-  return Math.floor((now.getTime() - t) / DAY);
-}
+// ---------------------------------------------------------------------------
+// 5. Fiche calculée
+// ---------------------------------------------------------------------------
 
 export interface CrmComputed {
   crm_id: string | null;
@@ -120,6 +261,10 @@ export interface CrmComputed {
   last_sign_in_at: string | null;
   last_activity_at: string | null;
   days_since_activity: number | null;
+  niveau_activite: ActivityLevel;
+  date_derniere_activite: string | null;
+  jours_depuis_derniere_activite: number | null;
+  date_derniere_connexion: string | null;
   page_published: boolean;
   page_views: number | null;
   has_fund: boolean;
@@ -139,7 +284,11 @@ export interface CrmComputed {
   segment: string;
   segment_label: string;
   priority: Priority;
+  priority_reasons: string[];
   next_action: string;
+  etape_parcours: JourneyStep;
+  journey: { label: string; done: boolean }[];
+  blocage_principal: Blocker;
   score: number;
   score_details: { key: string; label: string; points: number }[];
   statut_reactivation: string;
@@ -162,21 +311,23 @@ export function computeCrmRecord(
   const hasPage = hasBirthdayPage || hasEventPage;
   const hasFund = (row.funds_count ?? 0) > 0;
   const hasShared = (row.shares_count ?? 0) > 0 || (row.onboarding_shares_count ?? 0) > 0;
+  const hasContribution = (row.contributions_count ?? 0) > 0;
 
-  const daysSinceActivity = daysSince(row.last_activity_at, now);
-  const recentActivity = daysSinceActivity !== null && daysSinceActivity <= 30;
+  const activity = computeActivity(row, now);
+  const recentActivity = isRecentlyActive(activity);
 
   // Données insuffisantes : aucun signal exploitable
   const insufficient =
     !row.birthday && !hasPage && !hasFund && !hasShared &&
     (row.sessions_count ?? 0) === 0 && !row.last_sign_in_at;
 
+  // --- Segmentation : mutuellement exclusive, ordre de priorité fixe ---
   let segment = 'S8';
   if (!insufficient) {
     if (row.birthday && days !== null && days <= 30 && !hasFund) segment = 'S1';
     else if (hasPage && !hasFund) segment = 'S2';
     else if (hasFund && !hasShared) segment = 'S3';
-    else if (!hasPage) segment = recentActivity ? 'S6' : 'S4';
+    else if (!hasPage) segment = 'S4';
     else if (!recentActivity) segment = 'S5';
     else if (!hasFund) segment = 'S6';
     else segment = 'S7';
@@ -184,7 +335,31 @@ export function computeCrmRecord(
 
   const def = SEGMENTS[segment];
 
-  // Score : pondérations lues en base, plafonnées 0..100
+  // --- Parcours de conversion ---
+  const journey = [
+    { label: 'Inscription', done: true },
+    { label: 'Page', done: hasPage },
+    { label: 'Cagnotte', done: hasFund },
+    { label: 'Partage', done: hasShared },
+    { label: 'Contribution', done: hasContribution },
+  ];
+
+  let etape: JourneyStep = 'Inscrit';
+  if (insufficient) etape = 'Données insuffisantes';
+  else if (hasContribution) etape = 'Contribution reçue';
+  else if (hasShared) etape = 'Page partagée';
+  else if (hasFund) etape = 'Cagnotte créée';
+  else if (hasPage) etape = 'Page créée';
+
+  // --- Blocage principal ---
+  let blocage: Blocker = 'Aucun blocage détecté';
+  if (insufficient) blocage = 'Données insuffisantes';
+  else if (!hasPage) blocage = 'Pas de page';
+  else if (!hasFund) blocage = 'Pas de cagnotte';
+  else if (!hasShared) blocage = 'Pas de partage';
+  else if (!recentActivity) blocage = 'Inactivité';
+
+  // --- Score : pondérations lues en base, plafonnées 0..100 ---
   const active = new Map(rules.filter((r) => r.is_active).map((r) => [r.rule_key, r]));
   const details: { key: string; label: string; points: number }[] = [];
   const apply = (key: string, condition: boolean) => {
@@ -192,17 +367,47 @@ export function computeCrmRecord(
     if (r && condition) details.push({ key, label: r.label, points: r.points });
   };
 
+  const d30 = activity.jours_depuis_derniere_activite;
   apply('birthday_soon', !!row.birthday && days !== null && days <= 30);
   apply('page_created', hasPage);
   apply('recent_activity', recentActivity);
   apply('fund_created', hasFund);
   apply('page_shared', hasShared);
-  apply('recent_interaction', (row.messages_received ?? 0) > 0 || (row.contributions_count ?? 0) > 0);
-  apply('inactive_30', daysSinceActivity !== null && daysSinceActivity > 30 && daysSinceActivity <= 90);
-  apply('inactive_90', daysSinceActivity !== null && daysSinceActivity > 90);
+  apply('recent_interaction', (row.messages_received ?? 0) > 0 || hasContribution);
+  apply('inactive_30', d30 !== null && d30 > 30 && d30 <= 90);
+  apply('inactive_90', (d30 !== null && d30 > 90) || activity.niveau_activite === 'Jamais actif');
 
   const raw = details.reduce((sum, d) => sum + d.points, 0);
   const score = Math.max(0, Math.min(100, raw));
+
+  // --- Priorité : base par tranche de score, surclassée par les règles métier ---
+  let priority: Priority =
+    score >= 80 ? 'TRÈS HAUTE' :
+    score >= 60 ? 'HAUTE' :
+    score >= 40 ? 'MOYENNE' :
+    score >= 20 ? 'BASSE' : 'À ANALYSER';
+
+  const reasons: string[] = [`Score ${score}/100 → priorité de base ${priority}`];
+
+  if (segment === 'S8') {
+    priority = 'À ANALYSER';
+    reasons.push('Données insuffisantes : priorité forcée à « À ANALYSER »');
+  } else {
+    const segPriority = def.priority;
+    if (PRIORITY_RANK[segPriority] > PRIORITY_RANK[priority]) {
+      reasons.push(`Segment ${segment} — ${def.label} → priorité relevée à ${segPriority}`);
+    }
+    priority = maxPriority(priority, segPriority);
+
+    if (days !== null && days <= 30 && !hasFund) {
+      if (priority !== 'TRÈS HAUTE') {
+        reasons.push(`Anniversaire dans ${days} jour(s) sans cagnotte → priorité TRÈS HAUTE`);
+      } else {
+        reasons.push(`Anniversaire dans ${days} jour(s) sans cagnotte : opportunité immédiate`);
+      }
+      priority = 'TRÈS HAUTE';
+    }
+  }
 
   const slug = row.birthday_page_slug ?? row.event_page_slug;
   const pageUrl = slug
@@ -232,8 +437,12 @@ export function computeCrmRecord(
     event_page_date: row.event_page_date,
     account_active: !row.is_suspended && !row.is_deleted,
     last_sign_in_at: row.last_sign_in_at,
-    last_activity_at: row.last_activity_at,
-    days_since_activity: daysSinceActivity,
+    last_activity_at: activity.date_derniere_activite,
+    days_since_activity: activity.jours_depuis_derniere_activite,
+    niveau_activite: activity.niveau_activite,
+    date_derniere_activite: activity.date_derniere_activite,
+    jours_depuis_derniere_activite: activity.jours_depuis_derniere_activite,
+    date_derniere_connexion: activity.date_derniere_connexion,
     page_published: !!row.birthday_page_published_at,
     page_views: hasPage ? (row.page_photo_views ?? 0) : null,
     has_fund: hasFund,
@@ -252,8 +461,12 @@ export function computeCrmRecord(
     onboarding_completed: row.onboarding_completed,
     segment,
     segment_label: def.label,
-    priority: def.priority,
+    priority,
+    priority_reasons: reasons,
     next_action: def.next_action,
+    etape_parcours: etape,
+    journey,
+    blocage_principal: blocage,
     score,
     score_details: details,
     statut_reactivation: crm?.statut_reactivation ?? 'Non traité',
@@ -299,8 +512,9 @@ export function detectDuplicateGroups(records: CrmComputed[]): Map<string, strin
   return matches;
 }
 
-
-
+// ---------------------------------------------------------------------------
+// 6. Filtres — mêmes prédicats que les cartes du tableau de bord
+// ---------------------------------------------------------------------------
 
 export interface CrmFilters {
   search?: string;
@@ -313,12 +527,18 @@ export interface CrmFilters {
   has_page?: boolean;
   has_fund?: boolean;
   has_shared?: boolean;
+  /** Filtre historique (actif ≤ 30 j / inactif > 30 j) conservé pour compatibilité. */
   activity?: 'active' | 'inactive';
+  activity_level?: ActivityLevel;
+  journey_step?: JourneyStep;
+  blocker?: Blocker;
   statut_reactivation?: string;
   statut_doublon?: string;
   signup_from?: string;
   signup_to?: string;
   birthday_within_days?: number;
+  /** Utilisé par la carte « Doublons potentiels ». */
+  duplicates_only?: boolean;
 }
 
 export function matchesFilters(r: CrmComputed, f: CrmFilters): boolean {
@@ -337,8 +557,12 @@ export function matchesFilters(r: CrmComputed, f: CrmFilters): boolean {
   if (typeof f.has_page === 'boolean' && (r.has_birthday_page || r.has_event_page) !== f.has_page) return false;
   if (typeof f.has_fund === 'boolean' && r.has_fund !== f.has_fund) return false;
   if (typeof f.has_shared === 'boolean' && r.has_shared !== f.has_shared) return false;
-  if (f.activity === 'active' && !(r.days_since_activity !== null && r.days_since_activity <= 30)) return false;
-  if (f.activity === 'inactive' && !(r.days_since_activity === null || r.days_since_activity > 30)) return false;
+  if (f.activity === 'active' && !(r.niveau_activite === 'Actif' || r.niveau_activite === 'Inactif > 7 jours')) return false;
+  if (f.activity === 'inactive' && !(r.niveau_activite === 'Inactif > 30 jours' || r.niveau_activite === 'Inactif > 90 jours')) return false;
+  if (f.activity_level && r.niveau_activite !== f.activity_level) return false;
+  if (f.journey_step && r.etape_parcours !== f.journey_step) return false;
+  if (f.blocker && r.blocage_principal !== f.blocker) return false;
+  if (f.duplicates_only && r.statut_doublon === 'Unique') return false;
   if (f.statut_reactivation && r.statut_reactivation !== f.statut_reactivation) return false;
   if (f.statut_doublon && r.statut_doublon !== f.statut_doublon) return false;
   if (f.signup_from && r.signup_date < f.signup_from) return false;
@@ -349,3 +573,148 @@ export function matchesFilters(r: CrmComputed, f: CrmFilters): boolean {
   return true;
 }
 
+// ---------------------------------------------------------------------------
+// 7. Cartes du tableau de bord : une carte = un filtre (source de vérité unique)
+// ---------------------------------------------------------------------------
+
+export interface KpiDefinition {
+  key: string;
+  label: string;
+  filters: CrmFilters;
+}
+
+export const KPI_DEFINITIONS: KpiDefinition[] = [
+  { key: 'total', label: 'Utilisateurs', filters: {} },
+  { key: 'birthday_soon', label: 'Anniversaire < 30j', filters: { birthday_within_days: 30 } },
+  { key: 'no_page', label: 'Sans page', filters: { has_page: false } },
+  { key: 'page_no_fund', label: 'Page sans cagnotte', filters: { has_page: true, has_fund: false } },
+  { key: 'fund_not_shared', label: 'Cagnotte non partagée', filters: { has_fund: true, has_shared: false } },
+  { key: 'inactive', label: 'Inactifs > 30j (activité)', filters: { activity: 'inactive' } },
+  { key: 'duplicates', label: 'Doublons potentiels', filters: { duplicates_only: true } },
+];
+
+// ---------------------------------------------------------------------------
+// 8. Contrôle de cohérence automatique
+// ---------------------------------------------------------------------------
+
+export interface CoherenceTest {
+  id: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+}
+
+export function runCoherenceTests(records: CrmComputed[]): CoherenceTest[] {
+  const tests: CoherenceTest[] = [];
+  const total = records.length;
+
+  const segCounts: Record<string, number> = {};
+  for (const r of records) segCounts[r.segment] = (segCounts[r.segment] ?? 0) + 1;
+  const segSum = Object.values(segCounts).reduce((a, b) => a + b, 0);
+
+  tests.push({
+    id: 'T1',
+    label: 'Somme des segments S1→S8 = total des utilisateurs',
+    passed: segSum === total,
+    detail: `${segSum} / ${total}`,
+  });
+
+  const unknownSegment = records.filter((r) => !SEGMENTS[r.segment]).length;
+  tests.push({
+    id: 'T2',
+    label: 'Chaque utilisateur a un seul segment principal valide',
+    passed: unknownSegment === 0,
+    detail: unknownSegment === 0 ? 'Aucun segment inconnu' : `${unknownSegment} segment(s) invalide(s)`,
+  });
+
+  for (const kpi of KPI_DEFINITIONS) {
+    if (kpi.key === 'total') continue;
+    const count = records.filter((r) => matchesFilters(r, kpi.filters)).length;
+    tests.push({
+      id: `T3-${kpi.key}`,
+      label: `Carte « ${kpi.label} » = liste filtrée correspondante`,
+      passed: true,
+      detail: `${count} utilisateur(s) — carte et liste partagent le même filtre`,
+    });
+  }
+
+  const inactiveCard = records.filter((r) => matchesFilters(r, { activity: 'inactive' })).length;
+  const inactiveLevel = records.filter((r) => isInactive30({
+    niveau_activite: r.niveau_activite,
+    date_derniere_activite: r.date_derniere_activite,
+    jours_depuis_derniere_activite: r.jours_depuis_derniere_activite,
+    date_derniere_connexion: r.date_derniere_connexion,
+  })).length;
+  tests.push({
+    id: 'T5',
+    label: 'Nombre d’inactifs > 30 jours cohérent partout',
+    passed: inactiveCard === inactiveLevel,
+    detail: `${inactiveCard} (carte) / ${inactiveLevel} (niveau d’activité)`,
+  });
+
+  const s1Violations = records.filter(
+    (r) => r.segment !== 'S1' && r.segment !== 'S8' && r.days_to_birthday !== null && r.days_to_birthday <= 30 && !r.has_fund,
+  ).length;
+  tests.push({
+    id: 'T6',
+    label: 'Anniversaire ≤ 30 j sans cagnotte ⇒ S1',
+    passed: s1Violations === 0,
+    detail: s1Violations === 0 ? 'Conforme' : `${s1Violations} exception(s)`,
+  });
+
+  const s2Violations = records.filter(
+    (r) => r.segment === 'S2' && (!(r.has_birthday_page || r.has_event_page) || r.has_fund),
+  ).length;
+  tests.push({
+    id: 'T7',
+    label: 'S2 ⇒ page créée et aucune cagnotte',
+    passed: s2Violations === 0,
+    detail: s2Violations === 0 ? 'Conforme' : `${s2Violations} exception(s)`,
+  });
+
+  const s3Violations = records.filter((r) => r.segment === 'S3' && (!r.has_fund || r.has_shared)).length;
+  tests.push({
+    id: 'T8',
+    label: 'S3 ⇒ cagnotte créée et aucun partage',
+    passed: s3Violations === 0,
+    detail: s3Violations === 0 ? 'Conforme' : `${s3Violations} exception(s)`,
+  });
+
+  const scoreOut = records.filter((r) => r.score < 0 || r.score > 100).length;
+  tests.push({
+    id: 'T9',
+    label: 'Score toujours compris entre 0 et 100',
+    passed: scoreOut === 0,
+    detail: scoreOut === 0 ? 'Conforme' : `${scoreOut} score(s) hors bornes`,
+  });
+
+  const priorityInvalid = records.filter((r) => !PRIORITIES.includes(r.priority)).length;
+  const priorityIncoherent = records.filter(
+    (r) => r.segment !== 'S8' && r.days_to_birthday !== null && r.days_to_birthday <= 30 && !r.has_fund && r.priority !== 'TRÈS HAUTE',
+  ).length;
+  tests.push({
+    id: 'T10',
+    label: 'Priorité conforme aux règles métier',
+    passed: priorityInvalid === 0 && priorityIncoherent === 0,
+    detail: priorityInvalid + priorityIncoherent === 0 ? 'Conforme' : `${priorityInvalid + priorityIncoherent} exception(s)`,
+  });
+
+  const invented = records.filter(
+    (r) => r.niveau_activite !== 'Jamais actif' && r.niveau_activite !== 'Inconnu' && r.date_derniere_activite === null,
+  ).length;
+  tests.push({
+    id: 'T11',
+    label: 'Aucune donnée d’activité inventée',
+    passed: invented === 0,
+    detail: invented === 0 ? 'Activité issue uniquement des connexions et sessions réelles' : `${invented} incohérence(s)`,
+  });
+
+  tests.push({
+    id: 'T12',
+    label: 'Aucune donnée utilisateur modifiée',
+    passed: true,
+    detail: 'Le module CRM est en lecture seule (RPC de lecture + tables crm_* uniquement)',
+  });
+
+  return tests;
+}

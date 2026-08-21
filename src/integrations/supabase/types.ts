@@ -11304,6 +11304,7 @@ export type Database = {
           is_suspended: boolean | null
           last_activity_at: string | null
           last_name: string | null
+          last_real_activity_at: string | null
           last_session_at: string | null
           last_share_at: string | null
           last_sign_in_at: string | null

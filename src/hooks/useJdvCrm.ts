@@ -3,10 +3,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
+  ACTIVITY_LEVELS,
+  KPI_DEFINITIONS,
   SEGMENTS,
   computeCrmRecord,
   detectDuplicateGroups,
   matchesFilters,
+  runCoherenceTests,
+  type ActivityLevel,
+  type CoherenceTest,
   type CrmComputed,
   type CrmFilters as CoreFilters,
   type CrmOverviewRow,
@@ -14,7 +19,17 @@ import {
   type ScoringRule,
 } from '@/lib/crmCore';
 
-export { REACTIVATION_STATUSES, DUPLICATE_STATUSES } from '@/lib/crmCore';
+export {
+  REACTIVATION_STATUSES,
+  DUPLICATE_STATUSES,
+  ACTIVITY_LEVELS,
+  JOURNEY_STEPS,
+  BLOCKERS,
+  KPI_DEFINITIONS,
+  PRIORITIES,
+} from '@/lib/crmCore';
+export type { ActivityLevel, JourneyStep, Blocker, CoherenceTest, KpiDefinition } from '@/lib/crmCore';
+
 
 export type CrmPriority = Priority;
 export type CrmRecord = CrmComputed;
@@ -51,7 +66,15 @@ export interface CrmStats {
   converted: number;
   segments: Record<string, number>;
   segment_defs: typeof SEGMENTS;
+  /** Compteur par carte, calculé avec exactement le même filtre que la liste. */
+  kpis: Record<string, number>;
+  /** Répartition par niveau d'activité (définition unique). */
+  activity_levels: Record<ActivityLevel, number>;
+  /** Parcours de conversion : nombre d'utilisateurs ayant franchi chaque étape. */
+  funnel: { label: string; count: number }[];
+  coherence: CoherenceTest[];
 }
+
 
 const rpc = supabase.rpc.bind(supabase) as unknown as (
   fn: string,
@@ -136,42 +159,62 @@ export function useCrmStats() {
   const data = useMemo<CrmStats | undefined>(() => {
     if (!query.data) return undefined;
     const records = query.data.records;
+
     const segments: Record<string, number> = {};
     for (const key of Object.keys(SEGMENTS)) segments[key] = 0;
     const byCountry: Record<string, number> = {};
-    let duplicates = 0, birthdaySoon = 0, noPage = 0, pageNoFund = 0, fundNotShared = 0,
-      inactive = 0, veryHigh = 0, toContact = 0, converted = 0;
+    const activityLevels = Object.fromEntries(ACTIVITY_LEVELS.map((l) => [l, 0])) as Record<ActivityLevel, number>;
+    let veryHigh = 0, toContact = 0, converted = 0;
+    let stepPage = 0, stepFund = 0, stepShare = 0, stepContribution = 0;
 
     for (const r of records) {
       segments[r.segment] = (segments[r.segment] ?? 0) + 1;
       if (r.country_code) byCountry[r.country_code] = (byCountry[r.country_code] ?? 0) + 1;
-      if (r.statut_doublon !== 'Unique') duplicates++;
-      if (r.days_to_birthday !== null && r.days_to_birthday <= 30) birthdaySoon++;
-      if (!r.has_birthday_page && !r.has_event_page) noPage++;
-      if ((r.has_birthday_page || r.has_event_page) && !r.has_fund) pageNoFund++;
-      if (r.has_fund && !r.has_shared) fundNotShared++;
-      if (r.days_since_activity === null || r.days_since_activity > 30) inactive++;
+      activityLevels[r.niveau_activite] = (activityLevels[r.niveau_activite] ?? 0) + 1;
       if (r.priority === 'TRÈS HAUTE') veryHigh++;
       if (r.statut_reactivation === 'À contacter') toContact++;
       if (r.statut_reactivation === 'Converti') converted++;
+      if (r.has_birthday_page || r.has_event_page) stepPage++;
+      if (r.has_fund) stepFund++;
+      if (r.has_shared) stepShare++;
+      if (r.contributions_count > 0) stepContribution++;
+    }
+
+    // Chaque carte utilise exactement le même prédicat que la liste filtrée.
+    const kpis: Record<string, number> = {};
+    for (const kpi of KPI_DEFINITIONS) {
+      kpis[kpi.key] = kpi.key === 'total'
+        ? records.length
+        : records.filter((r) => matchesFilters(r, kpi.filters)).length;
     }
 
     return {
       total: records.length,
       by_country: byCountry,
-      duplicates,
-      birthday_soon: birthdaySoon,
-      no_page: noPage,
-      page_no_fund: pageNoFund,
-      fund_not_shared: fundNotShared,
-      inactive,
+      duplicates: kpis.duplicates ?? 0,
+      birthday_soon: kpis.birthday_soon ?? 0,
+      no_page: kpis.no_page ?? 0,
+      page_no_fund: kpis.page_no_fund ?? 0,
+      fund_not_shared: kpis.fund_not_shared ?? 0,
+      inactive: kpis.inactive ?? 0,
       very_high_priority: veryHigh,
       to_contact: toContact,
       converted,
       segments,
       segment_defs: SEGMENTS,
+      kpis,
+      activity_levels: activityLevels,
+      funnel: [
+        { label: 'Inscrits', count: records.length },
+        { label: 'Page créée', count: stepPage },
+        { label: 'Cagnotte créée', count: stepFund },
+        { label: 'Page partagée', count: stepShare },
+        { label: 'Contribution reçue', count: stepContribution },
+      ],
+      coherence: runCoherenceTests(records),
     };
   }, [query.data]);
+
 
   return { ...query, data };
 }
