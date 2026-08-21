@@ -138,6 +138,46 @@ export function CrmUserSheet({ userId, onClose }: Props) {
               </Card>
 
               <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base">Activité JDV</CardTitle></CardHeader>
+                <CardContent className="pt-0">
+                  <Row
+                    label="Niveau d’activité"
+                    value={<Badge variant={record.niveau_activite === 'Actif' ? 'default' : 'secondary'}>{record.niveau_activite}</Badge>}
+                  />
+                  <Row label="Dernière activité réelle" value={fmtDate(record.date_derniere_activite)} />
+                  <Row
+                    label="Jours depuis la dernière activité"
+                    value={record.jours_depuis_derniere_activite ?? NA}
+                  />
+                  <Row label="Dernière connexion" value={fmtDate(record.date_derniere_connexion)} />
+                  <Row label="Nombre de sessions" value={record.sessions_count} />
+                  <p className="pt-2 text-xs text-muted-foreground">
+                    L’activité repose uniquement sur les connexions et sessions réelles ; la date d’inscription
+                    n’est jamais comptée comme une activité.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-base">Parcours de conversion</CardTitle></CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {record.journey.map((step, i) => (
+                      <span key={step.label} className="flex items-center gap-1">
+                        <Badge variant={step.done ? 'default' : 'outline'} className={step.done ? '' : 'text-muted-foreground'}>
+                          {step.label}
+                        </Badge>
+                        {i < record.journey.length - 1 && <span className="text-muted-foreground">›</span>}
+                      </span>
+                    ))}
+                  </div>
+                  <Row label="Étape atteinte" value={record.etape_parcours} />
+                  <Row label="Blocage principal" value={record.blocage_principal} />
+                </CardContent>
+              </Card>
+
+              <Card>
+
                 <CardHeader className="pb-2"><CardTitle className="text-base">Score de réactivation : {record.score}/100</CardTitle></CardHeader>
                 <CardContent className="pt-0 space-y-1">
                   {record.score_details.length === 0 && <p className="text-sm text-muted-foreground">Aucun facteur applicable.</p>}
