@@ -1,0 +1,55 @@
+import type { ExportColumn } from '@/utils/exportUtils';
+import type { CrmRecord } from '@/hooks/useJdvCrm';
+
+const NA = 'Non disponible';
+const yesNo = (v: any) => (v ? 'Oui' : 'Non');
+const orNA = (v: any) => (v === null || v === undefined || v === '' ? NA : String(v));
+const dateFr = (v: any) => (v ? new Date(v).toLocaleDateString('fr-FR') : NA);
+
+export const CRM_EXPORT_COLUMNS: ExportColumn<CrmRecord>[] = [
+  { key: 'crm_id', header: 'CRM ID', format: orNA },
+  { key: 'user_id', header: 'User ID JDV' },
+  { key: 'first_name', header: 'Prénom', format: orNA },
+  { key: 'last_name', header: 'Nom', format: orNA },
+  { key: 'phone', header: 'Téléphone', format: orNA },
+  { key: 'email', header: 'Email', format: orNA },
+  { key: 'country_code', header: 'Pays', format: orNA },
+  { key: 'city', header: 'Ville', format: orNA },
+  { key: 'signup_date', header: "Date d'inscription", format: dateFr },
+  { key: 'birthday', header: "Date d'anniversaire", format: (v) => (v ? dateFr(v) : 'Date inconnue') },
+  { key: 'next_birthday', header: 'Prochain anniversaire', format: (v) => (v ? dateFr(v) : 'Date inconnue') },
+  { key: 'days_to_birthday', header: 'Jours avant anniversaire', format: orNA },
+  { key: 'event_page_occasion', header: "Type d'événement", format: orNA },
+  { key: 'has_birthday_page', header: 'Page anniversaire créée', format: yesNo },
+  { key: 'has_event_page', header: 'Page événement créée', format: yesNo },
+  { key: 'birthday_page_created_at', header: 'Date de création de la page', format: dateFr },
+  { key: 'page_status', header: 'Statut de la page', format: orNA },
+  { key: 'page_url', header: 'URL de la page', format: orNA },
+  { key: 'account_active', header: 'Compte actif', format: yesNo },
+  { key: 'last_sign_in_at', header: 'Dernière connexion', format: dateFr },
+  { key: 'last_activity_at', header: 'Dernière activité', format: dateFr },
+  { key: 'days_since_activity', header: 'Jours depuis dernière activité', format: orNA },
+  { key: 'sessions_count', header: 'Nombre de sessions' },
+  { key: 'page_published', header: 'Page publiée', format: yesNo },
+  { key: 'page_views', header: 'Vues de la page', format: orNA },
+  { key: 'has_fund', header: 'Cagnotte créée', format: yesNo },
+  { key: 'first_fund_created_at', header: 'Date de création de la cagnotte', format: dateFr },
+  { key: 'fund_active', header: 'Cagnotte active', format: yesNo },
+  { key: 'funds_count', header: 'Nombre de cagnottes' },
+  { key: 'contributions_count', header: 'Nombre de contributions' },
+  { key: 'total_collected', header: 'Montant collecté (XOF)' },
+  { key: 'has_shared', header: 'Page partagée', format: yesNo },
+  { key: 'last_share_at', header: 'Dernier partage', format: dateFr },
+  { key: 'shares_count', header: 'Nombre de partages' },
+  { key: 'share_channels', header: 'Canaux de partage', format: (v) => (Array.isArray(v) && v.length ? v.join(' | ') : NA) },
+  { key: 'messages_received', header: 'Messages reçus' },
+  { key: 'segment', header: 'Segment' },
+  { key: 'segment_label', header: 'Libellé du segment' },
+  { key: 'priority', header: 'Priorité' },
+  { key: 'score', header: 'Score de réactivation' },
+  { key: 'next_action', header: 'Prochaine action recommandée' },
+  { key: 'statut_reactivation', header: 'Statut de réactivation' },
+  { key: 'statut_doublon', header: 'Statut de doublon' },
+  { key: 'last_contacted_at', header: 'Dernier contact', format: dateFr },
+  { key: 'admin_notes', header: 'Notes admin', format: orNA },
+];
