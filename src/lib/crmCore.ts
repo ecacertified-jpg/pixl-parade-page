@@ -302,7 +302,7 @@ export function detectDuplicateGroups(records: CrmComputed[]): Map<string, strin
 
 
 
-export interface Filters {
+export interface CrmFilters {
   search?: string;
   country?: string;
   city?: string;
@@ -321,7 +321,7 @@ export interface Filters {
   birthday_within_days?: number;
 }
 
-function matchesFilters(r: CrmComputed, f: Filters): boolean {
+export function matchesFilters(r: CrmComputed, f: CrmFilters): boolean {
   if (f.search) {
     const q = f.search.trim().toLowerCase();
     const hay = [r.first_name, r.last_name, r.phone, r.email, r.crm_id, r.user_id]
