@@ -750,3 +750,212 @@ export function buildCoherenceReport(records: CrmComputed[]): CoherenceReport {
   };
 }
 
+
+// ---------------------------------------------------------------------------
+// 9. Panneau « Pourquoi » : traçabilité des règles appliquées
+// ---------------------------------------------------------------------------
+
+export interface WhyRule {
+  /** Règle exprimée en langage métier. */
+  rule: string;
+  /** Champs CRM utilisés pour l'évaluer. */
+  fields: string[];
+  /** Valeurs observées pour ces champs. */
+  observed: string;
+  /** Règle vérifiée ou non. */
+  matched: boolean;
+  /** Règle effectivement retenue (première vraie de la cascade). */
+  applied?: boolean;
+}
+
+export interface WhyPanel {
+  segment: { conclusion: string; rules: WhyRule[] };
+  score: { conclusion: string; rules: WhyRule[] };
+  priority: { conclusion: string; rules: WhyRule[] };
+  activity: { conclusion: string; rules: WhyRule[] };
+  fields_used: { field: string; value: string }[];
+}
+
+const yn = (v: boolean) => (v ? 'oui' : 'non');
+const val = (v: unknown) =>
+  v === null || v === undefined || v === '' ? 'Non disponible' : typeof v === 'boolean' ? yn(v) : String(v);
+
+/**
+ * Reconstruit, à partir d'une fiche calculée, l'enchaînement exact des règles
+ * ayant produit le segment, le score et la priorité, avec les champs utilisés.
+ */
+export function buildWhyPanel(r: CrmComputed): WhyPanel {
+  const hasPage = r.has_birthday_page || r.has_event_page;
+  const d = r.days_to_birthday;
+  const recentActivity = r.niveau_activite === 'Actif';
+  const insufficient = r.segment === 'S8';
+
+  // --- Segment : cascade exclusive, la première règle vraie l'emporte ---
+  const segmentCandidates: { key: string; rule: string; fields: string[]; observed: string; matched: boolean }[] = [
+    {
+      key: 'S8',
+      rule: 'Aucun signal exploitable (pas de date d’anniversaire, pas de page, pas de cagnotte, pas de partage, aucune session, jamais connecté) → S8 Données insuffisantes',
+      fields: ['birthday', 'has_birthday_page', 'has_event_page', 'has_fund', 'has_shared', 'sessions_count', 'date_derniere_connexion'],
+      observed: `anniversaire=${val(r.birthday)}, page=${yn(hasPage)}, cagnotte=${yn(r.has_fund)}, partage=${yn(r.has_shared)}, sessions=${r.sessions_count}, dernière connexion=${val(r.date_derniere_connexion)}`,
+      matched: insufficient,
+    },
+    {
+      key: 'S1',
+      rule: 'Anniversaire dans 30 jours ou moins et aucune cagnotte → S1',
+      fields: ['birthday', 'days_to_birthday', 'has_fund'],
+      observed: `jours avant anniversaire=${val(d)}, cagnotte=${yn(r.has_fund)}`,
+      matched: !insufficient && !!r.birthday && d !== null && d <= 30 && !r.has_fund,
+    },
+    {
+      key: 'S2',
+      rule: 'Page créée mais aucune cagnotte → S2',
+      fields: ['has_birthday_page', 'has_event_page', 'has_fund'],
+      observed: `page=${yn(hasPage)}, cagnotte=${yn(r.has_fund)}`,
+      matched: !insufficient && hasPage && !r.has_fund,
+    },
+    {
+      key: 'S3',
+      rule: 'Cagnotte créée mais jamais partagée → S3',
+      fields: ['has_fund', 'has_shared', 'shares_count'],
+      observed: `cagnotte=${yn(r.has_fund)}, partages=${r.shares_count}`,
+      matched: !insufficient && r.has_fund && !r.has_shared,
+    },
+    {
+      key: 'S4',
+      rule: 'Aucune page créée → S4',
+      fields: ['has_birthday_page', 'has_event_page'],
+      observed: `page=${yn(hasPage)}`,
+      matched: !insufficient && !hasPage,
+    },
+    {
+      key: 'S5',
+      rule: 'Activité non récente (niveau d’activité différent de « Actif ») → S5',
+      fields: ['niveau_activite', 'jours_depuis_derniere_activite'],
+      observed: `niveau=${r.niveau_activite}, jours=${val(r.jours_depuis_derniere_activite)}`,
+      matched: !insufficient && !recentActivity,
+    },
+    {
+      key: 'S6',
+      rule: 'Actif, page créée, mais toujours sans cagnotte → S6',
+      fields: ['niveau_activite', 'has_fund'],
+      observed: `niveau=${r.niveau_activite}, cagnotte=${yn(r.has_fund)}`,
+      matched: !insufficient && recentActivity && !r.has_fund,
+    },
+    {
+      key: 'S7',
+      rule: 'Aucune des règles précédentes : parcours complet → S7',
+      fields: ['has_fund', 'has_shared', 'niveau_activite'],
+      observed: `cagnotte=${yn(r.has_fund)}, partage=${yn(r.has_shared)}, niveau=${r.niveau_activite}`,
+      matched: true,
+    },
+  ];
+
+  let appliedFound = false;
+  const segmentRules: WhyRule[] = segmentCandidates.map((c) => {
+    const applied = !appliedFound && c.matched && c.key === r.segment;
+    if (applied) appliedFound = true;
+    return { rule: `${c.key} — ${c.rule}`, fields: c.fields, observed: c.observed, matched: c.matched, applied };
+  });
+
+  // --- Score ---
+  const scoreRules: WhyRule[] = r.score_details.map((s) => ({
+    rule: `${s.label} → ${s.points > 0 ? '+' : ''}${s.points} points`,
+    fields: SCORE_RULE_FIELDS[s.key] ?? [s.key],
+    observed: SCORE_RULE_OBSERVED[s.key]?.(r) ?? 'Condition vérifiée',
+    matched: true,
+    applied: true,
+  }));
+  const rawTotal = r.score_details.reduce((sum, s) => sum + s.points, 0);
+
+  // --- Priorité ---
+  const priorityRules: WhyRule[] = r.priority_reasons.map((reason, i) => ({
+    rule: reason,
+    fields: i === 0 ? ['score'] : ['segment', 'days_to_birthday', 'has_fund'],
+    observed: i === 0
+      ? `score=${r.score}/100`
+      : `segment=${r.segment}, jours avant anniversaire=${val(r.days_to_birthday)}, cagnotte=${yn(r.has_fund)}`,
+    matched: true,
+    applied: true,
+  }));
+
+  // --- Activité ---
+  const activityRules: WhyRule[] = [
+    {
+      rule: 'L’activité utilise uniquement la dernière connexion et la dernière session ; la date d’inscription n’est jamais comptée.',
+      fields: ['date_derniere_connexion', 'date_derniere_activite', 'sessions_count'],
+      observed: `connexion=${val(r.date_derniere_connexion)}, activité=${val(r.date_derniere_activite)}, sessions=${r.sessions_count}`,
+      matched: true,
+      applied: true,
+    },
+    {
+      rule: 'Aucun signal réel → « Jamais actif » ; sinon ≤ 7 j = « Actif », > 7 / > 30 / > 90 jours = niveaux d’inactivité.',
+      fields: ['jours_depuis_derniere_activite', 'niveau_activite'],
+      observed: `jours=${val(r.jours_depuis_derniere_activite)} → ${r.niveau_activite}`,
+      matched: true,
+      applied: true,
+    },
+  ];
+
+  const fields_used = [
+    { field: 'birthday', value: val(r.birthday) },
+    { field: 'days_to_birthday', value: val(r.days_to_birthday) },
+    { field: 'has_birthday_page', value: yn(r.has_birthday_page) },
+    { field: 'has_event_page', value: yn(r.has_event_page) },
+    { field: 'page_published', value: yn(r.page_published) },
+    { field: 'has_fund', value: yn(r.has_fund) },
+    { field: 'funds_count', value: String(r.funds_count) },
+    { field: 'has_shared', value: yn(r.has_shared) },
+    { field: 'shares_count', value: String(r.shares_count) },
+    { field: 'contributions_count', value: String(r.contributions_count) },
+    { field: 'messages_received', value: String(r.messages_received) },
+    { field: 'sessions_count', value: String(r.sessions_count) },
+    { field: 'date_derniere_connexion', value: val(r.date_derniere_connexion) },
+    { field: 'date_derniere_activite', value: val(r.date_derniere_activite) },
+    { field: 'jours_depuis_derniere_activite', value: val(r.jours_depuis_derniere_activite) },
+    { field: 'niveau_activite', value: r.niveau_activite },
+  ];
+
+  return {
+    segment: {
+      conclusion: `Segment retenu : ${r.segment} — ${r.segment_label} (première règle vraie de la cascade exclusive).`,
+      rules: segmentRules,
+    },
+    score: {
+      conclusion: r.score_details.length
+        ? `Somme des règles actives = ${rawTotal} point(s), borné à 0–100 → score ${r.score}/100.`
+        : `Aucune règle de score applicable → score ${r.score}/100.`,
+      rules: scoreRules,
+    },
+    priority: {
+      conclusion: `Priorité retenue : ${r.priority} (priorité de base par tranche de score, relevée par le segment et l’urgence anniversaire).`,
+      rules: priorityRules,
+    },
+    activity: {
+      conclusion: `Niveau d’activité : ${r.niveau_activite}. Blocage principal : ${r.blocage_principal}. Étape du parcours : ${r.etape_parcours}.`,
+      rules: activityRules,
+    },
+    fields_used,
+  };
+}
+
+const SCORE_RULE_FIELDS: Record<string, string[]> = {
+  birthday_soon: ['birthday', 'days_to_birthday'],
+  page_created: ['has_birthday_page', 'has_event_page'],
+  recent_activity: ['niveau_activite', 'jours_depuis_derniere_activite'],
+  fund_created: ['has_fund', 'funds_count'],
+  page_shared: ['has_shared', 'shares_count'],
+  recent_interaction: ['messages_received', 'contributions_count'],
+  inactive_30: ['jours_depuis_derniere_activite'],
+  inactive_90: ['jours_depuis_derniere_activite', 'niveau_activite'],
+};
+
+const SCORE_RULE_OBSERVED: Record<string, (r: CrmComputed) => string> = {
+  birthday_soon: (r) => `anniversaire dans ${val(r.days_to_birthday)} jour(s) (≤ 30)`,
+  page_created: (r) => `page anniversaire=${yn(r.has_birthday_page)}, page événement=${yn(r.has_event_page)}`,
+  recent_activity: (r) => `niveau=${r.niveau_activite}, jours=${val(r.jours_depuis_derniere_activite)}`,
+  fund_created: (r) => `${r.funds_count} cagnotte(s)`,
+  page_shared: (r) => `${r.shares_count} partage(s)`,
+  recent_interaction: (r) => `messages reçus=${r.messages_received}, contributions=${r.contributions_count}`,
+  inactive_30: (r) => `${val(r.jours_depuis_derniere_activite)} jours d’inactivité (> 30 et ≤ 90)`,
+  inactive_90: (r) => `${val(r.jours_depuis_derniere_activite)} jours d’inactivité (> 90) ou jamais actif`,
+};
