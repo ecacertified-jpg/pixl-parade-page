@@ -292,19 +292,47 @@ export default function JdvCrmDashboard() {
             </div>
 
             <div>
-              <Label className="text-xs">Activité</Label>
+              <Label className="text-xs">Niveau d’activité</Label>
               <Select
-                value={filters.activity ?? ALL}
-                onValueChange={(v) => update({ activity: v === ALL ? undefined : (v as 'active' | 'inactive') })}
+                value={filters.activity_level ?? ALL}
+                onValueChange={(v) => update({ activity_level: v === ALL ? undefined : (v as ActivityLevel), activity: undefined })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Tous</SelectItem>
+                  {ACTIVITY_LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs">Étape du parcours</Label>
+              <Select
+                value={filters.journey_step ?? ALL}
+                onValueChange={(v) => update({ journey_step: v === ALL ? undefined : (v as JourneyStep) })}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL}>Toutes</SelectItem>
-                  <SelectItem value="active">Actif (≤ 30 jours)</SelectItem>
-                  <SelectItem value="inactive">Inactif (&gt; 30 jours)</SelectItem>
+                  {JOURNEY_STEPS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <Label className="text-xs">Blocage principal</Label>
+              <Select
+                value={filters.blocker ?? ALL}
+                onValueChange={(v) => update({ blocker: v === ALL ? undefined : (v as Blocker) })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Tous</SelectItem>
+                  {BLOCKERS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
 
             <div>
               <Label className="text-xs">Statut de réactivation</Label>
