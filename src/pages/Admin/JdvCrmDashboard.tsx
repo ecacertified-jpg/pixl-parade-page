@@ -441,7 +441,15 @@ export default function JdvCrmDashboard() {
                       <TableCell>{r.has_birthday_page || r.has_event_page ? 'Oui' : 'Non'}</TableCell>
                       <TableCell>{r.has_fund ? 'Oui' : 'Non'}</TableCell>
                       <TableCell>{r.has_shared ? 'Oui' : 'Non'}</TableCell>
+                      <TableCell className="text-xs">
+                        {r.niveau_activite}
+                        <div className="text-muted-foreground">
+                          {r.jours_depuis_derniere_activite !== null ? `J+${r.jours_depuis_derniere_activite}` : '—'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">{r.blocage_principal}</TableCell>
                       <TableCell className="text-xs">{r.statut_reactivation}</TableCell>
+
                     </TableRow>
                   ))}
                   {(list?.records ?? []).length === 0 && (
