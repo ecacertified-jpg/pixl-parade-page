@@ -106,8 +106,13 @@ function useCrmDataset() {
 
       // Provisionne en arrière-plan les fiches CRM manquantes (CRM ID stable).
       if (records.some((r) => !r.crm_id)) {
-        rpc('crm_provision_profiles').catch(() => undefined);
+        try {
+          void Promise.resolve(rpc('crm_provision_profiles')).catch(() => undefined);
+        } catch {
+          // ignore : le provisionnement ne doit jamais bloquer l'affichage
+        }
       }
+
 
       return { records, duplicateGroups };
     },
