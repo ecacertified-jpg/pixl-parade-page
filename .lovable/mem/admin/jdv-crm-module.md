@@ -19,3 +19,7 @@ Route `/admin/crm` (`JdvCrmDashboard`). Couche d'analyse en LECTURE SEULE : ne m
 - **Priorité** = tranche de score, relevée par le segment, forcée TRÈS HAUTE si anniv ≤30j sans cagnotte ; justification affichée (`priority_reasons`).
 - **Parcours** : Inscrit → Page → Cagnotte → Partage → Contribution, avec `blocage_principal`.
 - `runCoherenceTests()` alimente le panneau « Contrôle de cohérence » du dashboard (T1→T12).
+
+## Audit de segmentation S1→S8 (lecture seule)
+- `auditSegmentation()` / `evaluateSegmentConditions()` dans `crmCore.ts` : évalue indépendamment les 8 prédicats, compare le segment attribué au segment attendu (ordre S1 > … > S8), classe les cas (Aucune, Segment incohérent/inconnu/absent, Données insuffisantes, Interprétations multiples) et propose une action — jamais appliquée automatiquement.
+- Exposé par `useCrmStats().segment_audit`, affiché par `CrmSegmentAuditPanel` (résumé, répartitions, tableau paginé, détail des règles, export CSV via `crmAuditColumns.ts`). Conclusion explicite « AUDIT TERMINÉ — … ».
