@@ -9,10 +9,12 @@ import {
   computeCrmRecord,
   detectDuplicateGroups,
   matchesFilters,
-  runCoherenceTests,
+  buildCoherenceReport,
   type ActivityLevel,
   type CoherenceTest,
+  type CoherenceReport,
   type CrmComputed,
+
   type CrmFilters as CoreFilters,
   type CrmOverviewRow,
   type Priority,
@@ -28,7 +30,7 @@ export {
   KPI_DEFINITIONS,
   PRIORITIES,
 } from '@/lib/crmCore';
-export type { ActivityLevel, JourneyStep, Blocker, CoherenceTest, KpiDefinition } from '@/lib/crmCore';
+export type { ActivityLevel, JourneyStep, Blocker, CoherenceTest, CoherenceReport, KpiDefinition } from '@/lib/crmCore';
 
 
 export type CrmPriority = Priority;
@@ -73,6 +75,9 @@ export interface CrmStats {
   /** Parcours de conversion : nombre d'utilisateurs ayant franchi chaque étape. */
   funnel: { label: string; count: number }[];
   coherence: CoherenceTest[];
+  /** Rapport récapitulatif du contrôle de cohérence (exécuté automatiquement). */
+  coherence_report: CoherenceReport;
+
 }
 
 
@@ -188,6 +193,11 @@ export function useCrmStats() {
         : records.filter((r) => matchesFilters(r, kpi.filters)).length;
     }
 
+    // Contrôle de cohérence T1→T12 exécuté automatiquement après chargement des données.
+    const report = buildCoherenceReport(records);
+
+
+
     return {
       total: records.length,
       by_country: byCountry,
@@ -211,7 +221,9 @@ export function useCrmStats() {
         { label: 'Page partagée', count: stepShare },
         { label: 'Contribution reçue', count: stepContribution },
       ],
-      coherence: runCoherenceTests(records),
+      coherence: report.tests,
+      coherence_report: report,
+
     };
   }, [query.data]);
 
