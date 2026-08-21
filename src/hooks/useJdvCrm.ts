@@ -66,7 +66,15 @@ export interface CrmStats {
   converted: number;
   segments: Record<string, number>;
   segment_defs: typeof SEGMENTS;
+  /** Compteur par carte, calculé avec exactement le même filtre que la liste. */
+  kpis: Record<string, number>;
+  /** Répartition par niveau d'activité (définition unique). */
+  activity_levels: Record<ActivityLevel, number>;
+  /** Parcours de conversion : nombre d'utilisateurs ayant franchi chaque étape. */
+  funnel: { label: string; count: number }[];
+  coherence: CoherenceTest[];
 }
+
 
 const rpc = supabase.rpc.bind(supabase) as unknown as (
   fn: string,
