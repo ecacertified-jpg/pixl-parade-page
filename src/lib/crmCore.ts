@@ -959,3 +959,178 @@ const SCORE_RULE_OBSERVED: Record<string, (r: CrmComputed) => string> = {
   inactive_30: (r) => `${val(r.jours_depuis_derniere_activite)} jours d’inactivité (> 30 et ≤ 90)`,
   inactive_90: (r) => `${val(r.jours_depuis_derniere_activite)} jours d’inactivité (> 90) ou jamais actif`,
 };
+
+// ---------------------------------------------------------------------------
+// 9. Audit de cohérence des segments S1 → S8 (lecture seule)
+// ---------------------------------------------------------------------------
+
+export const SEGMENT_ORDER = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'] as const;
+
+export const SEGMENT_RULES: Record<string, string> = {
+  S1: 'Anniversaire connu et jours avant anniversaire ≤ 30 et aucune cagnotte',
+  S2: 'Au moins une page (anniversaire ou événement) et aucune cagnotte',
+  S3: 'Cagnotte créée et aucun partage détecté',
+  S4: 'Aucune page créée',
+  S5: 'Activité réelle non récente (> 30 jours, jamais actif ou inconnue)',
+  S6: 'Activité récente et aucune cagnotte',
+  S7: 'Activité récente et cagnotte créée',
+  S8: 'Aucun signal exploitable (ni anniversaire, ni page, ni cagnotte, ni partage, ni session, ni connexion)',
+};
+
+export type SegmentAnomalyType =
+  | 'Aucune'
+  | 'Segment incohérent'
+  | 'Segment inconnu'
+  | 'Segment absent'
+  | 'Données insuffisantes'
+  | 'Interprétations multiples';
+
+export interface SegmentAuditRow {
+  crm_id: string | null;
+  user_id: string;
+  nom: string;
+  segment_actuel: string;
+  segment_actuel_label: string;
+  conditions_satisfaites: string[];
+  conditions_label: string;
+  regles_declenchees: string[];
+  segment_attendu: string;
+  segment_attendu_label: string;
+  ecart: boolean;
+  type_anomalie: SegmentAnomalyType;
+  action_recommandee: string;
+}
+
+export interface SegmentAuditReport {
+  generated_at: string;
+  total: number;
+  conformes: number;
+  anomalies: number;
+  a_corriger: number;
+  by_segment: Record<string, number>;
+  by_type: Record<string, number>;
+  rows: SegmentAuditRow[];
+  anomaly_rows: SegmentAuditRow[];
+  conclusion: string;
+}
+
+/** Évalue indépendamment les 8 prédicats de segmentation sur une fiche calculée. */
+export function evaluateSegmentConditions(r: CrmComputed): { matched: string[]; rules: string[] } {
+  const hasPage = r.has_birthday_page || r.has_event_page;
+  const recent = r.niveau_activite === 'Actif' || r.niveau_activite === 'Inactif > 7 jours';
+  const insufficient =
+    !r.birthday && !hasPage && !r.has_fund && !r.has_shared &&
+    r.sessions_count === 0 && !r.date_derniere_connexion;
+
+  const checks: { code: string; ok: boolean; detail: string }[] = [
+    {
+      code: 'S1',
+      ok: !!r.birthday && r.days_to_birthday !== null && r.days_to_birthday <= 30 && !r.has_fund,
+      detail: `anniversaire=${r.birthday ?? 'inconnu'}, jours avant=${r.days_to_birthday ?? 'n/a'}, cagnotte=${r.has_fund ? 'oui' : 'non'}`,
+    },
+    {
+      code: 'S2',
+      ok: hasPage && !r.has_fund,
+      detail: `page=${hasPage ? 'oui' : 'non'}, cagnotte=${r.has_fund ? 'oui' : 'non'}`,
+    },
+    {
+      code: 'S3',
+      ok: r.has_fund && !r.has_shared,
+      detail: `cagnottes=${r.funds_count}, partages=${r.shares_count}`,
+    },
+    { code: 'S4', ok: !hasPage, detail: `page=${hasPage ? 'oui' : 'non'}` },
+    {
+      code: 'S5',
+      ok: !recent,
+      detail: `niveau d’activité=${r.niveau_activite}, jours depuis activité=${r.jours_depuis_derniere_activite ?? 'inconnu'}`,
+    },
+    { code: 'S6', ok: recent && !r.has_fund, detail: `activité récente=${recent ? 'oui' : 'non'}, cagnotte=${r.has_fund ? 'oui' : 'non'}` },
+    { code: 'S7', ok: recent && r.has_fund, detail: `activité récente=${recent ? 'oui' : 'non'}, cagnotte=${r.has_fund ? 'oui' : 'non'}` },
+    { code: 'S8', ok: insufficient, detail: `signaux exploitables=${insufficient ? 'aucun' : 'présents'}` },
+  ];
+
+  const matched = checks.filter((c) => c.ok).map((c) => c.code);
+  const rules = checks
+    .filter((c) => c.ok)
+    .map((c) => `${c.code} — ${SEGMENT_RULES[c.code]} (${c.detail})`);
+  return { matched, rules };
+}
+
+/** Audit complet : compare le segment attribué au segment attendu par la règle de priorité. */
+export function auditSegmentation(records: CrmComputed[]): SegmentAuditReport {
+  const rows: SegmentAuditRow[] = records.map((r) => {
+    const { matched, rules } = evaluateSegmentConditions(r);
+    // S8 est terminal : s'il est satisfait, il l'emporte (aucun autre signal exploitable).
+    const expected = matched.includes('S8')
+      ? 'S8'
+      : (SEGMENT_ORDER.find((s) => s !== 'S8' && matched.includes(s)) ?? '');
+
+    const current = r.segment ?? '';
+    let type: SegmentAnomalyType = 'Aucune';
+    let action = 'Aucune action requise';
+
+    if (!current) {
+      type = 'Segment absent';
+      action = `Attribuer le segment ${expected || 'S8'} (vérification manuelle requise)`;
+    } else if (!SEGMENTS[current]) {
+      type = 'Segment inconnu';
+      action = `Segment « ${current} » non défini — vérifier la source, segment attendu ${expected || 'S8'}`;
+    } else if (expected && current !== expected) {
+      type = 'Segment incohérent';
+      action = `Reclasser vers ${expected} (${SEGMENTS[expected]?.label ?? ''}) après validation humaine`;
+    } else if (!expected) {
+      type = 'Données insuffisantes';
+      action = 'Compléter les données utilisateur avant toute action de réactivation';
+    } else if (current === 'S8') {
+      type = 'Données insuffisantes';
+      action = 'Vérifier les données : aucun signal exploitable';
+    } else if (matched.filter((m) => m !== 'S8').length > 1) {
+      type = 'Interprétations multiples';
+      action = `Conditions multiples (${matched.join(' + ')}) — priorité appliquée : ${expected}. Aucune correction nécessaire`;
+    }
+
+    const ecart = type === 'Segment incohérent' || type === 'Segment inconnu' || type === 'Segment absent';
+
+    return {
+      crm_id: r.crm_id,
+      user_id: r.user_id,
+      nom: [r.first_name, r.last_name].filter(Boolean).join(' ') || 'Nom inconnu',
+      segment_actuel: current || 'Aucun',
+      segment_actuel_label: SEGMENTS[current]?.label ?? 'Segment inconnu',
+      conditions_satisfaites: matched,
+      conditions_label: matched.length ? matched.join(' + ') : 'Aucune condition satisfaite',
+      regles_declenchees: rules,
+      segment_attendu: expected || 'Indéterminé',
+      segment_attendu_label: SEGMENTS[expected]?.label ?? 'Indéterminé',
+      ecart,
+      type_anomalie: type,
+      action_recommandee: action,
+    };
+  });
+
+  const anomaly_rows = rows.filter((r) => r.type_anomalie !== 'Aucune');
+  const a_corriger = rows.filter((r) => r.ecart).length;
+
+  const by_segment: Record<string, number> = {};
+  const by_type: Record<string, number> = {};
+  for (const r of anomaly_rows) {
+    by_segment[r.segment_actuel] = (by_segment[r.segment_actuel] ?? 0) + 1;
+    by_type[r.type_anomalie] = (by_type[r.type_anomalie] ?? 0) + 1;
+  }
+
+  return {
+    generated_at: new Date().toISOString(),
+    total: rows.length,
+    conformes: rows.length - anomaly_rows.length,
+    anomalies: anomaly_rows.length,
+    a_corriger,
+    by_segment,
+    by_type,
+    rows,
+    anomaly_rows,
+    conclusion:
+      a_corriger === 0
+        ? 'AUDIT TERMINÉ — aucune incohérence détectée.'
+        : `AUDIT TERMINÉ — ${a_corriger} utilisateur(s) présentent une incohérence de segmentation.`,
+  };
+}
