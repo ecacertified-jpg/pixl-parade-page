@@ -218,7 +218,7 @@ export default function JdvCrmDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Niveau d’activité (définition unique)</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-2 sm:grid-cols-2">
+            <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {ACTIVITY_LEVELS.map((level) => {
                 const count = stats?.activity_levels?.[level] ?? 0;
                 const isActive = filters.activity_level === level;
@@ -226,13 +226,14 @@ export default function JdvCrmDashboard() {
                   <button
                     key={level}
                     onClick={() => { update({ activity_level: isActive ? undefined : level, activity: undefined }); setActiveKpi(null); }}
-                    className={`rounded-lg border p-3 text-left transition-colors ${isActive ? 'border-primary bg-primary/10' : 'hover:bg-accent/40'}`}
+                    className={`flex min-h-[44px] items-center justify-between gap-2 rounded-lg border p-3 text-left transition-colors sm:block ${isActive ? 'border-primary bg-primary/10' : 'hover:bg-accent/40'}`}
                   >
                     <p className="text-xs text-muted-foreground">{level}</p>
                     <p className="text-lg font-semibold">{count.toLocaleString('fr-FR')}</p>
                   </button>
                 );
               })}
+
               <p className="col-span-full text-xs text-muted-foreground">
                 Activité mesurée uniquement sur des signaux réels : dernière connexion et sessions.
                 La date d’inscription n’est jamais utilisée comme activité.
