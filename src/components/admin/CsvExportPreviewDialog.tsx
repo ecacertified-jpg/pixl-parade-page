@@ -7,47 +7,44 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Download, Search, ChevronDown, ChevronRight } from 'lucide-react';
-import { getExportCellValue, type ExportColumn } from '@/utils/exportUtils';
+import type { ExportPayload } from '@/utils/exportUtils';
 
 const SAMPLE_SIZE = 5;
 const MOBILE_PREVIEW_FIELDS = 6;
+const EMPTY_LABEL = '(vide)';
 
-interface Props<T extends Record<string, any>> {
+interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
-  filtersLabel?: string;
-  columns: ExportColumn<T>[];
-  rows: T[];
+  payload: ExportPayload;
   onConfirm: () => void;
 }
 
 /**
- * Aperçu des colonnes CSV avant export :
- * liste des colonnes avec taux de remplissage + échantillon des premières lignes.
+ * Aperçu 100 % fidèle du fichier CSV : en-tête de contexte, colonnes et valeurs
+ * proviennent du même payload que le téléchargement.
  */
-export function CsvExportPreviewDialog<T extends Record<string, any>>({
-  open, onOpenChange, title, filtersLabel, columns, rows, onConfirm,
-}: Props<T>) {
+export function CsvExportPreviewDialog({ open, onOpenChange, payload, onConfirm }: Props) {
   const [query, setQuery] = useState('');
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
+  const { metaLines, headers, rows, filename, totalFileLines } = payload;
   const sample = useMemo(() => rows.slice(0, SAMPLE_SIZE), [rows]);
 
-  /** Nombre de valeurs réellement renseignées par colonne (sur l'échantillon analysé). */
+  /** Nombre de valeurs réellement renseignées par colonne (sur les lignes analysées). */
   const stats = useMemo(() => {
     const scanned = rows.slice(0, 500);
-    return columns.map((col) => {
-      const values = scanned.map((r) => getExportCellValue(r, col));
+    return headers.map((header, ci) => {
+      const values = scanned.map((r) => r[ci] ?? '');
       const filled = values.filter((v) => v !== '' && v !== 'Non disponible' && v !== 'Date inconnue').length;
       return {
-        header: col.header,
+        header,
         example: values.find((v) => v !== '') ?? '',
         filled,
         scanned: scanned.length,
       };
     });
-  }, [columns, rows]);
+  }, [headers, rows]);
 
   const filteredStats = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -56,21 +53,29 @@ export function CsvExportPreviewDialog<T extends Record<string, any>>({
 
   const emptyColumns = stats.filter((s) => s.filled === 0).length;
 
+  const renderValue = (v: string) =>
+    v === '' ? <span className="text-muted-foreground/70">{EMPTY_LABEL}</span> : v;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[92vh] max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-4xl flex-col gap-3 overflow-hidden p-4 md:h-auto md:max-h-[90vh] md:w-[95vw] md:p-6">
         <DialogHeader className="shrink-0 text-left">
           <DialogTitle className="text-base md:text-lg">Aperçu avant export</DialogTitle>
-          <DialogDescription className="break-words text-xs md:text-sm">{title}</DialogDescription>
+          <DialogDescription className="break-words text-xs md:text-sm">
+            Contenu identique au fichier téléchargé
+          </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-0.5">
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="secondary" className="text-[10px] md:text-xs">
-              {rows.length.toLocaleString('fr-FR')} lignes
+              {rows.length.toLocaleString('fr-FR')} lignes de données
             </Badge>
             <Badge variant="secondary" className="text-[10px] md:text-xs">
-              {columns.length} colonnes
+              {headers.length} colonnes
+            </Badge>
+            <Badge variant="secondary" className="text-[10px] md:text-xs">
+              {totalFileLines.toLocaleString('fr-FR')} lignes dans le fichier
             </Badge>
             {emptyColumns > 0 && (
               <Badge variant="destructive" className="text-[10px] md:text-xs">
@@ -79,11 +84,29 @@ export function CsvExportPreviewDialog<T extends Record<string, any>>({
             )}
           </div>
 
-          {filtersLabel && (
-            <p className="w-full break-words rounded-md bg-muted/50 p-2 text-[11px] md:text-xs">
-              <span className="font-medium">Filtres appliqués : </span>{filtersLabel}
+          <div className="rounded-lg border p-2.5">
+            <p className="mb-1.5 text-sm font-medium">En-tête du fichier</p>
+            <p className="mb-2 break-all text-[11px] text-muted-foreground md:text-xs">
+              <span className="font-medium text-foreground">Nom du fichier : </span>{filename}
             </p>
-          )}
+            {metaLines.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground md:text-xs">
+                Aucune ligne de contexte : le fichier commence directement par les en-têtes de colonnes.
+              </p>
+            ) : (
+              <dl className="space-y-1">
+                {metaLines.map((parts, i) => (
+                  <div
+                    key={`${parts[0]}-${i}`}
+                    className="flex flex-col gap-0.5 text-[11px] md:flex-row md:gap-2 md:text-xs"
+                  >
+                    <dt className="break-words font-medium md:min-w-[10rem]">{parts[0]}</dt>
+                    <dd className="break-words text-muted-foreground">{parts[1] ?? ''}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
 
           <div>
             <p className="mb-2 text-sm font-medium">Colonnes du fichier</p>
@@ -136,21 +159,21 @@ export function CsvExportPreviewDialog<T extends Record<string, any>>({
               )}
               {sample.map((row, idx) => {
                 const isOpen = expandedRow === idx;
-                const visible = isOpen ? columns : columns.slice(0, MOBILE_PREVIEW_FIELDS);
+                const visibleCount = isOpen ? headers.length : MOBILE_PREVIEW_FIELDS;
                 return (
                   <div key={idx} className="rounded-lg border p-3">
                     <p className="mb-2 text-[11px] font-medium text-muted-foreground">Ligne {idx + 1}</p>
                     <dl className="space-y-1.5">
-                      {visible.map((c) => (
-                        <div key={c.header} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2">
-                          <dt className="break-words text-[11px] text-muted-foreground">{c.header}</dt>
+                      {headers.slice(0, visibleCount).map((h, ci) => (
+                        <div key={h} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2">
+                          <dt className="break-words text-[11px] text-muted-foreground">{h}</dt>
                           <dd className="break-words text-[11px] font-medium">
-                            {getExportCellValue(row, c) || '—'}
+                            {renderValue(row[ci] ?? '')}
                           </dd>
                         </div>
                       ))}
                     </dl>
-                    {columns.length > MOBILE_PREVIEW_FIELDS && (
+                    {headers.length > MOBILE_PREVIEW_FIELDS && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -160,7 +183,7 @@ export function CsvExportPreviewDialog<T extends Record<string, any>>({
                         {isOpen ? (
                           <><ChevronDown className="mr-1 h-3.5 w-3.5" />Réduire</>
                         ) : (
-                          <><ChevronRight className="mr-1 h-3.5 w-3.5" />Afficher toutes les colonnes ({columns.length})</>
+                          <><ChevronRight className="mr-1 h-3.5 w-3.5" />Afficher toutes les colonnes ({headers.length})</>
                         )}
                       </Button>
                     )}
@@ -174,17 +197,17 @@ export function CsvExportPreviewDialog<T extends Record<string, any>>({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {columns.map((c) => (
-                      <TableHead key={c.header} className="whitespace-nowrap text-[11px]">{c.header}</TableHead>
+                    {headers.map((h) => (
+                      <TableHead key={h} className="whitespace-nowrap text-[11px]">{h}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sample.map((row, idx) => (
                     <TableRow key={idx}>
-                      {columns.map((c) => (
-                        <TableCell key={c.header} className="whitespace-nowrap text-[11px]">
-                          {getExportCellValue(row, c) || '—'}
+                      {headers.map((h, ci) => (
+                        <TableCell key={h} className="whitespace-nowrap text-[11px]">
+                          {renderValue(row[ci] ?? '')}
                         </TableCell>
                       ))}
                     </TableRow>
