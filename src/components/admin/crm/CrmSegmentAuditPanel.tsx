@@ -249,11 +249,12 @@ export function CrmSegmentAuditPanel({ report }: Props) {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex flex-col items-center gap-2 text-sm sm:flex-row sm:justify-between">
                 <span className="text-muted-foreground">
                   Page {Math.min(page, totalPages)} / {totalPages}
                 </span>
-                <div className="flex gap-2">
+                <div className="flex w-full gap-2 sm:w-auto">
+
                   <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                     Précédent
                   </Button>
