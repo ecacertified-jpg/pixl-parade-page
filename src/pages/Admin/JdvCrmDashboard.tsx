@@ -251,14 +251,15 @@ export default function JdvCrmDashboard() {
                 const pct = total > 0 ? Math.round((step.count / total) * 100) : 0;
                 return (
                   <div key={step.label}>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{step.label}</span>
-                      <span className="font-medium">{step.count.toLocaleString('fr-FR')} · {pct}%</span>
+                    <div className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="min-w-0 flex-1 text-muted-foreground">{step.label}</span>
+                      <span className="shrink-0 text-right font-medium tabular-nums">{step.count.toLocaleString('fr-FR')} · {pct}%</span>
                     </div>
-                    <div className="mt-1 h-2 w-full rounded-full bg-muted">
-                      <div className="h-2 rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    <div className="mt-1 h-2.5 w-full rounded-full bg-muted md:h-2">
+                      <div className="h-2.5 rounded-full bg-primary md:h-2" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
+
                 );
               })}
               {!stats && <Skeleton className="h-24 w-full" />}
