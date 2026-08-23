@@ -25,9 +25,10 @@ function fmtDate(value?: string | null) {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-1 text-sm">
+    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-0.5 py-1 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+      <span className="min-w-0 break-words text-left font-medium sm:text-right">{value}</span>
+
     </div>
   );
 }
