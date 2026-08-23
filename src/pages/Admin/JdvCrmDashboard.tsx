@@ -547,13 +547,10 @@ export default function JdvCrmDashboard() {
 
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm md:text-base">
-              Fiches utilisateurs {list ? `(${list.total.toLocaleString('fr-FR')})` : ''}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 md:px-6">
+        <CrmCollapsibleCard
+          title={`Fiches utilisateurs ${list ? `(${list.total.toLocaleString('fr-FR')})` : ''}`}
+          contentClassName="px-3 md:px-6"
+        >
             {listLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
