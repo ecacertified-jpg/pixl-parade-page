@@ -516,93 +516,157 @@ export default function JdvCrmDashboard() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">
+            <CardTitle className="text-sm md:text-base">
               Fiches utilisateurs {list ? `(${list.total.toLocaleString('fr-FR')})` : ''}
             </CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className="px-3 md:px-6">
             {listLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>CRM ID</TableHead>
-                    <TableHead>Utilisateur</TableHead>
-                    <TableHead>Pays</TableHead>
-                    <TableHead>Segment</TableHead>
-                    <TableHead>Priorité</TableHead>
-                    <TableHead className="text-right">Score</TableHead>
-                    <TableHead>Anniv.</TableHead>
-                    <TableHead>Page</TableHead>
-                    <TableHead>Cagnotte</TableHead>
-                    <TableHead>Partage</TableHead>
-                    <TableHead>Activité</TableHead>
-                    <TableHead>Blocage</TableHead>
-                    <TableHead>Statut</TableHead>
-
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile : une carte par fiche */}
+                <div className="space-y-2 md:hidden">
                   {(list?.records ?? []).map((r) => (
-                    <TableRow
+                    <button
                       key={r.user_id}
-                      className="cursor-pointer"
                       onClick={() => setSelectedUser(r.user_id)}
+                      className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent/40"
                     >
-                      <TableCell className="font-mono text-xs">{r.crm_id ?? '—'}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{[r.first_name, r.last_name].filter(Boolean).join(' ') || 'Sans nom'}</div>
-                        <div className="text-xs text-muted-foreground">{r.phone ?? r.email ?? 'Non disponible'}</div>
-                      </TableCell>
-                      <TableCell>{r.country_code ?? '—'}</TableCell>
-                      <TableCell>
-                        <span className="text-xs font-medium">{r.segment}</span>
-                        <div className="text-xs text-muted-foreground">{r.segment_label}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={PRIORITY_STYLES[r.priority] ?? ''}>{r.priority}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">{r.score}</TableCell>
-                      <TableCell>{r.days_to_birthday !== null ? `J-${r.days_to_birthday}` : '—'}</TableCell>
-                      <TableCell>{r.has_birthday_page || r.has_event_page ? 'Oui' : 'Non'}</TableCell>
-                      <TableCell>{r.has_fund ? 'Oui' : 'Non'}</TableCell>
-                      <TableCell>{r.has_shared ? 'Oui' : 'Non'}</TableCell>
-                      <TableCell className="text-xs">
-                        {r.niveau_activite}
-                        <div className="text-muted-foreground">
-                          {r.jours_depuis_derniere_activite !== null ? `J+${r.jours_depuis_derniere_activite}` : '—'}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {[r.first_name, r.last_name].filter(Boolean).join(' ') || 'Sans nom'}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {r.phone ?? r.email ?? 'Non disponible'}
+                          </p>
+                          <p className="font-mono text-[10px] text-muted-foreground">
+                            {r.crm_id ?? '—'} · {r.country_code ?? '—'}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-xs">{r.blocage_principal}</TableCell>
-                      <TableCell className="text-xs">{r.statut_reactivation}</TableCell>
+                        <div className="shrink-0 text-right">
+                          <p className="text-lg font-semibold leading-none">{r.score}</p>
+                          <p className="text-[10px] text-muted-foreground">score</p>
+                        </div>
+                      </div>
 
-                    </TableRow>
+                      <div className="mt-2 flex flex-wrap items-center gap-1">
+                        <Badge variant="outline" className="text-[10px]">{r.segment}</Badge>
+                        <Badge className={`${PRIORITY_STYLES[r.priority] ?? ''} text-[10px]`}>{r.priority}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">{r.niveau_activite}</Badge>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{r.segment_label}</p>
+
+                      <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[10px]">
+                        {[
+                          { l: 'Anniv.', v: r.days_to_birthday !== null ? `J-${r.days_to_birthday}` : '—' },
+                          { l: 'Page', v: r.has_birthday_page || r.has_event_page ? 'Oui' : 'Non' },
+                          { l: 'Cagnotte', v: r.has_fund ? 'Oui' : 'Non' },
+                          { l: 'Partage', v: r.has_shared ? 'Oui' : 'Non' },
+                        ].map((item) => (
+                          <div key={item.l} className="rounded-md bg-muted/50 py-1">
+                            <p className="text-muted-foreground">{item.l}</p>
+                            <p className="font-medium">{item.v}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="mt-2 text-[11px] leading-tight text-muted-foreground">
+                        <span className="font-medium text-foreground">Blocage :</span> {r.blocage_principal} ·{' '}
+                        <span className="font-medium text-foreground">Statut :</span> {r.statut_reactivation}
+                      </p>
+                    </button>
                   ))}
                   {(list?.records ?? []).length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={13} className="py-8 text-center text-muted-foreground">
-                        Aucun utilisateur ne correspond aux filtres.
-                      </TableCell>
-                    </TableRow>
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Aucun utilisateur ne correspond aux filtres.
+                    </p>
                   )}
-                </TableBody>
-              </Table>
+                </div>
+
+                {/* Desktop : tableau complet */}
+                <div className="hidden overflow-x-auto md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>CRM ID</TableHead>
+                        <TableHead>Utilisateur</TableHead>
+                        <TableHead>Pays</TableHead>
+                        <TableHead>Segment</TableHead>
+                        <TableHead>Priorité</TableHead>
+                        <TableHead className="text-right">Score</TableHead>
+                        <TableHead>Anniv.</TableHead>
+                        <TableHead>Page</TableHead>
+                        <TableHead>Cagnotte</TableHead>
+                        <TableHead>Partage</TableHead>
+                        <TableHead>Activité</TableHead>
+                        <TableHead>Blocage</TableHead>
+                        <TableHead>Statut</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(list?.records ?? []).map((r) => (
+                        <TableRow
+                          key={r.user_id}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedUser(r.user_id)}
+                        >
+                          <TableCell className="font-mono text-xs">{r.crm_id ?? '—'}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{[r.first_name, r.last_name].filter(Boolean).join(' ') || 'Sans nom'}</div>
+                            <div className="text-xs text-muted-foreground">{r.phone ?? r.email ?? 'Non disponible'}</div>
+                          </TableCell>
+                          <TableCell>{r.country_code ?? '—'}</TableCell>
+                          <TableCell>
+                            <span className="text-xs font-medium">{r.segment}</span>
+                            <div className="text-xs text-muted-foreground">{r.segment_label}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={PRIORITY_STYLES[r.priority] ?? ''}>{r.priority}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">{r.score}</TableCell>
+                          <TableCell>{r.days_to_birthday !== null ? `J-${r.days_to_birthday}` : '—'}</TableCell>
+                          <TableCell>{r.has_birthday_page || r.has_event_page ? 'Oui' : 'Non'}</TableCell>
+                          <TableCell>{r.has_fund ? 'Oui' : 'Non'}</TableCell>
+                          <TableCell>{r.has_shared ? 'Oui' : 'Non'}</TableCell>
+                          <TableCell className="text-xs">
+                            {r.niveau_activite}
+                            <div className="text-muted-foreground">
+                              {r.jours_depuis_derniere_activite !== null ? `J+${r.jours_depuis_derniere_activite}` : '—'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs">{r.blocage_principal}</TableCell>
+                          <TableCell className="text-xs">{r.statut_reactivation}</TableCell>
+                        </TableRow>
+                      ))}
+                      {(list?.records ?? []).length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={13} className="py-8 text-center text-muted-foreground">
+                            Aucun utilisateur ne correspond aux filtres.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
 
             {totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                   Précédent
                 </Button>
-                <span className="text-sm text-muted-foreground">Page {page} / {totalPages}</span>
-                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                <span className="order-first text-sm text-muted-foreground sm:order-none">Page {page} / {totalPages}</span>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
                   Suivant
                 </Button>
               </div>
             )}
+
           </CardContent>
         </Card>
       </div>
