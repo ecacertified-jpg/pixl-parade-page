@@ -102,6 +102,7 @@ export function arrayToCSV<T extends Record<string, any>>(
     lines.push(escapeCSVValue(meta.title));
     lines.push(`${escapeCSVValue('Généré le')};${escapeCSVValue(new Date().toLocaleString('fr-FR'))}`);
     lines.push(`${escapeCSVValue('Lignes exportées')};${data.length}`);
+    lines.push(`${escapeCSVValue('Colonnes exportées')};${columns.length}`);
     if (meta.filters) {
       lines.push(`${escapeCSVValue('Filtres appliqués')};${escapeCSVValue(meta.filters)}`);
     }
