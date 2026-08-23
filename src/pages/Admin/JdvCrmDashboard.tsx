@@ -52,11 +52,9 @@ export default function JdvCrmDashboard() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [preview, setPreview] = useState<{
     kind: 'crm' | 'coherence';
-    title: string;
-    filtersLabel?: string;
-    rows: any[];
-    columns: ExportColumn<any>[];
+    payload: ExportPayload;
   } | null>(null);
+
 
   const isMobile = useIsMobile();
 
