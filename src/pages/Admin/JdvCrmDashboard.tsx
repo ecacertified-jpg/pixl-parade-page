@@ -312,11 +312,10 @@ export default function JdvCrmDashboard() {
         </div>
 
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Segmentation comportementale</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <CrmCollapsibleCard
+          title="Segmentation comportementale"
+          contentClassName="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4"
+        >
             {Object.entries(segmentDefs).map(([code, def]) => {
               const count = stats?.segments?.[code] ?? 0;
               const isActive = filters.segment === code;
@@ -338,34 +337,33 @@ export default function JdvCrmDashboard() {
 
               );
             })}
-          </CardContent>
-        </Card>
+        </CrmCollapsibleCard>
 
-        <Card>
-          <CardHeader className="flex flex-col items-start gap-2 pb-3 sm:flex-row sm:justify-between">
-            <div className="min-w-0">
-              <CardTitle className="flex flex-wrap items-center gap-2 text-sm md:text-base">
-                <span>Contrôle de cohérence (T1 → T12)</span>
-                {stats && (
-                  <Badge
-                    variant={stats.coherence_report.failed_count === 0 ? 'secondary' : 'destructive'}
-                  >
-                    {stats.coherence_report.status}
-                  </Badge>
-                )}
-              </CardTitle>
+        <CrmCollapsibleCard
+          defaultOpen={false}
+          title={
+            <span className="flex flex-wrap items-center gap-2">
+              <span>Contrôle de cohérence (T1 → T12)</span>
               {stats && (
-                <p className="mt-1 text-xs leading-tight text-muted-foreground">
-                  Exécuté automatiquement après chargement — {stats.coherence_report.passed_count}/
-                  {stats.coherence_report.tests.length} contrôles conformes ·{' '}
-                  {stats.coherence_report.records_analyzed.toLocaleString('fr-FR')} fiches analysées ·{' '}
-                  {new Date(stats.coherence_report.generated_at).toLocaleString('fr-FR')}
-                </p>
+                <Badge variant={stats.coherence_report.failed_count === 0 ? 'secondary' : 'destructive'}>
+                  {stats.coherence_report.status}
+                </Badge>
               )}
-            </div>
-            {stats && <ExportButton onExportCSV={handleExportCoherence} />}
-          </CardHeader>
-          <CardContent className="space-y-1">
+            </span>
+          }
+          subtitle={
+            stats ? (
+              <p className="text-xs leading-tight text-muted-foreground">
+                Exécuté automatiquement après chargement — {stats.coherence_report.passed_count}/
+                {stats.coherence_report.tests.length} contrôles conformes ·{' '}
+                {stats.coherence_report.records_analyzed.toLocaleString('fr-FR')} fiches analysées ·{' '}
+                {new Date(stats.coherence_report.generated_at).toLocaleString('fr-FR')}
+              </p>
+            ) : undefined
+          }
+          actions={stats ? <ExportButton onExportCSV={handleExportCoherence} /> : undefined}
+          contentClassName="space-y-1"
+        >
             {!stats && <Skeleton className="h-24 w-full" />}
             {stats && (
               <div
@@ -390,9 +388,8 @@ export default function JdvCrmDashboard() {
                 </div>
               </div>
             ))}
+        </CrmCollapsibleCard>
 
-          </CardContent>
-        </Card>
 
         <CrmSegmentAuditPanel report={stats?.segment_audit} />
 
