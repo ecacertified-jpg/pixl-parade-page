@@ -353,12 +353,12 @@ export default function JdvCrmDashboard() {
         <CrmSegmentAuditPanel report={stats?.segment_audit} />
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
-            <CardTitle className="text-base">Filtres</CardTitle>
+          <CardHeader className="flex flex-col items-stretch gap-2 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-sm md:text-base">Filtres</CardTitle>
             <ExportButton onExportCSV={handleExport} />
           </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="lg:col-span-2">
+          <CardContent className="space-y-3">
+            <div>
               <Label className="text-xs">Recherche (nom, téléphone, email, CRM ID)</Label>
               <div className="flex gap-2">
                 <Input
@@ -372,6 +372,20 @@ export default function JdvCrmDashboard() {
                 </Button>
               </div>
             </div>
+
+            <Collapsible open={!isMobile || filtersOpen} onOpenChange={setFiltersOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full justify-between md:hidden">
+                  <span className="flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filtres avancés
+                    {activeFilterCount > 0 && <Badge variant="secondary">{activeFilterCount}</Badge>}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
 
             <div>
               <Label className="text-xs">Pays</Label>
