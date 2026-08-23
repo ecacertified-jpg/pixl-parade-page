@@ -255,12 +255,13 @@ export function CrmSegmentAuditPanel({ report }: Props) {
                 </span>
                 <div className="flex w-full gap-2 sm:w-auto">
 
-                  <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  <Button size="sm" variant="outline" className="flex-1 sm:flex-none" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                     Précédent
                   </Button>
-                  <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <Button size="sm" variant="outline" className="flex-1 sm:flex-none" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
                     Suivant
                   </Button>
+
                 </div>
               </div>
             )}
