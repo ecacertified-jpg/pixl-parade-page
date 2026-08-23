@@ -14,7 +14,7 @@ function RuleRow({ rule }: { rule: WhyRule }) {
     >
       <div className="flex items-start gap-2">
         <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${rule.applied ? 'text-primary' : 'text-muted-foreground'}`} />
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1 break-words">
           <p className={rule.applied ? 'font-medium' : 'text-muted-foreground'}>{rule.rule}</p>
           <p className="text-muted-foreground">Valeurs observées : {rule.observed}</p>
           <div className="flex flex-wrap gap-1">

@@ -51,17 +51,17 @@ export function CrmSegmentAuditPanel({ report }: Props) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
-        <div>
-          <CardTitle className="text-base">
-            Audit de segmentation S1 → S8
+      <CardHeader className="flex flex-col items-start gap-2 pb-3 sm:flex-row sm:justify-between">
+        <div className="min-w-0">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-sm md:text-base">
+            <span>Audit de segmentation S1 → S8</span>
             {report && (
-              <Badge className="ml-2" variant={conforme ? 'secondary' : 'destructive'}>
+              <Badge variant={conforme ? 'secondary' : 'destructive'}>
                 {conforme ? 'CONFORME' : 'INCOHÉRENCES'}
               </Badge>
             )}
           </CardTitle>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs leading-tight text-muted-foreground">
             Audit en lecture seule — aucune donnée modifiée, aucune correction automatique.
             {report && ` Généré le ${new Date(report.generated_at).toLocaleString('fr-FR')}.`}
           </p>
@@ -69,7 +69,8 @@ export function CrmSegmentAuditPanel({ report }: Props) {
         {report && <ExportButton onExportCSV={handleExport} />}
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-3 md:px-6">
+
         {!report && <Skeleton className="h-32 w-full" />}
 
         {report && (
@@ -124,7 +125,7 @@ export function CrmSegmentAuditPanel({ report }: Props) {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
               <Button
                 size="sm"
                 variant={onlyAnomalies ? 'default' : 'outline'}
@@ -141,7 +142,50 @@ export function CrmSegmentAuditPanel({ report }: Props) {
               </Button>
             </div>
 
-            <div className="overflow-x-auto rounded-lg border">
+            {/* Mobile : cartes d’audit */}
+            <div className="space-y-2 md:hidden">
+              {pageRows.length === 0 && (
+                <p className="py-6 text-center text-sm text-muted-foreground">Aucun cas à afficher</p>
+              )}
+              {pageRows.map((r) => (
+                <button
+                  key={r.user_id}
+                  onClick={() => setExpanded(expanded === r.user_id ? null : r.user_id)}
+                  className="w-full rounded-lg border p-3 text-left"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{r.nom}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground">{r.crm_id ?? 'Non disponible'}</p>
+                    </div>
+                    <Badge variant={r.ecart ? 'destructive' : 'secondary'} className="shrink-0 text-[10px]">
+                      {r.ecart ? 'Écart' : 'Conforme'}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1 text-[10px]">
+                    <Badge variant="outline" className="text-[10px]">Actuel : {r.segment_actuel}</Badge>
+                    <Badge variant="outline" className="text-[10px]">Attendu : {r.segment_attendu}</Badge>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{r.conditions_label}</p>
+                  <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{r.action_recommandee}</p>
+                  {expanded === r.user_id && (
+                    <div className="mt-2 rounded-md bg-muted/40 p-2">
+                      <p className="mb-1 text-[11px] font-medium">Règles déclenchées</p>
+                      <ul className="list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
+                        {r.regles_declenchees.length === 0 && <li>Aucune règle satisfaite</li>}
+                        {r.regles_declenchees.map((rule) => <li key={rule}>{rule}</li>)}
+                      </ul>
+                      <p className="mt-2 text-[11px]">
+                        Type d’anomalie : <span className="font-medium">{r.type_anomalie}</span>
+                      </p>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-lg border md:block">
+
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -205,17 +249,19 @@ export function CrmSegmentAuditPanel({ report }: Props) {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex flex-col items-center gap-2 text-sm sm:flex-row sm:justify-between">
                 <span className="text-muted-foreground">
                   Page {Math.min(page, totalPages)} / {totalPages}
                 </span>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                <div className="flex w-full gap-2 sm:w-auto">
+
+                  <Button size="sm" variant="outline" className="flex-1 sm:flex-none" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                     Précédent
                   </Button>
-                  <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <Button size="sm" variant="outline" className="flex-1 sm:flex-none" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
                     Suivant
                   </Button>
+
                 </div>
               </div>
             )}
