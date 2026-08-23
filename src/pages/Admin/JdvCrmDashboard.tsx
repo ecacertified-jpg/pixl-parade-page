@@ -46,6 +46,9 @@ export default function JdvCrmDashboard() {
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const isMobile = useIsMobile();
+
 
   const { data: stats, isLoading: statsLoading, error: statsError } = useCrmStats();
   const { data: list, isLoading: listLoading } = useCrmList(filters, page, PAGE_SIZE);
