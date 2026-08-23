@@ -42,11 +42,21 @@ function escapeCSVValue(value: string): string {
 }
 
 /**
+ * Métadonnées de contexte écrites en tête du fichier CSV
+ */
+export interface ExportMeta {
+  title: string;
+  filters?: string;
+  extra?: Record<string, string | number>;
+}
+
+/**
  * Convert data array to CSV string with proper encoding
  */
 export function arrayToCSV<T extends Record<string, any>>(
   data: T[],
-  columns: ExportColumn<T>[]
+  columns: ExportColumn<T>[],
+  meta?: ExportMeta
 ): string {
   // Header row
   const headers = columns.map(col => escapeCSVValue(col.header));
@@ -64,7 +74,8 @@ export function arrayToCSV<T extends Record<string, any>>(
       } else if (value === null || value === undefined) {
         value = '';
       } else if (typeof value === 'number') {
-        value = formatNumberFr(value);
+        // Nombre brut : reste exploitable (tri / calculs) dans Excel
+        value = String(value);
       } else {
         value = String(value);
       }
@@ -72,9 +83,26 @@ export function arrayToCSV<T extends Record<string, any>>(
       return escapeCSVValue(value);
     });
   });
-  
+
+  const lines: string[] = [];
+
+  if (meta) {
+    lines.push(escapeCSVValue(meta.title));
+    lines.push(`${escapeCSVValue('Généré le')};${escapeCSVValue(new Date().toLocaleString('fr-FR'))}`);
+    lines.push(`${escapeCSVValue('Lignes exportées')};${data.length}`);
+    if (meta.filters) {
+      lines.push(`${escapeCSVValue('Filtres appliqués')};${escapeCSVValue(meta.filters)}`);
+    }
+    for (const [k, v] of Object.entries(meta.extra ?? {})) {
+      lines.push(`${escapeCSVValue(k)};${escapeCSVValue(String(v))}`);
+    }
+    lines.push('');
+  }
+
+  lines.push(headers.join(';'), ...rows.map(row => row.join(';')));
+
   // Combine with semicolon separator (better for French Excel)
-  return [headers.join(';'), ...rows.map(row => row.join(';'))].join('\r\n');
+  return lines.join('\r\n');
 }
 
 /**
@@ -113,9 +141,11 @@ export function generateFilename(baseName: string, extension: string = 'csv'): s
 export function exportToCSV<T extends Record<string, any>>(
   data: T[],
   columns: ExportColumn<T>[],
-  filenameBase: string
+  filenameBase: string,
+  meta?: ExportMeta
 ): void {
-  const csv = arrayToCSV(data, columns);
+  const csv = arrayToCSV(data, columns, meta);
   const filename = generateFilename(filenameBase);
   downloadCSV(csv, filename);
 }
+
