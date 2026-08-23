@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CrmCollapsibleCard } from './CrmCollapsibleCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -50,26 +50,28 @@ export function CrmSegmentAuditPanel({ report }: Props) {
   const conforme = report ? report.a_corriger === 0 : false;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-col items-start gap-2 pb-3 sm:flex-row sm:justify-between">
-        <div className="min-w-0">
-          <CardTitle className="flex flex-wrap items-center gap-2 text-sm md:text-base">
-            <span>Audit de segmentation S1 → S8</span>
-            {report && (
-              <Badge variant={conforme ? 'secondary' : 'destructive'}>
-                {conforme ? 'CONFORME' : 'INCOHÉRENCES'}
-              </Badge>
-            )}
-          </CardTitle>
-          <p className="mt-1 text-xs leading-tight text-muted-foreground">
-            Audit en lecture seule — aucune donnée modifiée, aucune correction automatique.
-            {report && ` Généré le ${new Date(report.generated_at).toLocaleString('fr-FR')}.`}
-          </p>
-        </div>
-        {report && <ExportButton onExportCSV={handleExport} />}
-      </CardHeader>
+    <CrmCollapsibleCard
+      defaultOpen={false}
+      title={
+        <span className="flex flex-wrap items-center gap-2">
+          <span>Audit de segmentation S1 → S8</span>
+          {report && (
+            <Badge variant={conforme ? 'secondary' : 'destructive'}>
+              {conforme ? 'CONFORME' : 'INCOHÉRENCES'}
+            </Badge>
+          )}
+        </span>
+      }
+      subtitle={
+        <p className="text-xs leading-tight text-muted-foreground">
+          Audit en lecture seule — aucune donnée modifiée, aucune correction automatique.
+          {report && ` Généré le ${new Date(report.generated_at).toLocaleString('fr-FR')}.`}
+        </p>
+      }
+      actions={report ? <ExportButton onExportCSV={handleExport} /> : undefined}
+      contentClassName="space-y-4 px-3 md:px-6"
+    >
 
-      <CardContent className="space-y-4 px-3 md:px-6">
 
         {!report && <Skeleton className="h-32 w-full" />}
 
@@ -267,7 +269,6 @@ export function CrmSegmentAuditPanel({ report }: Props) {
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+    </CrmCollapsibleCard>
   );
 }
