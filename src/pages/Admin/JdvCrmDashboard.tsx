@@ -709,6 +709,19 @@ export default function JdvCrmDashboard() {
       </div>
 
       <CrmUserSheet userId={selectedUser} onClose={() => setSelectedUser(null)} />
+
+      {preview && (
+        <CsvExportPreviewDialog
+          open
+          onOpenChange={(o) => !o && setPreview(null)}
+          title={preview.title}
+          filtersLabel={preview.filtersLabel}
+          columns={preview.columns}
+          rows={preview.rows}
+          onConfirm={confirmExport}
+        />
+      )}
+
     </AdminLayout>
   );
 }
