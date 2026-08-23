@@ -156,12 +156,16 @@ export default function JdvCrmDashboard() {
     setActiveKpi(kpi.key);
   };
 
+  const activeFilterCount = Object.entries(filters).filter(
+    ([k, v]) => k !== 'search' && v !== undefined && v !== null && v !== '',
+  ).length;
+
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <header>
-          <h1 className="text-title-main">JDV_CRM — Comportement des utilisateurs</h1>
-          <p className="text-secondary text-muted-foreground">
+          <h1 className="text-lg font-semibold md:text-title-main">JDV_CRM — Comportement des utilisateurs</h1>
+          <p className="text-xs text-muted-foreground md:text-secondary">
             Fiches individuelles, segmentation comportementale et priorités de réactivation.
             Ce module lit les données existantes : il ne modifie jamais les comptes utilisateurs.
           </p>
@@ -176,7 +180,7 @@ export default function JdvCrmDashboard() {
           </Card>
         )}
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3 xl:grid-cols-7">
           {KPI_DEFINITIONS.map((kpi) => {
             const Icon = KPI_ICONS[kpi.key] ?? Users;
             const value = stats?.kpis?.[kpi.key] ?? 0;
@@ -190,23 +194,24 @@ export default function JdvCrmDashboard() {
                 onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && applyKpi(kpi)}
                 className={`cursor-pointer transition-colors ${isActive ? 'border-primary bg-primary/5' : 'hover:bg-accent/40'}`}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Icon className="h-4 w-4" />
-                    <span className="text-xs">{kpi.label}</span>
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex items-start gap-1.5 text-muted-foreground">
+                    <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 md:h-4 md:w-4" />
+                    <span className="text-[11px] leading-tight md:text-xs">{kpi.label}</span>
                   </div>
                   {statsLoading ? (
                     <Skeleton className="mt-2 h-7 w-16" />
                   ) : statsError ? (
-                    <p className="mt-1 text-2xl font-semibold text-muted-foreground">—</p>
+                    <p className="mt-1 text-xl font-semibold text-muted-foreground md:text-2xl">—</p>
                   ) : (
-                    <p className="mt-1 text-2xl font-semibold">{value.toLocaleString('fr-FR')}</p>
+                    <p className="mt-1 text-xl font-semibold md:text-2xl">{value.toLocaleString('fr-FR')}</p>
                   )}
                 </CardContent>
               </Card>
             );
           })}
         </div>
+
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
