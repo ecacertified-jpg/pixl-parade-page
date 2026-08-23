@@ -14,7 +14,9 @@ import { ExportButton } from '@/components/admin/ExportButton';
 import { CrmUserSheet } from '@/components/admin/crm/CrmUserSheet';
 import { CRM_EXPORT_COLUMNS } from '@/components/admin/crm/crmExportColumns';
 import { CrmSegmentAuditPanel } from '@/components/admin/crm/CrmSegmentAuditPanel';
-import { exportToCSV } from '@/utils/exportUtils';
+import { exportToCSV, type ExportColumn } from '@/utils/exportUtils';
+import { CsvExportPreviewDialog } from '@/components/admin/CsvExportPreviewDialog';
+
 
 import {
   ACTIVITY_LEVELS, BLOCKERS, DUPLICATE_STATUSES, JOURNEY_STEPS, KPI_DEFINITIONS,
