@@ -51,17 +51,17 @@ export function CrmSegmentAuditPanel({ report }: Props) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
-        <div>
-          <CardTitle className="text-base">
-            Audit de segmentation S1 → S8
+      <CardHeader className="flex flex-col items-start gap-2 pb-3 sm:flex-row sm:justify-between">
+        <div className="min-w-0">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-sm md:text-base">
+            <span>Audit de segmentation S1 → S8</span>
             {report && (
-              <Badge className="ml-2" variant={conforme ? 'secondary' : 'destructive'}>
+              <Badge variant={conforme ? 'secondary' : 'destructive'}>
                 {conforme ? 'CONFORME' : 'INCOHÉRENCES'}
               </Badge>
             )}
           </CardTitle>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs leading-tight text-muted-foreground">
             Audit en lecture seule — aucune donnée modifiée, aucune correction automatique.
             {report && ` Généré le ${new Date(report.generated_at).toLocaleString('fr-FR')}.`}
           </p>
@@ -69,7 +69,8 @@ export function CrmSegmentAuditPanel({ report }: Props) {
         {report && <ExportButton onExportCSV={handleExport} />}
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-3 md:px-6">
+
         {!report && <Skeleton className="h-32 w-full" />}
 
         {report && (
