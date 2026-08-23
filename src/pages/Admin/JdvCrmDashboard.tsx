@@ -272,7 +272,7 @@ export default function JdvCrmDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Segmentation comportementale</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {Object.entries(segmentDefs).map(([code, def]) => {
               const count = stats?.segments?.[code] ?? 0;
               const isActive = filters.segment === code;
@@ -280,17 +280,18 @@ export default function JdvCrmDashboard() {
                 <button
                   key={code}
                   onClick={() => update({ segment: isActive ? undefined : code })}
-                  className={`rounded-lg border p-3 text-left transition-colors ${
+                  className={`min-h-[44px] rounded-lg border p-3 text-left transition-colors ${
                     isActive ? 'border-primary bg-primary/10' : 'hover:bg-accent/40'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <span className="text-sm font-medium">{code}</span>
-                    <Badge className={PRIORITY_STYLES[def.priority] ?? ''}>{def.priority}</Badge>
+                    <Badge className={`${PRIORITY_STYLES[def.priority] ?? ''} text-[10px]`}>{def.priority}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">{def.label}</p>
+                  <p className="text-xs leading-tight text-muted-foreground">{def.label}</p>
                   <p className="mt-1 text-xl font-semibold">{count.toLocaleString('fr-FR')}</p>
                 </button>
+
               );
             })}
           </CardContent>
