@@ -724,13 +724,11 @@ export default function JdvCrmDashboard() {
         <CsvExportPreviewDialog
           open
           onOpenChange={(o) => !o && setPreview(null)}
-          title={preview.title}
-          filtersLabel={preview.filtersLabel}
-          columns={preview.columns}
-          rows={preview.rows}
+          payload={preview.payload}
           onConfirm={confirmExport}
         />
       )}
+
 
     </AdminLayout>
   );
