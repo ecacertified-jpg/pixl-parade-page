@@ -494,7 +494,7 @@ export default function JdvCrmDashboard() {
                 <div className="flex items-end">
                   <Button
                     variant="outline"
-                    className="w-full md:variant-ghost"
+                    className="w-full"
                     onClick={() => { setFilters({}); setSearchInput(''); setPage(1); setActiveKpi(null); }}
                   >
                     Réinitialiser les filtres
