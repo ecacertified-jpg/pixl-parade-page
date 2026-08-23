@@ -35,7 +35,15 @@ export function CrmSegmentAuditPanel({ report }: Props) {
       toast.error('Aucune ligne à exporter');
       return;
     }
-    exportToCSV(rows, CRM_AUDIT_COLUMNS, onlyAnomalies ? 'jdv_crm_audit_anomalies' : 'jdv_crm_audit_segments');
+    exportToCSV(rows, CRM_AUDIT_COLUMNS, onlyAnomalies ? 'jdv_crm_audit_anomalies' : 'jdv_crm_audit_segments', {
+      title: 'Export JDV CRM — Audit de segmentation S1→S8',
+      filters: onlyAnomalies ? 'Anomalies uniquement' : 'Toutes les fiches auditées',
+      extra: {
+        'Fiches auditées': report?.total ?? rows.length,
+        'Anomalies détectées': report?.anomalies ?? 0,
+      },
+    });
+
     toast.success(`${rows.length} ligne(s) exportée(s)`);
   };
 
