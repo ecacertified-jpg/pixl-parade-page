@@ -259,11 +259,10 @@ export default function JdvCrmDashboard() {
 
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Niveau d’activité (définition unique)</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <CrmCollapsibleCard
+            title="Niveau d’activité (définition unique)"
+            contentClassName="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          >
               {ACTIVITY_LEVELS.map((level) => {
                 const count = stats?.activity_levels?.[level] ?? 0;
                 const isActive = filters.activity_level === level;
@@ -283,8 +282,8 @@ export default function JdvCrmDashboard() {
                 Activité mesurée uniquement sur des signaux réels : dernière connexion et sessions.
                 La date d’inscription n’est jamais utilisée comme activité.
               </p>
-            </CardContent>
-          </Card>
+          </CrmCollapsibleCard>
+
 
           <Card>
             <CardHeader className="pb-3">
