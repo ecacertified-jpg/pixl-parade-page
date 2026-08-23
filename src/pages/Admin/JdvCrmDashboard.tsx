@@ -298,13 +298,12 @@ export default function JdvCrmDashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-2 pb-3">
-            <div>
-              <CardTitle className="text-base">
-                Contrôle de cohérence (T1 → T12)
+          <CardHeader className="flex flex-col items-start gap-2 pb-3 sm:flex-row sm:justify-between">
+            <div className="min-w-0">
+              <CardTitle className="flex flex-wrap items-center gap-2 text-sm md:text-base">
+                <span>Contrôle de cohérence (T1 → T12)</span>
                 {stats && (
                   <Badge
-                    className="ml-2"
                     variant={stats.coherence_report.failed_count === 0 ? 'secondary' : 'destructive'}
                   >
                     {stats.coherence_report.status}
@@ -312,7 +311,7 @@ export default function JdvCrmDashboard() {
                 )}
               </CardTitle>
               {stats && (
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs leading-tight text-muted-foreground">
                   Exécuté automatiquement après chargement — {stats.coherence_report.passed_count}/
                   {stats.coherence_report.tests.length} contrôles conformes ·{' '}
                   {stats.coherence_report.records_analyzed.toLocaleString('fr-FR')} fiches analysées ·{' '}
@@ -326,7 +325,7 @@ export default function JdvCrmDashboard() {
             {!stats && <Skeleton className="h-24 w-full" />}
             {stats && (
               <div
-                className={`mb-3 rounded-lg border p-3 text-sm ${
+                className={`mb-3 rounded-lg border p-3 text-xs md:text-sm ${
                   stats.coherence_report.failed_count === 0
                     ? 'border-primary/40 bg-primary/5'
                     : 'border-destructive/40 bg-destructive/5'
@@ -336,15 +335,18 @@ export default function JdvCrmDashboard() {
               </div>
             )}
             {stats?.coherence.map((t) => (
-              <div key={t.id} className="flex items-start gap-2 text-sm">
+              <div key={t.id} className="flex items-start gap-2 border-b py-1.5 text-sm last:border-0 md:border-0 md:py-0">
                 {t.passed
                   ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />}
-                <span className="shrink-0 text-xs font-medium text-muted-foreground">{t.id}</span>
-                <span className="flex-1">{t.label}</span>
-                <span className="text-xs text-muted-foreground">{t.detail}</span>
+                <div className="min-w-0 flex-1 md:flex md:items-start md:gap-2">
+                  <span className="shrink-0 text-xs font-medium text-muted-foreground">{t.id}</span>
+                  <span className="block flex-1 text-xs md:text-sm">{t.label}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground md:mt-0 md:text-right">{t.detail}</span>
+                </div>
               </div>
             ))}
+
           </CardContent>
         </Card>
 
