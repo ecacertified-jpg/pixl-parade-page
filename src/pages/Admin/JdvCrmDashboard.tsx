@@ -49,6 +49,14 @@ export default function JdvCrmDashboard() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [preview, setPreview] = useState<{
+    kind: 'crm' | 'coherence';
+    title: string;
+    filtersLabel?: string;
+    rows: any[];
+    columns: ExportColumn<any>[];
+  } | null>(null);
+
   const isMobile = useIsMobile();
 
 
