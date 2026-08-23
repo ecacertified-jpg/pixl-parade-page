@@ -56,7 +56,7 @@ export function CrmUserSheet({ userId, onClose }: Props) {
 
   return (
     <Sheet open={!!userId} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent side="right" className="w-full overflow-y-auto px-4 sm:max-w-2xl sm:px-6">
         {isLoading || !record ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
