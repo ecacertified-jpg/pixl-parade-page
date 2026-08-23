@@ -51,6 +51,31 @@ export interface ExportMeta {
 }
 
 /**
+ * Valeur finale d'une cellule (identique à celle écrite dans le CSV),
+ * réutilisée par l'aperçu avant export.
+ */
+export function getExportCellValue<T extends Record<string, any>>(
+  row: T,
+  col: ExportColumn<T>
+): string {
+  const key = col.key as string;
+  let value = key.includes('.')
+    ? key.split('.').reduce((obj, k) => obj?.[k], row as any)
+    : (row as any)[key];
+
+  if (col.format) {
+    value = col.format(value, row);
+  } else if (value === null || value === undefined) {
+    value = '';
+  } else {
+    // Nombre brut : reste exploitable (tri / calculs) dans Excel
+    value = String(value);
+  }
+
+  return String(value);
+}
+
+/**
  * Convert data array to CSV string with proper encoding
  */
 export function arrayToCSV<T extends Record<string, any>>(
@@ -60,29 +85,12 @@ export function arrayToCSV<T extends Record<string, any>>(
 ): string {
   // Header row
   const headers = columns.map(col => escapeCSVValue(col.header));
-  
+
   // Data rows
-  const rows = data.map(row => {
-    return columns.map(col => {
-      const key = col.key as string;
-      let value = key.includes('.') 
-        ? key.split('.').reduce((obj, k) => obj?.[k], row as any)
-        : row[key];
-      
-      if (col.format) {
-        value = col.format(value, row);
-      } else if (value === null || value === undefined) {
-        value = '';
-      } else if (typeof value === 'number') {
-        // Nombre brut : reste exploitable (tri / calculs) dans Excel
-        value = String(value);
-      } else {
-        value = String(value);
-      }
-      
-      return escapeCSVValue(value);
-    });
-  });
+  const rows = data.map(row =>
+    columns.map(col => escapeCSVValue(getExportCellValue(row, col)))
+  );
+
 
   const lines: string[] = [];
 
