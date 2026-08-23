@@ -130,7 +130,7 @@ export default function JdvCrmDashboard() {
   };
 
 
-  /** Aperçu avant export : on charge les données, puis on affiche les colonnes. */
+  /** Aperçu avant export : le payload affiché est exactement le fichier téléchargé. */
   const handleExport = async () => {
     try {
       const res = await fetchCrmExport(filters);
@@ -140,10 +140,15 @@ export default function JdvCrmDashboard() {
       }
       setPreview({
         kind: 'crm',
-        title: 'Export JDV CRM — Segmentation comportementale',
-        filtersLabel: describeFilters(filters),
-        rows: res.records,
-        columns: CRM_EXPORT_COLUMNS as ExportColumn<any>[],
+        payload: buildExportPayload(
+          res.records,
+          CRM_EXPORT_COLUMNS as ExportColumn<any>[],
+          exportFilenameBase(filters),
+          {
+            title: 'Export JDV CRM — Segmentation comportementale',
+            filters: describeFilters(filters),
+          }
+        ),
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur d'export");
@@ -167,31 +172,25 @@ export default function JdvCrmDashboard() {
     }));
     setPreview({
       kind: 'coherence',
-      title: 'Export JDV CRM — Contrôle de cohérence T1→T12',
-      filtersLabel: `Fiches analysées : ${stats.coherence_report.records_analyzed}`,
-      rows,
-      columns: COHERENCE_COLUMNS,
+      payload: buildExportPayload(rows, COHERENCE_COLUMNS, 'jdv_crm_coherence', {
+        title: 'Export JDV CRM — Contrôle de cohérence T1→T12',
+        extra: { 'Fiches analysées': stats.coherence_report.records_analyzed },
+      }),
     });
   };
 
-  /** Téléchargement réel, déclenché depuis l'aperçu. */
+  /** Téléchargement réel : exactement le contenu prévisualisé. */
   const confirmExport = () => {
     if (!preview) return;
-    if (preview.kind === 'crm') {
-      exportToCSV(preview.rows, preview.columns, exportFilenameBase(filters), {
-        title: preview.title,
-        filters: preview.filtersLabel,
-      });
-      toast.success(`${preview.rows.length} fiches exportées`);
-    } else {
-      exportToCSV(preview.rows, preview.columns, 'jdv_crm_coherence', {
-        title: preview.title,
-        extra: { 'Fiches analysées': stats?.coherence_report.records_analyzed ?? 0 },
-      });
-      toast.success('Rapport de cohérence exporté');
-    }
+    downloadExportPayload(preview.payload);
+    toast.success(
+      preview.kind === 'crm'
+        ? `${preview.payload.rows.length} fiches exportées`
+        : 'Rapport de cohérence exporté'
+    );
     setPreview(null);
   };
+
 
 
 
