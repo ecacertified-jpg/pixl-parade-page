@@ -7,12 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ExportButton } from '@/components/admin/ExportButton';
 import { CrmUserSheet } from '@/components/admin/crm/CrmUserSheet';
 import { CRM_EXPORT_COLUMNS } from '@/components/admin/crm/crmExportColumns';
 import { CrmSegmentAuditPanel } from '@/components/admin/crm/CrmSegmentAuditPanel';
 import { exportToCSV } from '@/utils/exportUtils';
+
 import {
   ACTIVITY_LEVELS, BLOCKERS, DUPLICATE_STATUSES, JOURNEY_STEPS, KPI_DEFINITIONS,
   REACTIVATION_STATUSES, fetchCrmExport,
