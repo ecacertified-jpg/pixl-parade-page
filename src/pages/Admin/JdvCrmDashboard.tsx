@@ -700,8 +700,8 @@ export default function JdvCrmDashboard() {
               </div>
             )}
 
-          </CardContent>
-        </Card>
+        </CrmCollapsibleCard>
+
       </div>
 
       <CrmUserSheet userId={selectedUser} onClose={() => setSelectedUser(null)} />
