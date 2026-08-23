@@ -111,10 +111,26 @@ export default function JdvCrmDashboard() {
       f.activity === 'active' ? 'actifs' : f.activity === 'inactive' ? 'inactifs' : undefined,
       f.priority,
       f.country,
+      f.city,
       f.blocker,
+      f.journey_step,
+      f.statut_reactivation ? `reac_${f.statut_reactivation}` : undefined,
+      f.statut_doublon ? `doublon_${f.statut_doublon}` : undefined,
+      f.duplicates_only ? 'doublons_potentiels' : undefined,
+      typeof f.score_min === 'number' ? `score_min_${f.score_min}` : undefined,
+      typeof f.score_max === 'number' ? `score_max_${f.score_max}` : undefined,
+      typeof f.birthday_within_days === 'number' ? `anniv_${f.birthday_within_days}j` : undefined,
+      typeof f.has_page === 'boolean' ? (f.has_page ? 'avec_page' : 'sans_page') : undefined,
+      typeof f.has_fund === 'boolean' ? (f.has_fund ? 'avec_cagnotte' : 'sans_cagnotte') : undefined,
+      typeof f.has_shared === 'boolean' ? (f.has_shared ? 'partagee' : 'non_partagee') : undefined,
+      f.signup_from ? `du_${f.signup_from}` : undefined,
+      f.signup_to ? `au_${f.signup_to}` : undefined,
+      f.search ? `recherche_${f.search}` : undefined,
     ].filter(Boolean) as string[];
-    return ['jdv_crm', ...bits.map(slugify)].join('_');
+    const base = ['jdv_crm', ...bits.map(slugify)].filter(Boolean).join('_');
+    return base.length > 120 ? base.slice(0, 120).replace(/_$/, '') : base;
   };
+
 
   /** Aperçu avant export : on charge les données, puis on affiche les colonnes. */
   const handleExport = async () => {

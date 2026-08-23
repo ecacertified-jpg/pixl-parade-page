@@ -32,14 +32,18 @@ export function formatCurrencyXOF(value: number): string {
 }
 
 /**
- * Escape CSV value (handle commas, quotes, newlines)
+ * Escape CSV value : protège le séparateur `;`, les virgules, guillemets et sauts de ligne.
+ * Neutralise aussi les valeurs commençant par = + - @ (injection de formule Excel).
  */
 function escapeCSVValue(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
-    return `"${value.replace(/"/g, '""')}"`;
+  let v = value;
+  if (/^[=+\-@]/.test(v)) v = `'${v}`;
+  if (/[;,"\n\r]/.test(v)) {
+    return `"${v.replace(/"/g, '""')}"`;
   }
-  return value;
+  return v;
 }
+
 
 /**
  * Métadonnées de contexte écrites en tête du fichier CSV
@@ -98,6 +102,7 @@ export function arrayToCSV<T extends Record<string, any>>(
     lines.push(escapeCSVValue(meta.title));
     lines.push(`${escapeCSVValue('Généré le')};${escapeCSVValue(new Date().toLocaleString('fr-FR'))}`);
     lines.push(`${escapeCSVValue('Lignes exportées')};${data.length}`);
+    lines.push(`${escapeCSVValue('Colonnes exportées')};${columns.length}`);
     if (meta.filters) {
       lines.push(`${escapeCSVValue('Filtres appliqués')};${escapeCSVValue(meta.filters)}`);
     }
