@@ -13,6 +13,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ExportButton } from '@/components/admin/ExportButton';
 import { CrmUserSheet } from '@/components/admin/crm/CrmUserSheet';
 import { CRM_EXPORT_COLUMNS } from '@/components/admin/crm/crmExportColumns';
+import { CrmCollapsibleCard } from '@/components/admin/crm/CrmCollapsibleCard';
 import { CrmSegmentAuditPanel } from '@/components/admin/crm/CrmSegmentAuditPanel';
 import { exportToCSV, type ExportColumn } from '@/utils/exportUtils';
 import { CsvExportPreviewDialog } from '@/components/admin/CsvExportPreviewDialog';
