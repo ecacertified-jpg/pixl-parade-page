@@ -80,6 +80,68 @@ export function getExportCellValue<T extends Record<string, any>>(
 }
 
 /**
+ * Paquet d'export : source de vérité unique partagée par l'aperçu et le téléchargement.
+ */
+export interface ExportPayload {
+  /** Lignes de contexte en tête du fichier, sous forme de paires [libellé, valeur]. */
+  metaLines: string[][];
+  /** Libellés de colonnes (non échappés, tels qu'affichés dans Excel). */
+  headers: string[];
+  /** Valeurs de cellules (non échappées, telles qu'affichées dans Excel). */
+  rows: string[][];
+  /** Contenu CSV final, exactement ce qui sera téléchargé. */
+  csv: string;
+  /** Nom du fichier téléchargé. */
+  filename: string;
+  /** Nombre total de lignes du fichier (contexte + en-tête + données). */
+  totalFileLines: number;
+}
+
+function buildMetaLines<T>(dataLength: number, columnsLength: number, meta?: ExportMeta): string[][] {
+  if (!meta) return [];
+  const lines: string[][] = [
+    [meta.title],
+    ['Généré le', new Date().toLocaleString('fr-FR')],
+    ['Lignes exportées', String(dataLength)],
+    ['Colonnes exportées', String(columnsLength)],
+  ];
+  if (meta.filters) lines.push(['Filtres appliqués', meta.filters]);
+  for (const [k, v] of Object.entries(meta.extra ?? {})) lines.push([k, String(v)]);
+  return lines;
+}
+
+/**
+ * Construit en une seule fois le contenu CSV, ses valeurs brutes et son nom de fichier.
+ */
+export function buildExportPayload<T extends Record<string, any>>(
+  data: T[],
+  columns: ExportColumn<T>[],
+  filenameBase: string,
+  meta?: ExportMeta
+): ExportPayload {
+  const headers = columns.map((col) => col.header);
+  const rows = data.map((row) => columns.map((col) => getExportCellValue(row, col)));
+  const metaLines = buildMetaLines(data.length, columns.length, meta);
+
+  const lines: string[] = [];
+  for (const parts of metaLines) {
+    lines.push(parts.map(escapeCSVValue).join(';'));
+  }
+  if (metaLines.length) lines.push('');
+  lines.push(headers.map(escapeCSVValue).join(';'));
+  for (const row of rows) lines.push(row.map(escapeCSVValue).join(';'));
+
+  return {
+    metaLines,
+    headers,
+    rows,
+    csv: lines.join('\r\n'),
+    filename: generateFilename(filenameBase),
+    totalFileLines: lines.length,
+  };
+}
+
+/**
  * Convert data array to CSV string with proper encoding
  */
 export function arrayToCSV<T extends Record<string, any>>(
@@ -87,35 +149,7 @@ export function arrayToCSV<T extends Record<string, any>>(
   columns: ExportColumn<T>[],
   meta?: ExportMeta
 ): string {
-  // Header row
-  const headers = columns.map(col => escapeCSVValue(col.header));
-
-  // Data rows
-  const rows = data.map(row =>
-    columns.map(col => escapeCSVValue(getExportCellValue(row, col)))
-  );
-
-
-  const lines: string[] = [];
-
-  if (meta) {
-    lines.push(escapeCSVValue(meta.title));
-    lines.push(`${escapeCSVValue('Généré le')};${escapeCSVValue(new Date().toLocaleString('fr-FR'))}`);
-    lines.push(`${escapeCSVValue('Lignes exportées')};${data.length}`);
-    lines.push(`${escapeCSVValue('Colonnes exportées')};${columns.length}`);
-    if (meta.filters) {
-      lines.push(`${escapeCSVValue('Filtres appliqués')};${escapeCSVValue(meta.filters)}`);
-    }
-    for (const [k, v] of Object.entries(meta.extra ?? {})) {
-      lines.push(`${escapeCSVValue(k)};${escapeCSVValue(String(v))}`);
-    }
-    lines.push('');
-  }
-
-  lines.push(headers.join(';'), ...rows.map(row => row.join(';')));
-
-  // Combine with semicolon separator (better for French Excel)
-  return lines.join('\r\n');
+  return buildExportPayload(data, columns, 'export', meta).csv;
 }
 
 /**
@@ -148,6 +182,11 @@ export function generateFilename(baseName: string, extension: string = 'csv'): s
   return `${baseName}_${date}.${extension}`;
 }
 
+/** Télécharge exactement le contenu prévisualisé. */
+export function downloadExportPayload(payload: ExportPayload): void {
+  downloadCSV(payload.csv, payload.filename);
+}
+
 /**
  * Export data to CSV and trigger download
  */
@@ -157,8 +196,7 @@ export function exportToCSV<T extends Record<string, any>>(
   filenameBase: string,
   meta?: ExportMeta
 ): void {
-  const csv = arrayToCSV(data, columns, meta);
-  const filename = generateFilename(filenameBase);
-  downloadCSV(csv, filename);
+  downloadExportPayload(buildExportPayload(data, columns, filenameBase, meta));
 }
+
 
