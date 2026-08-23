@@ -56,6 +56,47 @@ export default function JdvCrmDashboard() {
   const countries = useMemo(() => Object.keys(stats?.by_country ?? {}).sort(), [stats]);
   const segmentDefs = stats?.segment_defs ?? {};
 
+  /** Description lisible des filtres actifs, écrite en tête du CSV. */
+  const describeFilters = (f: CrmFilters): string => {
+    const parts: string[] = [];
+    if (f.search) parts.push(`Recherche = ${f.search}`);
+    if (f.country) parts.push(`Pays = ${f.country}`);
+    if (f.city) parts.push(`Ville = ${f.city}`);
+    if (f.segment) parts.push(`Segment = ${f.segment}${segmentDefs[f.segment]?.label ? ` (${segmentDefs[f.segment].label})` : ''}`);
+    if (f.priority) parts.push(`Priorité = ${f.priority}`);
+    if (typeof f.score_min === 'number') parts.push(`Score ≥ ${f.score_min}`);
+    if (typeof f.score_max === 'number') parts.push(`Score ≤ ${f.score_max}`);
+    if (typeof f.has_page === 'boolean') parts.push(`Page créée = ${f.has_page ? 'Oui' : 'Non'}`);
+    if (typeof f.has_fund === 'boolean') parts.push(`Cagnotte créée = ${f.has_fund ? 'Oui' : 'Non'}`);
+    if (typeof f.has_shared === 'boolean') parts.push(`Page partagée = ${f.has_shared ? 'Oui' : 'Non'}`);
+    if (f.activity) parts.push(`Activité = ${f.activity === 'active' ? 'Actifs ≤ 30 j' : 'Inactifs > 30 j'}`);
+    if (f.activity_level) parts.push(`Niveau d'activité = ${f.activity_level}`);
+    if (f.journey_step) parts.push(`Étape du parcours = ${f.journey_step}`);
+    if (f.blocker) parts.push(`Blocage principal = ${f.blocker}`);
+    if (f.statut_reactivation) parts.push(`Statut de réactivation = ${f.statut_reactivation}`);
+    if (f.statut_doublon) parts.push(`Statut de doublon = ${f.statut_doublon}`);
+    if (f.duplicates_only) parts.push('Doublons potentiels uniquement');
+    if (f.signup_from) parts.push(`Inscrit à partir du ${f.signup_from}`);
+    if (f.signup_to) parts.push(`Inscrit jusqu'au ${f.signup_to}`);
+    if (typeof f.birthday_within_days === 'number') parts.push(`Anniversaire dans ≤ ${f.birthday_within_days} jours`);
+    return parts.length ? parts.join(' | ') : 'Aucun filtre — toutes les fiches';
+  };
+
+  const slugify = (v: string) =>
+    v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '').toLowerCase();
+
+  const exportFilenameBase = (f: CrmFilters): string => {
+    const bits = [
+      f.segment,
+      f.activity_level,
+      f.activity === 'active' ? 'actifs' : f.activity === 'inactive' ? 'inactifs' : undefined,
+      f.priority,
+      f.country,
+      f.blocker,
+    ].filter(Boolean) as string[];
+    return ['jdv_crm', ...bits.map(slugify)].join('_');
+  };
+
   const handleExport = async () => {
     try {
       const res = await fetchCrmExport(filters);
@@ -63,7 +104,10 @@ export default function JdvCrmDashboard() {
         toast.error('Aucune donnée à exporter');
         return;
       }
-      exportToCSV(res.records, CRM_EXPORT_COLUMNS, 'jdv_crm');
+      exportToCSV(res.records, CRM_EXPORT_COLUMNS, exportFilenameBase(filters), {
+        title: 'Export JDV CRM — Segmentation comportementale',
+        filters: describeFilters(filters),
+      });
       toast.success(`${res.records.length} fiches exportées`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur d'export");
@@ -77,19 +121,19 @@ export default function JdvCrmDashboard() {
       controle: t.label,
       resultat: t.passed ? 'Conforme' : 'Anomalie',
       detail: t.detail,
-      fiches_analysees: stats.coherence_report.records_analyzed,
-      genere_le: new Date(stats.coherence_report.generated_at).toLocaleString('fr-FR'),
     }));
     exportToCSV(rows, [
-      { key: 'test', header: 'Test' },
-      { key: 'controle', header: 'Contrôle' },
-      { key: 'resultat', header: 'Résultat' },
-      { key: 'detail', header: 'Détail' },
-      { key: 'fiches_analysees', header: 'Fiches analysées' },
-      { key: 'genere_le', header: 'Généré le' },
-    ], 'jdv_crm_coherence');
+      { key: 'test', header: 'CONTRÔLE — Test' },
+      { key: 'controle', header: 'CONTRÔLE — Libellé' },
+      { key: 'resultat', header: 'CONTRÔLE — Résultat' },
+      { key: 'detail', header: 'CONTRÔLE — Détail' },
+    ], 'jdv_crm_coherence', {
+      title: 'Export JDV CRM — Contrôle de cohérence T1→T12',
+      extra: { 'Fiches analysées': stats.coherence_report.records_analyzed },
+    });
     toast.success('Rapport de cohérence exporté');
   };
+
 
 
   const totalPages = Math.max(1, Math.ceil((list?.total ?? 0) / PAGE_SIZE));
