@@ -24,8 +24,10 @@ import {
 } from '@/hooks/useJdvCrm';
 import { toast } from 'sonner';
 import {
-  AlertTriangle, Cake, CheckCircle2, Copy, Gift, Search, Share2, UserX, Users, XCircle,
+  AlertTriangle, Cake, CheckCircle2, ChevronDown, Copy, Gift, Search, Share2,
+  SlidersHorizontal, UserX, Users, XCircle,
 } from 'lucide-react';
+
 
 const ALL = '__all__';
 const PAGE_SIZE = 50;
